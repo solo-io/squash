@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: squash-server-rc
+spec:
+  replicas: 1
+  selector:
+    app: squash-server
+  template:
+    metadata:
+      labels:
+        app: squash-server
+    spec:
+      containers:
+      - name: squash-server
+        image: {{.Repo}}/squash-server:{{.Version}}
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: HOST_ADDR
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: KUBE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: squash-server-service
+spec:
+  selector:
+    app: squash-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
