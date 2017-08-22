@@ -33,7 +33,7 @@ To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSo
 
 ## demo
 
-<img src="http://imgur.com/YDeaHYD" alt="squash demo">
+<img src="http://i.imgur.com/YDeaHYD.gifv" alt="squash demo">
 
 ## Documentation
 - **Installation**
