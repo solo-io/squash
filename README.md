@@ -22,7 +22,7 @@ To learn more about the motivation behind project squash, read our blog [post](h
 To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSoloIO) and join us on our [slack channel](http://slack.solo.io).
 
 
-## Supported features:
+## With Squash, you can:
 * Live debugging cross multi microservices
 * Debug container in a pod
 * Debug a service
@@ -31,9 +31,9 @@ To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSo
 * View and modify values of variables
 * and more ...
 
-## demo
+## Demo
 
-<img src="http://i.imgur.com/YDeaHYD.gif"  width="100%">
+<img src="http://i.imgur.com/OTZb7tV.gifv" width="100%">
 
 ## Documentation
 - **Installation**
