@@ -64,8 +64,8 @@ paths:
     get:
       tags:
       - "debugconfig"
-      summary: "Retrun all debug configs" 
-      description: "Retrun all debug configs"
+      summary: "Return all debug configs" 
+      description: "Return all debug configs"
       operationId: "getDebugConfigs"
       responses:
         200:
@@ -138,8 +138,8 @@ paths:
     get:
       tags:
       - "debugconfig"
-      summary: "Retrun a debug config" 
-      description: "Retrun a debug config"
+      summary: "Return a debug config" 
+      description: "Return a debug config"
       operationId: "getDebugConfig"
       parameters:
       - name: "debugConfigId"
