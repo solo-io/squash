@@ -77,7 +77,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 
 **platforms**:
   - [Mesos](http://mesos.apache.org)
-  - [Docker Swam](https://github.com/docker/swarm)
+  - [Docker Swarm](https://github.com/docker/swarm)
   - [Cloud Foundry](https://www.cloudfoundry.org)
   
 **IDEs**
