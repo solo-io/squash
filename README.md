@@ -73,7 +73,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   
 **debuggers**:
   - [Nodejs](https://nodejs.org/api/debugger.html)
-  - [pdb](https://docs.python.org/3/library/pdb.html)
+  - [Phython](https://docs.python.org/3/library/pdb.html)
   - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
 
 **platforms**:
