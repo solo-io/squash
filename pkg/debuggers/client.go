@@ -158,6 +158,28 @@ func (d *DebugHandler) waitForErrorAndStop(ci *models.DebugConfig, curdebugger D
 		log.WithField("err", err).Error("can't attach process")
 		return nil, err
 	}
+
+	// update  the debug server of our attachment
+	go func() {
+
+		params := debugconfig.NewUpdateDebugConfigParams()
+		params.Body = &models.DebugConfig{
+			Attached: true,
+		}
+
+		params.DebugConfigID = ci.ID
+
+		log.WithFields(log.Fields{"updatedConfig": params.Body, "DebugConfigID": params.DebugConfigID}).Debug("Notifying server of attachment to debug config object")
+
+		_, err := d.client.Debugconfig.UpdateDebugConfig(params)
+		if err != nil {
+			log.WithField("err", err).Warn("Error adding debug session - detaching!")
+		} else {
+			log.Info("debug session added!")
+		}
+
+	}()
+
 	var port DebugServer
 	defer func() {
 		if port == nil {

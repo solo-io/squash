@@ -143,6 +143,7 @@ func (r *RestHandler) PutDebugSession(params debugsessions.PutDebugSessionParams
 		logger.Error("PutDebugSession dbgconfig not found!")
 		return debugsessions.NewPutDebugSessionNotFound()
 	}
+	// TODO add attached = true here too.
 	if watchedcfg.session == nil {
 		logger.Info("PutDebugSession context is done")
 		return debugsessions.NewPutDebugSessionPreconditionFailed()
@@ -307,8 +308,13 @@ func (r *RestHandler) UpdateDebugConfig(params debugconfig.UpdateDebugConfigPara
 	if cfg, ok := r.debugConfigs[id]; ok {
 		newcfg := cfg.config
 
-		newcfg.Breakpoints = params.Body.Breakpoints
-		newcfg.Image = params.Body.Image
+		if params.Body.Breakpoints != nil {
+			newcfg.Breakpoints = params.Body.Breakpoints
+		}
+		if params.Body.Image != nil {
+			newcfg.Image = params.Body.Image
+		}
+		newcfg.Attached = params.Body.Attached
 
 		cfg.config = newcfg
 		r.debugConfigs[id] = cfg

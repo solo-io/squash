@@ -29,9 +29,9 @@ func NewGetDebugConfigs(ctx *middleware.Context, handler GetDebugConfigsHandler)
 
 /*GetDebugConfigs swagger:route GET /debugconfig debugconfig getDebugConfigs
 
-Retrun all debug configs
+Return all debug configs
 
-Retrun all debug configs
+Return all debug configs
 
 */
 type GetDebugConfigs struct {

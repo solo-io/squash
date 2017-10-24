@@ -91,9 +91,9 @@ func (a *Client) DeleteDebugConfig(params *DeleteDebugConfigParams) (*DeleteDebu
 }
 
 /*
-GetDebugConfig retruns a debug config
+GetDebugConfig returns a debug config
 
-Retrun a debug config
+Return a debug config
 */
 func (a *Client) GetDebugConfig(params *GetDebugConfigParams) (*GetDebugConfigOK, error) {
 	// TODO: Validate the params before sending
@@ -121,9 +121,9 @@ func (a *Client) GetDebugConfig(params *GetDebugConfigParams) (*GetDebugConfigOK
 }
 
 /*
-GetDebugConfigs retruns all debug configs
+GetDebugConfigs returns all debug configs
 
-Retrun all debug configs
+Return all debug configs
 */
 func (a *Client) GetDebugConfigs(params *GetDebugConfigsParams) (*GetDebugConfigsOK, error) {
 	// TODO: Validate the params before sending

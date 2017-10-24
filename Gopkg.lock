@@ -33,7 +33,7 @@
 
 [[projects]]
   name = "github.com/derekparker/delve"
-  packages = ["pkg/dwarf/frame","pkg/dwarf/line","pkg/dwarf/op","pkg/dwarf/reader","pkg/dwarf/util","pkg/proc","pkg/proc/core","pkg/proc/gdbserial","pkg/proc/native","service","service/api","service/debugger","service/rpc2"]
+  packages = ["pkg/dwarf/frame","pkg/dwarf/line","pkg/dwarf/op","pkg/dwarf/reader","pkg/dwarf/util","pkg/proc","pkg/proc/core","pkg/proc/gdbserial","pkg/proc/native","service","service/api","service/debugger","service/rpc1"]
   revision = "f6091694b6f8516bc1d4e5241fdb51e20dd04719"
   version = "v1.0.0-rc.1"
 
@@ -182,6 +182,18 @@
   revision = "d0303fe809921458f417bcf828397a65db30a7e4"
 
 [[projects]]
+  name = "github.com/onsi/ginkgo"
+  packages = [".","config","internal/codelocation","internal/containernode","internal/failer","internal/leafnodes","internal/remote","internal/spec","internal/spec_iterator","internal/specrunner","internal/suite","internal/testingtproxy","internal/writer","reporters","reporters/stenographer","reporters/stenographer/support/go-colorable","reporters/stenographer/support/go-isatty","types"]
+  revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
+  version = "v1.4.0"
+
+[[projects]]
+  name = "github.com/onsi/gomega"
+  packages = [".","format","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  revision = "c893efa28eb45626cdaa76c9f653b62488858837"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/solo-io/gdb"
   packages = ["."]
@@ -238,7 +250,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
+  packages = ["context","context/ctxhttp","html","html/atom","html/charset","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
   revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
 
 [[projects]]
@@ -250,7 +262,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
+  packages = ["encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/gen","internal/tag","internal/triegen","internal/ucd","internal/utf8internal","language","runes","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
   revision = "836efe42bb4aa16aaa17b9c155d8813d336ed720"
 
 [[projects]]
@@ -304,6 +316,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f4dc7ffe523554263fe4909dee1bad0d6bf59b61681ebfcece5b7dff774594b1"
+  inputs-digest = "0fc0cfee94cd32d188525a73d220acb9d1425e8135b47a0ab635580f54992667"
   solver-name = "gps-cdcl"
   solver-version = 1

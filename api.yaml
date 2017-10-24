@@ -297,6 +297,8 @@ definitions:
         type: "boolean"
       active:
         type: "boolean"
+      attached:
+        type: "boolean"
 
   DebugSession:
     type: "object"

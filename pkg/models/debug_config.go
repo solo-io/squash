@@ -20,6 +20,9 @@ type DebugConfig struct {
 	// active
 	Active bool `json:"active,omitempty"`
 
+	// attached
+	Attached bool `json:"attached,omitempty"`
+
 	// attachment
 	// Required: true
 	Attachment *Attachment `json:"attachment"`

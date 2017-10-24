@@ -32,11 +32,11 @@ func init() {
   "paths": {
     "/debugconfig": {
       "get": {
-        "description": "Retrun all debug configs",
+        "description": "Return all debug configs",
         "tags": [
           "debugconfig"
         ],
-        "summary": "Retrun all debug configs",
+        "summary": "Return all debug configs",
         "operationId": "getDebugConfigs",
         "responses": {
           "200": {
@@ -142,11 +142,11 @@ func init() {
     },
     "/debugconfig/{debugConfigId}": {
       "get": {
-        "description": "Retrun a debug config",
+        "description": "Return a debug config",
         "tags": [
           "debugconfig"
         ],
-        "summary": "Retrun a debug config",
+        "summary": "Return a debug config",
         "operationId": "getDebugConfig",
         "parameters": [
           {
@@ -394,6 +394,9 @@ func init() {
       ],
       "properties": {
         "active": {
+          "type": "boolean"
+        },
+        "attached": {
           "type": "boolean"
         },
         "attachment": {

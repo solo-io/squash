@@ -27,7 +27,7 @@ func main() {
 
 	parser := flags.NewParser(server, flags.Default)
 	parser.ShortDescription = "Squash Server"
-	parser.LongDescription = "Squash debugget api sample."
+	parser.LongDescription = "Squash debugger api sample."
 
 	server.ConfigureFlags()
 	for _, optsGroup := range api.CommandLineOptionsGroups {
