@@ -139,12 +139,12 @@ func (s *KubeOperations) Locate(context context.Context, containername string) (
 		return nil, errors.New("bad name format")
 	}
 	podname := parts[0]
-	container := parts[0]
+	container := parts[1]
 	log.WithField("podname", podname).Info("Trying to locate")
 
 	pod, err := clientset.CoreV1().Pods(os.Getenv("KUBE_NAMESPACE")).Get(podname, options)
 	if err != nil {
-		log.Warn("Locate - can't locate pod " + podname)
+		log.Warn("Locate - can't locate pod ", podname, err)
 		return nil, err
 	}
 

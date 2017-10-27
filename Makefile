@@ -8,7 +8,7 @@ containers: target/squash-server-container target/squash-client-container
 prep-containers: ./target/squash-server/squash-server target/squash-server/Dockerfile target/squash-client/squash-client target/squash-client/Dockerfile
 
 DOCKER_REPO ?= soloio
-VERSION ?= v0.1.0
+VERSION ?= v0.1.2
 
 
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
