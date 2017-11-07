@@ -152,20 +152,20 @@ func (d *DebugHandler) tryToAttach(ci *models.DebugConfig) error {
 
 func (d *DebugHandler) notifyAttached(ci *models.DebugConfig) {
 
-	params := debugconfig.NewUpdateDebugConfigParams()
-	params.Body = &models.DebugConfig{
-		Attached: true,
-	}
+	cfg := *ci
 
-	params.DebugConfigID = ci.ID
+	params := debugconfig.NewUpdateDebugConfigParams()
+	cfg.Attached = true
+	params.Body = &cfg
+	params.DebugConfigID = cfg.ID
 
 	log.WithFields(log.Fields{"updatedConfig": params.Body, "DebugConfigID": params.DebugConfigID}).Debug("Notifying server of attachment to debug config object")
 
 	_, err := d.client.Debugconfig.UpdateDebugConfig(params)
 	if err != nil {
-		log.WithField("err", err).Warn("Error adding debug session - detaching!")
+		log.WithField("err", err).Warn("Error notifing debug session attachment - detaching!")
 	} else {
-		log.Info("debug session added!")
+		log.Info("debug session notified of attachment!")
 	}
 
 }

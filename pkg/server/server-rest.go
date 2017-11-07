@@ -314,8 +314,9 @@ func (r *RestHandler) UpdateDebugConfig(params debugconfig.UpdateDebugConfigPara
 		if params.Body.Image != nil {
 			newcfg.Image = params.Body.Image
 		}
-		newcfg.Attached = params.Body.Attached
-
+		if params.Body.Attached {
+			newcfg.Attached = true
+		}
 		cfg.config = newcfg
 		r.debugConfigs[id] = cfg
 		return debugconfig.NewUpdateDebugConfigOK().WithPayload(&cfg.config)
