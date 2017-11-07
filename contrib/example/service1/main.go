@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-const ServiceToCall = "example-service2-svc"
+const ServiceToCall = "example-service2"
 const form = `
 <html>
 <head>
@@ -27,7 +27,7 @@ const form = `
 	<body style="background-color:black;color:white;">
 
 		<main class="col-md-6 col-md-offset-3">
-			<form action="/calc" method="POST">
+			<form action="calc" method="POST">
 
 				<div class="form-group" style="text-align:center;">
 					<BR><BR><H1>The great adding and subtracting app</H1><BR><BR>
