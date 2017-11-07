@@ -150,6 +150,25 @@ func (d *DebugHandler) tryToAttach(ci *models.DebugConfig) error {
 	return nil
 }
 
+func (d *DebugHandler) notifyAttached(ci *models.DebugConfig) {
+
+	params := debugconfig.NewUpdateDebugConfigParams()
+	params.Body = &models.DebugConfig{
+		Attached: true,
+	}
+
+	params.DebugConfigID = ci.ID
+
+	log.WithFields(log.Fields{"updatedConfig": params.Body, "DebugConfigID": params.DebugConfigID}).Debug("Notifying server of attachment to debug config object")
+
+	_, err := d.client.Debugconfig.UpdateDebugConfig(params)
+	if err != nil {
+		log.WithField("err", err).Warn("Error adding debug session - detaching!")
+	} else {
+		log.Info("debug session added!")
+	}
+
+}
 func (d *DebugHandler) waitForErrorAndStop(ci *models.DebugConfig, curdebugger Debugger, p *os.Process) (DebugServer, error) {
 	logger := log.WithField("pid", p.Pid)
 	logger.Info("Waiting for error")
@@ -160,25 +179,7 @@ func (d *DebugHandler) waitForErrorAndStop(ci *models.DebugConfig, curdebugger D
 	}
 
 	// update  the debug server of our attachment
-	go func() {
-
-		params := debugconfig.NewUpdateDebugConfigParams()
-		params.Body = &models.DebugConfig{
-			Attached: true,
-		}
-
-		params.DebugConfigID = ci.ID
-
-		log.WithFields(log.Fields{"updatedConfig": params.Body, "DebugConfigID": params.DebugConfigID}).Debug("Notifying server of attachment to debug config object")
-
-		_, err := d.client.Debugconfig.UpdateDebugConfig(params)
-		if err != nil {
-			log.WithField("err", err).Warn("Error adding debug session - detaching!")
-		} else {
-			log.Info("debug session added!")
-		}
-
-	}()
+	go d.notifyAttached(ci)
 
 	var port DebugServer
 	defer func() {
@@ -247,6 +248,8 @@ func (d *DebugHandler) startDebug(ci *models.DebugConfig, p *os.Process) {
 		log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
 		var err error
 		port, err = curdebugger.StartDebugServer(p.Pid)
+		go d.notifyAttached(ci)
+
 		if err != nil {
 			log.WithField("err", err).Error("Starting debug server error")
 			return // err
