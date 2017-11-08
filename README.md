@@ -9,7 +9,7 @@
 <BR>
 
 
-Debugging microservices applications is a difficult task. The state of the application is spread across multi microservices and it is hard to get the holistic view of the state of the application. Currently debugging of microservices is assisted by openTracing, which helps in tracing of a transaction or workflow for post-mortem analysis, and linkerd and itsio which monitor the network to identify latency problems. These tools however, do not allow to monitor and interfere with the application during run time. 
+Debugging microservices applications is a difficult task. The state of the application is spread across multi microservices and it is hard to get the holistic view of the state of the application. Currently debugging of microservices is assisted by openTracing, which helps in tracing of a transaction or workflow for post-mortem analysis, and service mesh like itsio which monitor the network to identify latency problems. These tools however, do not allow to monitor and interfere with the application during run time. 
 
 In contrast, "traditional" debuggers of monolitic application provide devs with powerful features like setting breakpoints in their codes, following values of variables on the fly, stepping through the code, and changing these variables during run time. 
 
