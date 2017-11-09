@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="images/squash Avert.png" alt="squash" width="200" height="248">
+    <img src="https://i.imgur.com/gkTwlfO.png" alt="squash" width="200" height="248">
   <br>
   Debugger for microservices
 </h1>
