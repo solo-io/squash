@@ -13,12 +13,12 @@ Download the CLI binary:
 
 **For Linux**
 ```
-curl -o squash https://github.com/solo-io/squash/releases/download/v0.1.0/squash-linux
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.1.0/squash-linux
 ```
 
 **For Mac OS X**
 ```
-curl -o squash https://github.com/solo-io/squash/releases/download/v0.1.0/squash-osx
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.1.0/squash-osx
 ```
 
 Then enable execution permission:
