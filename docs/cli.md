@@ -52,7 +52,7 @@ false  |1427131847 |pod2:container2 |container       |dlv      |image2 |true
 
 ## wait for a debug session
 Waits for a debug session to appear in a debug config. Once the Squash client attaches a debugger, it will submit
-the debug session to the Squash server. Use this command to retreive the session debug server address from the 
+the debug session to the Squash server. Use this command to retrieve the session debug server address from the 
 Squash server.
  
 Example:

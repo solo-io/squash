@@ -46,7 +46,7 @@ Or add this setting to vs-code:
 
 Just note that `kubectl proxy` should remain running in the background.
 
-# Premissions
+# Permissions
 ## Why does the squash client needs to be privilged?
 The daemon set needs to be priviledged to be able to debug processes.
 

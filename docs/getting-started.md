@@ -16,7 +16,7 @@ You can debug your application from the IDE or via the CLI.
 - Docker repository that you can push images to, and that kubernetes can access (docker hub for example)
 
 ### Verify
-- Kubectl port-foward functionality works.
+- Kubectl port-forward functionality works.
 - You have access to the squash server - use `$ squash --url=http://SQUASH-SERVER-ADDRESS/api/v1 list` to test that it is working properly.
 
 If you have an issue with either, see the [FAQ](faq.md) for help.

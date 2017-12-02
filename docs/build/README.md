@@ -13,7 +13,7 @@ Get Dev environment ready
 
 ## Prerequisites
 
-* Working go enviroment. 
+* Working go environment. 
 * [dep](https://github.com/golang/dep) tool for managing dependencies. <BR>
   Runs ```$ go get -u github.com/golang/dep/cmd/dep``` to install.
   
@@ -24,7 +24,7 @@ Get Dev environment ready
 
 ## Code
 
-Squash uses the new golang's dep tool for dependency managment. to get the code and aqcuire dependencies, do:
+Squash uses the new golang's dep tool for dependency management. to get the code and acquire dependencies, do:
 
 ```
 $ mkdir -p $GOPATH/src/github.com/solo-io
@@ -63,7 +63,7 @@ Deploy (remember to deploy the server first):
 kubectl create -f target/kubernetes/squash-server.yml
 kubectl create -f target/kubernetes/squash-ds.yml
 ```
-# Directory stucture
+# Directory structure
 ```
 ├── Gopkg.lock          <- Go dep's tool dependency lock file
 ├── Gopkg.toml          <- Go dep's tool config file
