@@ -142,7 +142,7 @@ $ kubectl create -f microservice.yml
 
 Use `kubectl` to find the name of the pod you want to deubg. Then, Use the squash command line to request an attachment to a container.
 ```
-$ squash debug-container <YOUR REPO HERE>/microservice:0.1 example-microservice-rc-n9x2r example-microservice dlv
+$ squash --url=http://SQUASH-SERVER-ADDRESS/api/v1 debug-container <YOUR REPO HERE>/microservice:0.1 example-microservice-rc-n9x2r example-microservice dlv
 ```
 
 Take the ID parameter from the response:
@@ -154,7 +154,7 @@ Debug config id: 1427131847
 Then wait for the debugger to attach. Note - this command has a default timeout of 1 second, which may not be enough. 
 If it times out, just run it again. If nothing happens after a minute or so, please [contact us](faq.md#contact).
 ```
-$ squash wait 1427131847
+$ squash --url=http://SQUASH-SERVER-ADDRESS/api/v1 wait 1427131847
 Debug session started! debug server is at: squash-client-ds-n7dgt:33355
 ```
 
