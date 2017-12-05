@@ -3,7 +3,7 @@ kind: DaemonSet
 metadata:
   labels:
     app: squash-client
-  name: squash-client-ds
+  name: squash-client
 spec:
   template:
     metadata:
@@ -24,7 +24,7 @@ spec:
           protocol: TCP
         env:
         - name: SERVERURL
-          value: "http://$(SQUASH_SERVICE_HOST):$(SQUASH_SERVICE_PORT)"
+          value: "http://$(SQUASH_SERVER_SERVICE_HOST):$(SQUASH_SERVER_SERVICE_PORT)"
         - name: HOST_ADDR
           valueFrom:
             fieldRef:

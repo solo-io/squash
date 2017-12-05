@@ -29,8 +29,8 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	case "dlv":
 		return &d
 	case "gdb":
-		fallthrough
-	default:
 		return &g
+	default:
+		return nil
 	}
 }

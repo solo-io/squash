@@ -10,15 +10,10 @@ type Container struct {
 
 /// Runs in the squash server:
 
-/// Watch a service and get notifications when new containers of that service are created.
-type ServiceWatcher interface {
-	WatchService(context context.Context, servicename string) (<-chan Container, error)
-}
-
 /// Get the container object from its name.
-// Note: in environment like kubernetes, the containername will be pod-name:container-name
+// Note: in environment like kubernetes, the containername will be namespace:pod-name:container-name
 type ContainerLocator interface {
-	Locate(context context.Context, containername string) (*Container, error)
+	Locate(context context.Context, attachment interface{}) (interface{}, *Container, error)
 }
 
 /// Runs in the squash client:
@@ -26,5 +21,10 @@ type ContainerLocator interface {
 /// Get the pid of a process that runs in the container. the pid should be in our pid namespace,
 /// not in the container's namespace.
 type Container2Pid interface {
-	GetPid(context context.Context, containername string) (int, error)
+	GetPid(context context.Context, attachment interface{}) (int, error)
+}
+
+type DataStore interface {
+	Store()
+	Load()
 }

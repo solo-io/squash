@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/solo-io/squash/pkg/client/debugconfig"
+	"github.com/solo-io/squash/pkg/client/debugattachment"
 
 	"github.com/spf13/cobra"
 )
@@ -14,12 +14,12 @@ func init() {
 
 	var rmCmd = &cobra.Command{
 		Use:     "delete [id]",
-		Short:   "delete a debug config",
+		Short:   "delete a debug attachment object",
 		Aliases: []string{"rm"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			if len(args) == 0 {
-				return errors.New("Debug config id required")
+				return errors.New("Debug attachment id required")
 			}
 
 			c, err := getClient()
@@ -29,9 +29,9 @@ func init() {
 
 			for _, id := range args {
 
-				params := debugconfig.NewDeleteDebugConfigParams()
-				params.DebugConfigID = id
-				_, err := c.Debugconfig.DeleteDebugConfig(params)
+				params := debugattachment.NewDeleteDebugAttachmentParams()
+				params.DebugAttachmentID = id
+				_, err := c.Debugattachment.DeleteDebugAttachment(params)
 
 				if !jsonoutput && (err != nil) {
 					fmt.Print("Error deleting id: ", id, err)

@@ -1,16 +1,16 @@
 swagger: "2.0"
 info:
-  description: "Squash debugget api sample."
-  version: "1.0.0"
+  description: "Squash debugger api."
+  version: "2.0.0"
   title: "Squash Server"
   contact:
     email: "apiteam@solo.io"
   license:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-basePath: "/api/v1"
+basePath: "/api/v2"
 tags:
-- name: "debugconfig"
+- name: "debugattachment"
   description: "Everything about your debugconfig"
   externalDocs:
     description: "Find out more"
@@ -20,23 +20,17 @@ tags:
 schemes:
 - "http"
 paths:
-  /debugconfig:
+  /debugattachment:
     post:
       tags:
-      - "debugconfig"
-      summary: "Add a new debug configuration for squash server."
+      - "debugattachment"
+      summary: "Request squash to attach to a running container."
       description: > 
-                      Add a debug config to squash. A debug config instrucs squash what containers should be debugged, and now.
-                      DebugConfig object consists of:
-                        - Attachment: The object we are attaching to. either a specific container, or a service. 
-                        in the case of the service, the squash will attach to the first container that hits a debug event.
-                        - Breakpoints: A list of breakpoints. When "immediately" set to false, squash will wait for a debug event
-                        (i.e a program crash) before giving the user access to the remote debugger. If breakpoints is set, squash will place them and will notify when the first breakpoint hits.
-                        - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results.
+                      A debug attachment instructs squash to attach to a container. Debug attachment is made of
+                        - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results. if not provided huerisrtics will be used to identify it.
                         - debugger: Type of debugger to use. "dlv" and "gdb" are supported now.
-                        - immediately: Weather to attach immediatly or wait for debug event. can only be set to true if attachment type is container.
-
-      operationId: "addDebugConfig"
+                        - match_request: Whether to match this attachment to a debug request. This is used in automated use-cases to guarantee that the attachment will be noticed.
+      operationId: "addDebugAttachment"
       consumes:
       - "application/json"
       produces:
@@ -44,84 +38,113 @@ paths:
       parameters:
       - in: "body"
         name: "body"
-        description: "DebugConfig object that needs to be added"
+        description: "DebugAttachment object"
         required: true
         schema:
-          $ref: "#/definitions/DebugConfig"
+          $ref: "#/definitions/DebugAttachment"
       responses:
         201:
-          description: "Debug config created"
+          description: "Debug attachment created"
           schema:
-            $ref: "#/definitions/DebugConfig"
+            $ref: "#/definitions/DebugAttachment"
         400:
           description: "Bad request"
         404:
-          description: "Attachment not found"
+          description: "Not found"
         422:
           description: "Invalid input"
         503:
           description: "Service Unavailable"
     get:
       tags:
-      - "debugconfig"
-      summary: "Return all debug configs" 
-      description: "Return all debug configs"
-      operationId: "getDebugConfigs"
+      - "debugattachment"
+      summary: "Return all debug attachment" 
+      description: "Return all debug attachment"
+      operationId: "getDebugAttachments"
+      parameters:
+      - name: "wait"
+        in: "query"
+        description: "wait until there's something to return instead of returning an empty list"
+        required: false
+        type: "boolean"
+      - name: "node"
+        in: "query"
+        description: "filter by node that the debugattachment is assigned to"
+        required: false
+        type: "string"
+      - name: "state"
+        in: "query"
+        description: "filter by the state of debugattachment is assigned to"
+        required: false
+        type: "string"
+      - name: "names"
+        in: "query"
+        description: "Only get a subset of debugattachments"
+        required: false
+        type: "array"
+        items:
+          type: "string"
+      - name: "X-Timeout"
+        in: "header"
+        type: number
       responses:
         200:
           description: OK
           schema:
             type: "array"
             items:
-              $ref: "#/definitions/DebugConfig"
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "Debug config not found"
+              $ref: "#/definitions/DebugAttachment"
+        408:
+          description: "Request timed out"
         422:
           description: "Validation exception"
-  /debugconfig/{debugConfigId}:
+  /debugattachment/{debugAttachmentId}:
     patch:
       tags:
-      - "debugconfig"
-      summary: "Update an existing debug config"
-      description: ""
-      operationId: "updateDebugConfig"
+      - "debugattachment"
+      summary: "Modify an existing attachment."
+      description: > 
+                      Modify an existing attachment.
+      operationId: "patchDebugAttachment"
       consumes:
       - "application/json"
       produces:
       - "application/json"
       parameters:
-      - name: "debugConfigId"
+      - name: "debugAttachmentId"
         in: "path"
         description: "ID of config to return"
         required: true
         type: "string"
       - in: "body"
         name: "body"
-        description: "debug config edited"
+        description: "DebugAttachment object"
         required: true
         schema:
-          $ref: "#/definitions/DebugConfig"
+          $ref: "#/definitions/DebugAttachment"
       responses:
         200:
-          description: OK
+          description: "Debug attachment modified"
           schema:
-            $ref: "#/definitions/DebugConfig"
+            $ref: "#/definitions/DebugAttachment"
         400:
-          description: "Invalid ID supplied"
+          description: "Bad request"
         404:
-          description: "Debug config not found"
+          description: "Not found"
+        409:
+          description: "Conflict"
         422:
-          description: "Validation exception"
+          description: "Invalid input"
+        503:
+          description: "Service Unavailable"
     delete:
       tags:
-      - "debugconfig"
-      summary: "Delete a debug config" 
-      description: "Delete a debug config"
-      operationId: "deleteDebugConfig"
+      - "debugattachment"
+      summary: "Delete a debug attachment" 
+      description: "Delete a debug attachment. be careful not to delete on during attaching phase."
+      operationId: "deleteDebugAttachment"
       parameters:
-      - name: "debugConfigId"
+      - name: "debugAttachmentId"
         in: "path"
         description: "ID of config to return"
         required: true
@@ -137,12 +160,12 @@ paths:
           description: "Validation exception"
     get:
       tags:
-      - "debugconfig"
-      summary: "Return a debug config" 
-      description: "Return a debug config"
-      operationId: "getDebugConfig"
+      - "debugattachment"
+      summary: "Return a debug attachment" 
+      description: "Return a debug attachment"
+      operationId: "getDebugAttachment"
       parameters:
-      - name: "debugConfigId"
+      - name: "debugAttachmentId"
         in: "path"
         description: "ID of config to return"
         required: true
@@ -151,164 +174,172 @@ paths:
         200:
           description: OK
           schema:
-            $ref: "#/definitions/DebugConfig"
+            $ref: "#/definitions/DebugAttachment"
         400:
           description: "Invalid ID supplied"
         404:
           description: "Debug config not found"
         422:
           description: "Validation exception"
-  /debugconfig/platform/containers/{node}/latest:
-    delete:
+  /debugrequest:
+    get:
       tags:
-      - "debugconfig"
-      summary: "Pop the latest debugconfig for a node in the cluster - this is used by the squash client." 
-      description: ""
-      operationId: "popContainerToDebug"
+      - "debugrequest"
+      summary: "Return all debug request" 
+      description: "Return all debug requests"
+      operationId: "getDebugRequests"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/DebugRequest"
+        422:
+          description: "Validation exception"
+    post:
+      tags:
+      - "debugrequest"
+      summary: "Return a debug attachment" 
+      description: "Return a debug attachment"
+      operationId: "createDebugRequest"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
       parameters:
-      - name: "node"
+      - in: "body"
+        name: "body"
+        description: "DebugRequest object"
+        required: true
+        schema:
+          $ref: "#/definitions/DebugRequest"
+      responses:
+        201:
+          description: OK
+          schema:
+            $ref: "#/definitions/DebugRequest"
+  /debugrequest/{debugRequestId}:
+    get:
+      tags:
+      - "debugrequest"
+      summary: "Get a debug request" 
+      description: "Get a debug request"
+      operationId: "getDebugRequest"
+      parameters:
+      - name: "debugRequestId"
         in: "path"
-        description: "ID the node we are watching"
+        description: "ID of config to return"
         required: true
         type: "string"
       responses:
         200:
           description: OK
           schema:
-            $ref: "#/definitions/DebugConfig"
-        400:
-          description: "Invalid ID supplied"
+            $ref: "#/definitions/DebugRequest"
         404:
-          description: "Node note not found"
-        408:
-          description: "Timeout reached"
-
-  /debugconfig/{debugConfigId}/session:
-    put:
-      tags:
-      - "debugsessions"
-      summary: "Add a new debug session - this is used by the squash client."
-      description: >
-                    When a debugger is attached, it should create a new debug session object under the debug config 
-                    that caused the debug session. Only one debug session is allowed per debug config. Once a 
-                    session is added, The service will stop being watched, and new debug configs for the same service can be created again.
-      operationId: "putDebugSession"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "debugConfigId"
-        in: "path"
-        description: "debug config id."
-        required: true
-        type: "string"
-      - name: "body"
-        in: "body"
-        description: "the debug session."
-        required: true
-        schema:
-          $ref: "#/definitions/DebugSession"
-      responses:
-        201:
-          description: "Debug session created"
-          schema:
-            $ref: "#/definitions/DebugSession"
-        400:
-          description: "Invalid ID supplied"
-        404:
-          description: "debug config not found"
-        422:
-          description: "Invalid input"
-        412:
-          description: "Debug state currently exists"  
+          description: "Not found"
     delete:
       tags:
-      - "debugsessions"
-      summary: "Wait and for a debug session is available. when it is available it is returned and deleted"
-      description: >
-                    Long-poll and wait for a debug session to arrive. 
-                    The squash client will add a debug session to the debug config once a container associated with this 
-                    debug config generated a debug event.
-      operationId: "popDebugSession"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
+      - "debugrequest"
+      summary: "Delete a debug request" 
+      description: "Delete a debug request."
+      operationId: "deleteDebugRequest"
       parameters:
-      - name: "debugConfigId"
+      - name: "debugRequestId"
         in: "path"
-        description: "debug config id."
+        description: "ID of debug request"
         required: true
         type: "string"
-      - name: "X-Timeout"
-        in: "header"
-        type: number
       responses:
         200:
-          description: "Debug session returned"
-          schema:
-            $ref: "#/definitions/DebugSession"
+          description: OK
         400:
           description: "Invalid ID supplied"
         404:
-          description: "debug config not found"
-        408:
-          description: "Timeout reached"
+          description: "Debug request not found"
+        422:
+          description: "Validation exception"
+
 definitions:
-  Attachment:
-    type: "object"
-    required:
-    - "type"
-    - "name"
+  ObjectMeta:
+    type: object
     properties:
-      type:
-        type: "string"
-        enum: ["service", "container"]
       name:
-        type: "string"
-  Breakpoint:
-    type: "object"
-    required:
-    - "location"
-    properties:
-      location:
-        type: "string"
-      
-  DebugConfig:
-    type: "object"
+        type: string
+
+  Attachment:
+    type: object
+    # platform specific attachment information
+
+  DebugAttachmentSpec:
+    type: object
     required:
     - "attachment"
-    - "image"
+    - "debugger"
     properties:
-      id:
-        type: "string"
       attachment:
         $ref: "#/definitions/Attachment"
-      breakpoints:
-        type: "array"
-        items:
-          $ref: "#/definitions/Breakpoint"
-      image:
-        type: "string"
       debugger:
-        type: "string"
-      immediately:
-        type: "boolean"
-      active:
-        type: "boolean"
-      attached:
-        type: "boolean"
+        type: string
+      image:
+        type: string
+      node:
+        type: string
+      match_request:
+        type: boolean
 
-  DebugSession:
-    type: "object"
-    required:
-    - "debugConfigId"
+  DebugAttachmentStatus:
+    type: object
     properties:
-      url:
-        type: "string"
-      debugConfigId:
-        type: "string"
+      state:
+        type: string
+        enum: [none, attaching, attached, error]
+      debug_server_address:
+        type: string
+
+  DebugAttachment:
+    type: object
+    required:
+    - "metadata"
+    - "spec"
+    properties:
+      metadata:
+        $ref: "#/definitions/ObjectMeta"
+      spec:
+        $ref: "#/definitions/DebugAttachmentSpec"
+      status:
+        $ref: "#/definitions/DebugAttachmentStatus"
+
+  DebugRequestSpec:
+    type: object
+    required:
+    - "image"
+    - "debugger"
+    properties:
+      image:
+        type: string
+      debugger:
+        type: string
+
+  DebugRequestStatus:
+    type: object
+    properties:
+      debug_attachment_ref:
+        type: string
+
+  DebugRequest:
+    type: object
+    required:
+    - "metadata"
+    - "spec"
+    properties:
+      metadata:
+        $ref: "#/definitions/ObjectMeta"
+      spec:
+        $ref: "#/definitions/DebugRequestSpec"
+      status:
+        $ref: "#/definitions/DebugRequestStatus"
 externalDocs:
   description: "Find out more about Squash"
   url: "https://github.com/solo-io/squash"

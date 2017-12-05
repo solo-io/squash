@@ -6,17 +6,17 @@ import (
 
 	"fmt"
 
-	"github.com/solo-io/squash/pkg/client/debugsessions"
-
+	"github.com/solo-io/squash/pkg/client/debugattachment"
+	"github.com/solo-io/squash/pkg/models"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 
-	sessionWaitTimeout := 1.0
-	var waitForSessionCmd = &cobra.Command{
-		Use:   "wait dbgconfigid",
-		Short: "wait for a debug session to appear for a debug config",
+	attachmentWaitTimeout := 1.0
+	var waitForAttachmentCmd = &cobra.Command{
+		Use:   "wait dbgattachmentid",
+		Short: "wait for a debug config to have a debug server url appearv ",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := getClient()
 			if err != nil {
@@ -29,11 +29,14 @@ func init() {
 
 			id := args[0]
 
-			params := debugsessions.NewPopDebugSessionParams()
-			params.DebugConfigID = id
-			params.XTimeout = &sessionWaitTimeout
+			params := debugattachment.NewGetDebugAttachmentsParams()
+			params.Names = []string{id}
+			attached := models.DebugAttachmentStatusStateAttached
+			params.State = &attached
+			params.Names = []string{id}
+			params.XTimeout = &attachmentWaitTimeout
 
-			res, err := c.Debugsessions.PopDebugSession(params)
+			res, err := c.Debugattachment.GetDebugAttachments(params)
 
 			if err != nil {
 
@@ -44,7 +47,7 @@ func init() {
 						Type: "Unknown",
 						Info: err.Error(),
 					}
-					if _, ok := err.(*debugsessions.PopDebugSessionRequestTimeout); ok {
+					if _, ok := err.(*debugattachment.GetDebugAttachmentsRequestTimeout); ok {
 						errjson.Type = "Timeout"
 					}
 					json.NewEncoder(os.Stderr).Encode(errjson)
@@ -52,19 +55,23 @@ func init() {
 				os.Exit(-1)
 			}
 
-			session := *res.Payload
+			attachments := res.Payload
+			if len(attachments) != 1 {
+				panic("error getting attachments - successfull call ambigous")
+			}
+			attachment := attachments[0]
 
 			if !jsonoutput {
-				fmt.Println("Debug session started! debug server is at:", session.URL)
+				fmt.Println("Debug session started! debug server is at:", attachment.Status.DebugServerAddress)
 			} else {
-				json.NewEncoder(os.Stdout).Encode(session)
+				json.NewEncoder(os.Stdout).Encode(attachment)
 			}
 
 			return nil
 		},
 	}
-	waitForSessionCmd.Flags().Float64VarP(&sessionWaitTimeout, "timeout", "t", 1.0, "wait timeout")
+	waitForAttachmentCmd.Flags().Float64VarP(&attachmentWaitTimeout, "timeout", "t", 1.0, "wait timeout")
 
-	RootCmd.AddCommand(waitForSessionCmd)
+	RootCmd.AddCommand(waitForAttachmentCmd)
 
 }

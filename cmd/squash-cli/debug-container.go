@@ -7,23 +7,28 @@ import (
 
 	"fmt"
 
-	"github.com/solo-io/squash/pkg/client/debugconfig"
+	"github.com/solo-io/squash/pkg/client/debugattachment"
+	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	var breakpoints []string
 
 	var debugContainerCmd = &cobra.Command{
-		Use:   "debug-container image pod container [type]",
+		Use:   "debug-container [namespace] image pod container [type]",
 		Short: "debug-container adds a container type debug config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var image, pod, container, debuggertype string
 			debuggertype = "gdb"
+			namespace := "default"
 			var err error
 			switch len(args) {
+			case 5:
+				namespace = args[0] // BUG!
+				args = args[1:]
+				fallthrough
 			case 4:
 				debuggertype = args[3]
 				fallthrough
@@ -41,28 +46,21 @@ func init() {
 				return err
 			}
 
-			dbgconfig := models.DebugConfig{
-				Attachment: &models.Attachment{
-					Type: toptr(models.AttachmentTypeContainer),
-					Name: toptr(fmt.Sprintf("%s:%s", pod, container)),
+			dbgattchment := models.DebugAttachment{
+				Spec: &models.DebugAttachmentSpec{
+					Attachment: &kubernetes.KubeAttachment{
+						Namespace: namespace,
+						Pod:       pod,
+						Container: container,
+					},
+					Image:    image,
+					Debugger: &debuggertype,
 				},
-				Image:       &image,
-				Immediately: true,
-				Debugger:    debuggertype,
 			}
-			immediately := true
-			for _, b := range breakpoints {
-				bp := b
-				dbgconfig.Breakpoints = append(dbgconfig.Breakpoints, &models.Breakpoint{
-					Location: &bp,
-				})
-				immediately = false
-			}
-			dbgconfig.Immediately = immediately
 
-			params := debugconfig.NewAddDebugConfigParams()
-			params.Body = &dbgconfig
-			res, err := c.Debugconfig.AddDebugConfig(params)
+			params := debugattachment.NewAddDebugAttachmentParams()
+			params.Body = &dbgattchment
+			res, err := c.Debugattachment.AddDebugAttachment(params)
 
 			if err != nil {
 				if !jsonoutput {
@@ -73,18 +71,17 @@ func init() {
 				os.Exit(1)
 			}
 
-			dbgconfig = *res.Payload
+			dbgattchment = *res.Payload
 
 			if !jsonoutput {
-				fmt.Println("Debug config id:", dbgconfig.ID)
+				fmt.Println("Debug config id:", dbgattchment.Metadata.Name)
 			} else {
-				json.NewEncoder(os.Stdout).Encode(dbgconfig)
+				json.NewEncoder(os.Stdout).Encode(dbgattchment)
 			}
 
 			return nil
 		},
 	}
-	debugContainerCmd.Flags().StringSliceVarP(&breakpoints, "breakpoint", "b", nil, "Breakpoint to place e.g. 'main.go:34'")
 
 	RootCmd.AddCommand(debugContainerCmd)
 

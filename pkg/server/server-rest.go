@@ -1,387 +1,382 @@
 package server
 
 import (
+	"bytes"
 	"context"
-	"errors"
-	"fmt"
-	"time"
-
+	"io"
 	"math/rand"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms"
-	"github.com/solo-io/squash/pkg/restapi/operations/debugconfig"
-	"github.com/solo-io/squash/pkg/restapi/operations/debugsessions"
+	"github.com/solo-io/squash/pkg/restapi/operations/debugattachment"
+	"github.com/solo-io/squash/pkg/restapi/operations/debugrequest"
 )
 
-type watchedDebugConfig struct {
-	config  models.DebugConfig
-	session chan models.DebugSession
-	cancel  context.CancelFunc
-}
-
 type RestHandler struct {
-	debugConfigs        map[string]watchedDebugConfig
-	debugConfigsMapLock sync.RWMutex
+	debugAttachments        map[string]*models.DebugAttachment
+	debugAttachmentsMapLock sync.RWMutex
 
-	nodeConfigs        map[string]chan models.DebugConfig
-	nodeConfigsMaplock sync.RWMutex
+	debugRequests        map[string]*models.DebugRequest
+	debugRequestsMapLock sync.RWMutex
 
-	serviceWatcher   platforms.ServiceWatcher
 	containerLocator platforms.ContainerLocator
+
+	attachmentlisteners     []chan int
+	attachmentlistenersLock sync.Mutex
 }
 
-func NewRestHandler(serviceWatcher platforms.ServiceWatcher, containerLocator platforms.ContainerLocator) *RestHandler {
+func NewRestHandler(containerLocator platforms.ContainerLocator) *RestHandler {
 	return &RestHandler{
-		debugConfigs:     make(map[string]watchedDebugConfig),
-		nodeConfigs:      make(map[string]chan models.DebugConfig),
-		serviceWatcher:   serviceWatcher,
+		debugAttachments: make(map[string]*models.DebugAttachment),
+		debugRequests:    make(map[string]*models.DebugRequest),
 		containerLocator: containerLocator,
 	}
 }
 
-func (r *RestHandler) AddDebugConfig(params debugconfig.AddDebugConfigParams) middleware.Responder {
-
-	dbgcfg := *params.Body
-	id := fmt.Sprintf("%d", rand.Int31())
-	dbgcfg.ID = id
-	dbgcfg.Active = true
-
-	logger := log.WithField("id", id)
-
-	logger.WithField("dbgcfg", spew.Sdump(dbgcfg)).Info("AddDebugConfig")
-
-	switch *dbgcfg.Attachment.Type {
-
-	case models.AttachmentTypeService:
-
-		if dbgcfg.Immediately {
-			logger.WithField("dbgcfg", spew.Sdump(dbgcfg)).Warn("AddDebugConfig rejecting bad service request")
-			return debugconfig.NewAddDebugConfigBadRequest()
-		}
-
-		cancel, err := r.watchService(dbgcfg)
-		if err != nil {
-			logger.WithFields(log.Fields{"dbgcfg": spew.Sdump(dbgcfg), "err": err}).Error("AddDebugConfig watch service failed")
-
-			return debugconfig.NewAddDebugConfigNotFound()
-		}
-
-		logger.WithFields(log.Fields{"dbgcfg": spew.Sdump(dbgcfg)}).Info("AddDebugConfig adding service")
-		r.debugConfigsMapLock.Lock()
-		r.debugConfigs[id] = watchedDebugConfig{
-			config:  dbgcfg,
-			cancel:  cancel,
-			session: make(chan models.DebugSession, 1), // <- allow one session
-		}
-		r.debugConfigsMapLock.Unlock()
-
-	case models.AttachmentTypeContainer:
-		logger.Info("AddDebugConfig searching for container attachment")
-
-		node, err := r.findContainerNode(params.HTTPRequest.Context(), *dbgcfg.Attachment.Name)
-		if (err != nil) || (node == "") {
-			return debugconfig.NewAddDebugConfigNotFound()
-		}
-
-		logger.WithFields(log.Fields{"dbgcfg": spew.Sdump(dbgcfg)}).Info("AddDebugConfig adding container")
-
-		r.debugConfigsMapLock.Lock()
-		r.debugConfigs[id] = watchedDebugConfig{
-			config:  dbgcfg,
-			session: make(chan models.DebugSession, 1),
-		}
-		r.debugConfigsMapLock.Unlock()
-
-		select {
-		case r.getNodeChan(node) <- dbgcfg:
-		default:
-			logger.Error("Node channel full!")
-			return debugconfig.NewAddDebugConfigServiceUnavailable()
-		}
-	default:
-		return debugconfig.NewAddDebugConfigBadRequest()
-
+func verify_or_generate(s string) string {
+	if s != "" {
+		return s
 	}
-
-	return debugconfig.NewAddDebugConfigCreated().WithPayload(&dbgcfg)
+	return randomString()
 }
 
-func (r *RestHandler) findContainerNode(ctx context.Context, container string) (string, error) {
+func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattachment.AddDebugAttachmentParams) middleware.Responder {
+	// if then else!
+	// TODO generate name if needed
 
-	if r.containerLocator == nil {
-		return "", errors.New("no container locator provided")
-	}
-	c, err := r.containerLocator.Locate(ctx, container)
+	// validate the attachment
+	dbgattachment := params.Body
+
+	attachment, container, err := r.containerLocator.Locate(params.HTTPRequest.Context(), dbgattachment.Spec.Attachment)
 	if err != nil {
-		return "", err
-	}
-	if c.Node == "" {
-		return "", errors.New("container not assigned to node")
+		return debugattachment.NewAddDebugAttachmentNotFound()
 	}
 
-	return c.Node, nil
+	dbgattachment.Spec.Attachment = attachment
+	dbgattachment.Spec.Image = container.Image
+	dbgattachment.Spec.Node = container.Node
+
+	dbgattachment.Metadata.Name = verify_or_generate(dbgattachment.Metadata.Name)
+
+	if dbgattachment.Spec.MatchRequest {
+		// find a matching request for the same image
+		dr := r.findUnboundDebugRequest(dbgattachment)
+		if dr == nil {
+			// error!
+			return debugattachment.NewAddDebugAttachmentNotFound()
+		}
+
+		// copy the requested debugger if needed
+		if dbgattachment.Spec.Debugger == nil {
+			dbgattachment.Spec.Debugger = dr.Spec.Debugger
+		}
+
+		// we found a matching request - we can save now.
+		r.saveDebugAttachment(dbgattachment)
+
+		go func(dr models.DebugRequest) {
+			dr.Status.DebugAttachmentRef = dbgattachment.Metadata.Name
+			// place teh debug attachment
+			// update  the debug request
+			// release all locks
+			r.updateDebugRequest(dr)
+		}(*dr)
+
+	} else {
+		r.saveDebugAttachment(dbgattachment)
+	}
+
+	return debugattachment.NewAddDebugAttachmentCreated().WithPayload(dbgattachment)
 }
 
-func (r *RestHandler) PutDebugSession(params debugsessions.PutDebugSessionParams) middleware.Responder {
+func (r *RestHandler) findUnboundDebugRequest(dbgattachment *models.DebugAttachment) *models.DebugRequest {
+	r.debugRequestsMapLock.RLock()
+	defer r.debugRequestsMapLock.RUnlock()
+	for _, dr := range r.debugRequests {
+		if dr.Status.DebugAttachmentRef != "" {
+			continue
+		}
 
-	dbgcfgid := params.DebugConfigID
-	dbgsession := *params.Body
+		if dr.Spec.Image == nil || *dr.Spec.Image != dbgattachment.Spec.Image {
+			continue
+		}
+		// logical NOT XOR
+		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == nil) {
+			continue
+		}
 
-	logger := log.WithFields(log.Fields{"dbgsession": dbgsession, "dbgcfgid": dbgcfgid})
-	logger.Info("PutDebugSession called!")
+		// Found a match, return it!
 
-	r.debugConfigsMapLock.RLock()
-	watchedcfg, ok := r.debugConfigs[dbgcfgid]
-	r.debugConfigsMapLock.RUnlock()
-
-	if !ok {
-		logger.Error("PutDebugSession dbgconfig not found!")
-		return debugsessions.NewPutDebugSessionNotFound()
+		return dr
 	}
-	// TODO add attached = true here too.
-	if watchedcfg.session == nil {
-		logger.Info("PutDebugSession context is done")
-		return debugsessions.NewPutDebugSessionPreconditionFailed()
-	}
+	return nil
+}
 
-	var sessionchan chan models.DebugSession
-	var wasactive bool
-	var cancelfunc func()
-	r.debugConfigsMapLock.Lock()
-	if cfg, ok := r.debugConfigs[dbgcfgid]; ok {
-		switch *watchedcfg.config.Attachment.Type {
-		case models.AttachmentTypeContainer:
-		// nothing here
-		case models.AttachmentTypeService:
-			// Cancel the service watch
-			if cfg.cancel != nil {
-				cancelfunc = cfg.cancel
+func (r *RestHandler) updateDebugRequest(dr models.DebugRequest) {
+	r.debugRequestsMapLock.Lock()
+	defer r.debugRequestsMapLock.Unlock()
+	r.debugRequests[dr.Metadata.Name] = &dr
+}
+
+func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
+	r.debugAttachmentsMapLock.Lock()
+	defer r.debugAttachmentsMapLock.Unlock()
+	r.debugAttachments[da.Metadata.Name] = da
+	r.notify()
+}
+
+func (r *RestHandler) getDebugAttachment(name string) *models.DebugAttachment {
+	r.debugAttachmentsMapLock.RLock()
+	defer r.debugAttachmentsMapLock.RUnlock()
+	return r.debugAttachments[name]
+}
+
+func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.CreateDebugRequestParams) middleware.Responder {
+	dr := params.Body
+	dr.Metadata.Name = verify_or_generate(dr.Metadata.Name)
+
+	r.debugRequestsMapLock.Lock()
+	defer r.debugRequestsMapLock.Unlock()
+
+	r.debugRequests[dr.Metadata.Name] = dr
+
+	return debugrequest.NewCreateDebugRequestCreated().WithPayload(dr)
+}
+
+func (r *RestHandler) DebugattachmentPatchDebugAttachmentHandler(params debugattachment.PatchDebugAttachmentParams) middleware.Responder {
+	newDa := params.Body
+	oldDa := r.getDebugAttachment(newDa.Metadata.Name)
+	if oldDa == nil {
+		return debugattachment.NewPatchDebugAttachmentNotFound()
+	}
+	oldDaCopy := *oldDa
+	if newDa.Status != nil {
+		if oldDaCopy.Status == nil {
+			oldDaCopy.Status = &models.DebugAttachmentStatus{}
+		}
+
+		if newDa.Status.State != "" {
+			if canUpdateState(oldDaCopy.Status.State, newDa.Status.State) {
+				oldDaCopy.Status.State = newDa.Status.State
 			}
-			cfg.cancel = nil
 		}
-		wasactive = cfg.config.Active
-		cfg.config.Active = false
-		sessionchan = cfg.session
-		r.debugConfigs[dbgcfgid] = cfg
-	}
-	r.debugConfigsMapLock.Unlock()
-
-	if cancelfunc != nil {
-		cancelfunc()
-	}
-
-	if wasactive == false {
-		logger.Info("PutDebugSession context is done")
-		return debugsessions.NewPutDebugSessionPreconditionFailed()
-	}
-
-	select {
-	case sessionchan <- dbgsession: // if i did the math right, this will not block
-		close(sessionchan)
-		logger.Info("PutDebugSession dbgsession created!")
-		return debugsessions.NewPutDebugSessionCreated().WithPayload(&dbgsession)
-	default: // <- but just in case
-		logger.Error("session chan block - this should never happen!")
-		return debugsessions.NewPutDebugSessionPreconditionFailed()
-	}
-
-}
-
-func (r *RestHandler) DeleteDebugConfig(params debugconfig.DeleteDebugConfigParams) middleware.Responder {
-
-	log.WithFields(log.Fields{"DebugConfigID": params.DebugConfigID}).Info("DeleteDebugConfig called!")
-
-	r.debugConfigsMapLock.Lock()
-	defer r.debugConfigsMapLock.Unlock()
-
-	id := params.DebugConfigID
-	if cfg, ok := r.debugConfigs[id]; ok {
-		if cfg.cancel != nil {
-			cfg.cancel()
-		}
-
-		if cfg.config.Active {
-			close(cfg.session)
-		}
-
-		delete(r.debugConfigs, id)
-		return debugconfig.NewDeleteDebugConfigOK()
-	}
-	return debugconfig.NewDeleteDebugConfigNotFound()
-}
-
-func (r *RestHandler) GetDebugConfig(params debugconfig.GetDebugConfigParams) middleware.Responder {
-	log.WithFields(log.Fields{"DebugConfigID": params.DebugConfigID}).Info("GetDebugConfig called!")
-	r.debugConfigsMapLock.Lock()
-	defer r.debugConfigsMapLock.Unlock()
-
-	id := params.DebugConfigID
-	if cfg, ok := r.debugConfigs[id]; ok {
-		return debugconfig.NewGetDebugConfigOK().WithPayload(&cfg.config)
-	}
-	return debugconfig.NewGetDebugConfigNotFound()
-}
-
-func (r *RestHandler) GetDebugConfigs(params debugconfig.GetDebugConfigsParams) middleware.Responder {
-	log.Info("GetDebugConfigs called!")
-
-	var debugconfigs []*models.DebugConfig
-	r.debugConfigsMapLock.RLock()
-	defer r.debugConfigsMapLock.RUnlock()
-
-	for _, cfg := range r.debugConfigs {
-		config := cfg.config
-		debugconfigs = append(debugconfigs, &config)
-	}
-	return debugconfig.NewGetDebugConfigsOK().WithPayload(debugconfigs)
-}
-func (r *RestHandler) PopContainerToDebug(params debugconfig.PopContainerToDebugParams) middleware.Responder {
-	node := params.Node
-	logger := log.WithFields(log.Fields{"node": node})
-	logger.Info("PopContainerToDebug called!")
-	select {
-	case dbgconfig := <-r.getNodeChan(node):
-		log.WithFields(log.Fields{"node": node, "dbgconfig": dbgconfig}).Info("PopContainerToDebug got debug config!")
-		return debugconfig.NewPopContainerToDebugOK().WithPayload(&dbgconfig)
-
-	case <-params.HTTPRequest.Context().Done():
-		logger.Warn("PopContainerToDebug context is done")
-		return debugsessions.NewPutDebugSessionPreconditionFailed()
-
-	case <-time.After(10 * time.Second):
-		logger.Debug("PopContainerToDebug timeout waiting for debug config")
-		return debugconfig.NewPopContainerToDebugRequestTimeout()
-	}
-}
-func (r *RestHandler) PopDebugSession(params debugsessions.PopDebugSessionParams) middleware.Responder {
-
-	logger := log.WithField("DebugConfigID", params.DebugConfigID)
-	logger.Info("PopDebugSession")
-	dbgcfgid := params.DebugConfigID
-
-	timeout := 10 * time.Second
-	if params.XTimeout != nil {
-		timeout = time.Duration((*params.XTimeout) * float64(time.Second))
-	}
-
-	var sessionchan chan models.DebugSession
-	r.debugConfigsMapLock.RLock()
-	watchedcfg, ok := r.debugConfigs[dbgcfgid]
-	if ok {
-		sessionchan = watchedcfg.session
-	}
-	r.debugConfigsMapLock.RUnlock()
-
-	if sessionchan == nil {
-		// should never happen
-		return debugsessions.NewPopDebugSessionNotFound()
-	}
-
-	select {
-	case dbgsession, ok := <-sessionchan:
-		if ok {
-			logger.WithField("dbgsession", dbgsession).Info("PopDebugSession: config found")
-			return debugsessions.NewPopDebugSessionOK().WithPayload(&dbgsession)
-		}
-		// TODO: return a better error
-
-	case <-params.HTTPRequest.Context().Done():
-		logger.Warn("PopDebugSessionRequest context is done")
-		return debugsessions.NewPopDebugSessionRequestTimeout()
-	case <-time.After(timeout):
-		return debugsessions.NewPopDebugSessionRequestTimeout()
-	}
-	log.WithField("dbgcfgid", dbgcfgid).Error("config not found - PopDebugSession")
-	return debugsessions.NewPopDebugSessionNotFound()
-}
-
-func (r *RestHandler) UpdateDebugConfig(params debugconfig.UpdateDebugConfigParams) middleware.Responder {
-	r.debugConfigsMapLock.Lock()
-	defer r.debugConfigsMapLock.Unlock()
-
-	id := params.DebugConfigID
-	if cfg, ok := r.debugConfigs[id]; ok {
-		newcfg := cfg.config
-
-		if params.Body.Breakpoints != nil {
-			newcfg.Breakpoints = params.Body.Breakpoints
-		}
-		if params.Body.Image != nil {
-			newcfg.Image = params.Body.Image
-		}
-		if params.Body.Attached {
-			newcfg.Attached = true
-		}
-		cfg.config = newcfg
-		r.debugConfigs[id] = cfg
-		return debugconfig.NewUpdateDebugConfigOK().WithPayload(&cfg.config)
-	}
-	return debugconfig.NewUpdateDebugConfigNotFound()
-
-}
-
-func (r *RestHandler) watchService(dbg models.DebugConfig) (context.CancelFunc, error) {
-
-	if r.serviceWatcher == nil {
-		log.Warn("Service watcher not defined. consider configuring cluster?")
-		return nil, errors.New("service watcher not defined")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	c, err := r.serviceWatcher.WatchService(ctx, *dbg.Attachment.Name)
-
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
-	go func() {
-		for container := range c {
-			if container.Image == *dbg.Image {
-				log.WithFields(log.Fields{"servicecontainer": c, "dbgconfig": spew.Sdump(dbg)}).Debug("Found container to debug. sending to node")
-				var cotainerdbgcfg models.DebugConfig
-				cotainerdbgcfg = dbg
-				s := models.AttachmentTypeContainer
-				cotainerdbgcfg.Attachment = &models.Attachment{
-					Name: &container.Name,
-					Type: &s,
-				}
-				r.getNodeChan(container.Node) <- cotainerdbgcfg
+		if newDa.Status.DebugServerAddress != "" {
+			if oldDaCopy.Status.DebugServerAddress == "" {
+				oldDaCopy.Status.DebugServerAddress = newDa.Status.DebugServerAddress
 			} else {
-				log.WithFields(log.Fields{"servicecontainer": spew.Sdump(c), "dbgconfig": spew.Sdump(dbg)}).Debug("Service container doesn't match dbgconfig image")
+				return debugattachment.NewPatchDebugAttachmentConflict()
+			}
+		}
+	}
 
+	r.saveDebugAttachment(&oldDaCopy)
+	return debugattachment.NewPatchDebugAttachmentOK().WithPayload(&oldDaCopy)
+}
+func canUpdateState(oldstate, newstate string) bool {
+	states := map[string]int{models.DebugAttachmentStatusStateNone: 0,
+		models.DebugAttachmentStatusStateAttaching: 1,
+		models.DebugAttachmentStatusStateAttached:  2,
+		models.DebugAttachmentStatusStateError:     3,
+	}
+
+	return states[newstate] > states[oldstate]
+}
+
+func (r *RestHandler) DebugattachmentDeleteDebugAttachmentHandler(params debugattachment.DeleteDebugAttachmentParams) middleware.Responder {
+	r.debugAttachmentsMapLock.Lock()
+	defer r.debugAttachmentsMapLock.Unlock()
+	delete(r.debugAttachments, params.DebugAttachmentID)
+
+	return debugattachment.NewDeleteDebugAttachmentOK()
+}
+
+func (r *RestHandler) DebugrequestDeleteDebugRequestHandler(params debugrequest.DeleteDebugRequestParams) middleware.Responder {
+	r.debugRequestsMapLock.Lock()
+	defer r.debugRequestsMapLock.Unlock()
+	delete(r.debugRequests, params.DebugRequestID)
+
+	return debugrequest.NewDeleteDebugRequestOK()
+}
+
+func (r *RestHandler) DebugattachmentGetDebugAttachmentHandler(params debugattachment.GetDebugAttachmentParams) middleware.Responder {
+	r.debugAttachmentsMapLock.RLock()
+	defer r.debugAttachmentsMapLock.RUnlock()
+
+	da := r.debugAttachments[params.DebugAttachmentID]
+	if da != nil {
+		return debugattachment.NewGetDebugAttachmentOK().WithPayload(da)
+	}
+	return debugattachment.NewGetDebugAttachmentNotFound()
+}
+
+func contains(s string, sa []string) bool {
+	for _, si := range sa {
+		if s == si {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugattachment.GetDebugAttachmentsParams) middleware.Responder {
+	// get list of debug configs
+	// filter by node
+	// filter by status
+
+	// is the list empty?!
+	// watch for new ones!
+	//
+	node := params.Node
+	state := params.State
+	wait := false
+	if params.Wait != nil {
+		wait = *params.Wait
+	}
+	names := params.Names
+
+	ctx := params.HTTPRequest.Context()
+	if params.XTimeout != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration((*params.XTimeout)*float64(time.Second)))
+		defer cancel()
+	}
+
+	log.Info("GetDebugAttachmentsHandler called!")
+
+	var listener chan int
+
+	var debugattachments []*models.DebugAttachment
+	filter := func() {
+		r.debugAttachmentsMapLock.RLock()
+		defer r.debugAttachmentsMapLock.RUnlock()
+
+		for _, attachment := range r.debugAttachments {
+			if node != nil && *node != attachment.Spec.Node {
+				continue
+			}
+			if state != nil && *state != attachment.Status.State {
+				continue
+			}
+			if len(names) != 0 && !contains(attachment.Metadata.Name, names) {
+				continue
+			}
+
+			debugattachments = append(debugattachments, attachment)
+		}
+	}
+
+	filter()
+
+	if wait && len(debugattachments) == 0 {
+		// wait!
+		// wait!
+		// while the table is locked add a channel to listener list.
+		listener = make(chan int, 1)
+		r.addListener(listener)
+		defer r.removeListener(listener)
+
+		for {
+			select {
+			case <-listener:
+				filter()
+			case <-ctx.Done():
+				// return timeout!
+				return debugattachment.NewGetDebugAttachmentsRequestTimeout()
+			}
+
+			if len(debugattachments) != 0 {
+				break
 			}
 
 		}
-	}()
-	return cancel, nil
+	}
+
+	return debugattachment.NewGetDebugAttachmentsOK().WithPayload(debugattachments)
 }
 
-func (r *RestHandler) getNodeChan(node string) chan models.DebugConfig {
-	r.nodeConfigsMaplock.RLock()
-	c, ok := r.nodeConfigs[node]
-	r.nodeConfigsMaplock.RUnlock()
+func (r *RestHandler) addListener(listener chan int) {
+	r.attachmentlistenersLock.Lock()
+	defer r.attachmentlistenersLock.Unlock()
+	r.attachmentlisteners = append(r.attachmentlisteners, listener)
+}
 
-	if ok {
-		return c
+func (r *RestHandler) notify() {
+	r.attachmentlistenersLock.Lock()
+	defer r.attachmentlistenersLock.Unlock()
+	for _, l := range r.attachmentlisteners {
+		select {
+		case l <- 0:
+		default:
+		}
 	}
-	// slow path
-	r.nodeConfigsMaplock.Lock()
-	defer r.nodeConfigsMaplock.Unlock()
-	// check again, incase there was a race
-	c, ok = r.nodeConfigs[node]
+}
 
-	if ok {
-		return c
+func (r *RestHandler) removeListener(listener chan int) {
+	r.attachmentlistenersLock.Lock()
+	defer r.attachmentlistenersLock.Unlock()
+	for i := range r.attachmentlisteners {
+		if r.attachmentlisteners[i] == listener {
+			r.attachmentlisteners[i] = r.attachmentlisteners[len(r.attachmentlisteners)-1]
+			r.attachmentlisteners = r.attachmentlisteners[:len(r.attachmentlisteners)-1]
+			return
+		}
+	}
+}
+
+func (r *RestHandler) DebugrequestGetDebugRequestsHandler(params debugrequest.GetDebugRequestsParams) middleware.Responder {
+	r.debugRequestsMapLock.RLock()
+	defer r.debugRequestsMapLock.RUnlock()
+	debugrequests := make([]*models.DebugRequest, 0, len(r.debugRequests))
+	for _, dr := range r.debugRequests {
+		debugrequests = append(debugrequests, dr)
+	}
+	return debugrequest.NewGetDebugRequestsOK().WithPayload(debugrequests)
+}
+
+func (r *RestHandler) DebugrequestGetDebugRequestHandler(params debugrequest.GetDebugRequestParams) middleware.Responder {
+	r.debugRequestsMapLock.RLock()
+	defer r.debugRequestsMapLock.RUnlock()
+
+	dr := r.debugRequests[params.DebugRequestID]
+	if dr != nil {
+		return debugrequest.NewGetDebugRequestOK().WithPayload(dr)
+	}
+	return debugrequest.NewGetDebugRequestNotFound()
+}
+
+type randReader struct {
+	letters string
+}
+
+func newRandReader() *randReader {
+	return &randReader{
+		letters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+	}
+}
+
+func (r *randReader) randByte() byte {
+	return r.letters[rand.Int()%len(r.letters)]
+}
+
+func (r *randReader) Read(p []byte) (n int, err error) {
+	for i := range p {
+		p[i] = r.randByte()
+	}
+	return len(p), nil
+}
+
+func randomString() string {
+	r := newRandReader()
+	var buf bytes.Buffer
+	_, err := io.CopyN(&buf, r, 10)
+	if err != nil {
+		// should never happen
+		panic(err)
 	}
 
-	c = make(chan models.DebugConfig, 10)
-	r.nodeConfigs[node] = c
-	return c
-
+	return buf.String()
 }

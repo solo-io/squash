@@ -10,14 +10,9 @@ import (
 type DebugPlatform struct {
 }
 
-/// Watch a service and get notifications when new containers of that service are created.
-func (d *DebugPlatform) WatchService(ctx context.Context, servicename string) (<-chan platforms.Container, error) {
-	return nil, errors.New("This is debug mode")
+func (d *DebugPlatform) Locate(context context.Context, attachment interface{}) (interface{}, *platforms.Container, error) {
+	return attachment, &platforms.Container{Image: "debug", Name: "debug", Node: "debug-node"}, nil
 }
-
-func (d *DebugPlatform) Locate(context context.Context, containername string) (*platforms.Container, error) {
-	return &platforms.Container{Image: "debug", Name: containername, Node: "debug-node"}, nil
-}
-func (d *DebugPlatform) GetPid(maincontext context.Context, attachmentname string) (int, error) {
+func (d *DebugPlatform) GetPid(maincontext context.Context, attachment interface{}) (int, error) {
 	return 0, errors.New("This is debug mode")
 }

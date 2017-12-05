@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -36,14 +35,15 @@ func NewContainer2Pid() platforms.Container2Pid {
 func getDialer(a string, t time.Duration) (net.Conn, error) {
 	return net.DialTimeout("unix", a, t)
 }
-func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachmentname string) (int, error) {
-	log.WithField("attachmentname", attachmentname).Debug("Cri GetPid called")
-	parts := strings.SplitN(attachmentname, ":", 2)
-	if len(parts) != 2 {
-		return 0, errors.New("bad container name format")
+func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interface{}) (int, error) {
+
+	log.WithField("attachment", attachment).Debug("Cri GetPid called")
+
+	ka, err := genericToKubeAttachment(attachment)
+
+	if err != nil {
+		return 0, errors.New("bad attachment format")
 	}
-	podname := parts[0]
-	containername := parts[1]
 
 	// contact the local CRI and get the container
 
@@ -51,7 +51,8 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachmentname st
 	runtimeService := kubeapi.NewRuntimeServiceClient(cc)
 
 	labels := make(map[string]string)
-	labels["io.kubernetes.pod.name"] = podname
+	labels["io.kubernetes.pod.name"] = ka.Pod
+	labels["io.kubernetes.pod.namespace"] = ka.Namespace
 	inpod := &kubeapi.ListPodSandboxRequest{
 		Filter: &kubeapi.PodSandboxFilter{
 			LabelSelector: labels,
@@ -74,7 +75,7 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachmentname st
 	pod := resp.Items[0]
 
 	labels = make(map[string]string)
-	labels["io.kubernetes.container.name"] = containername
+	labels["io.kubernetes.container.name"] = ka.Container
 	incont := &kubeapi.ListContainersRequest{
 		Filter: &kubeapi.ContainerFilter{
 			PodSandboxId:  pod.Id,

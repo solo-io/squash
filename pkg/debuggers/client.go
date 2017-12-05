@@ -2,20 +2,17 @@ package debuggers
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
-	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/solo-io/squash/pkg/client"
-	"github.com/solo-io/squash/pkg/client/debugconfig"
-	"github.com/solo-io/squash/pkg/client/debugsessions"
+	"github.com/solo-io/squash/pkg/client/debugattachment"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms"
 )
@@ -80,33 +77,30 @@ func (d *DebugHandler) handleAttachments() error {
 		}
 	}
 }
-
 func (d *DebugHandler) handleAttachment() error {
-	ci, err := d.watchForAttached()
+	attachments, err := d.watchForAttached()
+
 	if err != nil {
 		log.WithField("err", err).Warn("error watching for attached container")
 		return err
 	}
-	err = retry(func() error { return d.tryToAttach(ci) })
+
+	for _, attachment := range attachments {
+		go d.handleSingleAttachment(attachment)
+	}
+	return nil
+}
+
+func (d *DebugHandler) handleSingleAttachment(attachment *models.DebugAttachment) error {
+	d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching)
+
+	err := retry(func() error { return d.tryToAttach(attachment) })
 
 	if err != nil {
 
-		// put an empty debug session to make the debug config inactive
+		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
 
-		params := debugsessions.NewPutDebugSessionParams()
-		params.Body = &models.DebugSession{
-			DebugConfigID: &ci.ID,
-		}
-		params.DebugConfigID = ci.ID
-
-		log.WithFields(log.Fields{"DebugConfigID": params.DebugConfigID}).Debug("Failed to attach... signaling server.")
-
-		_, err := d.client.Debugsessions.PutDebugSession(params)
-		if err != nil {
-			log.WithField("err", err).Warn("Error adding debug session for failure!")
-		} else {
-			log.Info("debug config set inactive!")
-		}
+		d.notifyError(attachment)
 	}
 	return err
 }
@@ -122,18 +116,18 @@ func retry(f func() error) error {
 	return f()
 }
 
-func (d *DebugHandler) tryToAttach(ci *models.DebugConfig) error {
+func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
 
 	// make sure this is not a duplicate
 
-	pid, err := d.conttopid.GetPid(context.Background(), *ci.Attachment.Name)
+	pid, err := d.conttopid.GetPid(context.Background(), attachment.Spec.Attachment)
 
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
 		return err
 	}
 
-	log.WithField("app", ci).Info("Attaching to live session")
+	log.WithField("app", attachment).Info("Attaching to live session")
 
 	p, err := os.FindProcess(pid)
 	if err != nil {
@@ -143,136 +137,75 @@ func (d *DebugHandler) tryToAttach(ci *models.DebugConfig) error {
 	if !d.debugees[pid] {
 		log.WithField("pid", pid).Info("starting to debug")
 		d.debugees[pid] = true
-		go d.startDebug(ci, p)
+		go d.startDebug(attachment, p)
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
 	}
 	return nil
 }
 
-func (d *DebugHandler) notifyAttached(ci *models.DebugConfig) {
+func (d *DebugHandler) notifyError(attachment *models.DebugAttachment) {
+	d.notifyState(attachment, models.DebugAttachmentStatusStateError)
+}
 
-	cfg := *ci
+func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate string) {
 
-	params := debugconfig.NewUpdateDebugConfigParams()
-	cfg.Attached = true
-	params.Body = &cfg
-	params.DebugConfigID = cfg.ID
+	attachmentCopy := *attachment
 
-	log.WithFields(log.Fields{"updatedConfig": params.Body, "DebugConfigID": params.DebugConfigID}).Debug("Notifying server of attachment to debug config object")
+	params := debugattachment.NewPatchDebugAttachmentParams()
+	if attachmentCopy.Status == nil {
+		attachmentCopy.Status = &models.DebugAttachmentStatus{}
+	}
+	attachmentCopy.Status.State = newstate
+	params.Body = &attachmentCopy
+	params.DebugAttachmentID = attachment.Metadata.Name
 
-	_, err := d.client.Debugconfig.UpdateDebugConfig(params)
+	log.WithFields(log.Fields{"patchDebugAttachment": params.Body, "DebugAttachmentID": params.DebugAttachmentID}).Debug("Notifying server of attachment to debug config object")
+
+	_, err := d.client.Debugattachment.PatchDebugAttachment(params)
 	if err != nil {
 		log.WithField("err", err).Warn("Error notifing debug session attachment - detaching!")
 	} else {
-		log.Info("debug session notified of attachment!")
+		log.Info("debug attachment notified of attachment!")
 	}
 
 }
-func (d *DebugHandler) waitForErrorAndStop(ci *models.DebugConfig, curdebugger Debugger, p *os.Process) (DebugServer, error) {
-	logger := log.WithField("pid", p.Pid)
-	logger.Info("Waiting for error")
-	session, err := curdebugger.AttachTo(p.Pid)
-	if err != nil {
-		log.WithField("err", err).Error("can't attach process")
-		return nil, err
-	}
 
-	// update  the debug server of our attachment
-	go d.notifyAttached(ci)
-
-	var port DebugServer
-	defer func() {
-		if port == nil {
-			session.Detach()
-		}
-	}()
-
-	logger.Info("Setting breakpoints")
-
-	for _, bp := range ci.Breakpoints {
-		err := session.SetBreakpoint(*bp.Location)
-		if err != nil {
-			return nil, err
-		}
-		logger.WithField("bp", *bp.Location).Info("Breakpoint set")
-	}
-
-	logger.Info("Continuing")
-	stopch, err := session.Continue()
-	if err != nil {
-		log.WithField("err", err).Error("can't continue process")
-		return nil, err
-	}
-	logger.Info("Waiting for process to stop")
-
-	e := <-stopch
-	logger.Info("Process stopped!")
-	if e.Exited {
-		return nil, errors.New("process exited")
-	}
-
-	port, err = session.IntoDebugServer()
-	if err != nil {
-		p.Signal(syscall.SIGSTOP)
-	}
-
-	// detach also delete all breakpoints in gdb, so that's good.
-	return port, nil
-}
-
-func (d *DebugHandler) startDebug(ci *models.DebugConfig, p *os.Process) {
+func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process) {
 	log.Info("start debug called")
 
-	shouldWaitForError := !ci.Immediately
+	curdebugger := d.debugger(*attachment.Spec.Debugger)
 
-	curdebugger := d.debugger(ci.Debugger)
-
-	log.WithFields(log.Fields{"curdebugger": ci.Debugger, "shouldWaitForError": shouldWaitForError}).Info("start debug params")
-
-	shouldthaw := false
-	var port DebugServer
-	if shouldWaitForError {
-		var err error
-		port, err = d.waitForErrorAndStop(ci, curdebugger, p)
-		if err != nil {
-			log.WithField("err", err).Warn("Error waiting for error!")
-			return // err
-		}
-		if port == nil {
-			shouldthaw = true
-		}
+	if curdebugger == nil {
+		d.notifyError(attachment)
+		return
 	}
 
-	if port == nil {
-		log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
-		var err error
-		port, err = curdebugger.StartDebugServer(p.Pid)
-		go d.notifyAttached(ci)
+	log.WithFields(log.Fields{"curdebugger": attachment.Spec.Debugger}).Info("start debug params")
 
-		if err != nil {
-			log.WithField("err", err).Error("Starting debug server error")
-			return // err
-		}
-		log.WithField("port", port).Info("StartDebugServer return dbg server port")
-		if shouldthaw {
+	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
+	var err error
+	port, err := curdebugger.StartDebugServer(p.Pid)
 
-			log.WithField("pid", p.Pid).Info("StartDebugServer - should thaw")
-			p.Signal(syscall.SIGCONT)
-		}
+	if err != nil {
+		log.WithField("err", err).Error("Starting debug server error")
+		return // err
 	}
+
 	log.WithField("pid", p.Pid).Info("StartDebugServer - posting debug session")
 
-	params := debugsessions.NewPutDebugSessionParams()
-	params.Body = &models.DebugSession{
-		URL:           fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), port.Port()),
-		DebugConfigID: &ci.ID,
+	attachmentPatch := &models.DebugAttachment{}
+	attachmentPatch.Status = &models.DebugAttachmentStatus{
+		DebugServerAddress: fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), port.Port()),
+		State:              models.DebugAttachmentStatusStateAttached,
 	}
-	params.DebugConfigID = ci.ID
+	params := debugattachment.NewPatchDebugAttachmentParams()
+	params.Body = attachmentPatch
+	params.DebugAttachmentID = attachment.Metadata.Name
 
-	log.WithFields(log.Fields{"URL": params.Body.URL, "DebugConfigID": params.DebugConfigID}).Debug("Trying to add debug session!")
+	log.WithFields(log.Fields{"patchDebugAttachment": params.Body, "DebugAttachmentID": params.DebugAttachmentID}).Debug("Notifying server of attachment to debug config object")
+	_, err = d.client.Debugattachment.PatchDebugAttachment(params)
 
-	_, err := d.client.Debugsessions.PutDebugSession(params)
 	if err != nil {
 		log.WithField("err", err).Warn("Error adding debug session - detaching!")
 		port.Detach()
@@ -281,15 +214,20 @@ func (d *DebugHandler) startDebug(ci *models.DebugConfig, p *os.Process) {
 	}
 }
 
-func (d *DebugHandler) watchForAttached() (*models.DebugConfig, error) {
+func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, error) {
 	for {
-		params := debugconfig.NewPopContainerToDebugParams()
-		params.Node = getNodeName()
+		params := debugattachment.NewGetDebugAttachmentsParams()
+		nodename := getNodeName()
+		params.Node = &nodename
+		t := true
+		params.Wait = &t
+		none := models.DebugAttachmentStatusStateNone
+		params.State = &none
 		log.WithField("params", params).Debug("watchForAttached - calling PopContainerToDebug")
 
-		resp, err := d.client.Debugconfig.PopContainerToDebug(params)
+		resp, err := d.client.Debugattachment.GetDebugAttachments(params)
 
-		if _, ok := err.(*debugconfig.PopContainerToDebugRequestTimeout); ok {
+		if _, ok := err.(*debugattachment.GetDebugAttachmentsRequestTimeout); ok {
 			continue
 		}
 
@@ -299,14 +237,10 @@ func (d *DebugHandler) watchForAttached() (*models.DebugConfig, error) {
 			continue
 		}
 
-		ci := resp.Payload
+		attachment := resp.Payload
 
-		if *ci.Attachment.Type != models.AttachmentTypeContainer {
-			log.WithField("ci", spew.Sdump(ci)).Warn("watchForAttached - recieved bad attachment")
-			continue
-		}
-		log.WithField("ci", spew.Sdump(ci)).Info("watchForAttached - got debug config!")
+		log.WithField("attachment", spew.Sdump(attachment)).Info("watchForAttached - got debug attachment!")
 
-		return ci, nil
+		return attachment, nil
 	}
 }
