@@ -93,47 +93,24 @@ type Squash struct {
 	Namespace string
 }
 
-func (s *Squash) Attach(image, pod, container, dbgger string) (*models.DebugConfig, error) {
+func (s *Squash) Attach(image, pod, container, dbgger string) (*models.DebugAttachment, error) {
 
-	cmd := s.run("debug-container", image, pod, container, dbgger)
+	cmd := s.run("debug-container", "--namespace="+s.Namespace, image, pod, container, dbgger)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
 
-	var dbgconfig models.DebugConfig
-	err = json.Unmarshal(out, &dbgconfig)
+	var dbgattachment models.DebugAttachment
+	err = json.Unmarshal(out, &dbgattachment)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dbgconfig, nil
+	return &dbgattachment, nil
 }
 
-func (s *Squash) Service(image, service, dbgger string, bp ...string) (*models.DebugConfig, error) {
-	cmdline := []string{"debug-service", service, image, dbgger}
-	for _, b := range bp {
-		cmdline = append(cmdline, "--breakpoint="+b)
-	}
-
-	cmd := s.run(cmdline...)
-	out, err := cmd.Output()
-	if err != nil {
-		log.Println("Failed service attach:", string(out))
-		return nil, err
-	}
-
-	var dbgconfig models.DebugConfig
-	err = json.Unmarshal(out, &dbgconfig)
-	if err != nil {
-		log.Println("Failed service attach:", string(out))
-		return nil, err
-	}
-
-	return &dbgconfig, nil
-}
-
-func (s *Squash) Wait(id string) (*models.DebugSession, error) {
+func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 
 	cmd := s.run("wait", id, "--timeout", "90")
 
@@ -143,18 +120,18 @@ func (s *Squash) Wait(id string) (*models.DebugSession, error) {
 		return nil, err
 	}
 
-	var dbgsession models.DebugSession
-	err = json.Unmarshal(out, &dbgsession)
+	var dbgattachment models.DebugAttachment
+	err = json.Unmarshal(out, &dbgattachment)
 	if err != nil {
 		log.Println("Failed service wait:", string(out))
 		return nil, err
 	}
 
-	return &dbgsession, nil
+	return &dbgattachment, nil
 }
 
 func (s *Squash) run(args ...string) *exec.Cmd {
-	url := fmt.Sprintf("--url=http://localhost:8001/api/v1/namespaces/%s/services/squash-server-service/proxy/api/v1", s.Namespace)
+	url := fmt.Sprintf("--url=http://localhost:8001/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
 	newargs := []string{url, "--json"}
 	newargs = append(newargs, args...)
 

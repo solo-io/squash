@@ -32,16 +32,16 @@ We can use kubectl to overcome this issue. Run this command to start kubectl's a
 kubectl proxy
 ```
 
-We can then use kubernetes' service proxy - the squash server url will be available as: `http://localhost:8001/api/v1/namespaces/default/services/squash-server-service/proxy/api/v1`. 
+We can then use kubernetes' service proxy - the squash server url will be available as: `http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2`.
 
 You can use the squash client now with a url flag:
 ```
-$ squash --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server-service/proxy/api/v1 ...
+$ squash --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2 ...
 ```
 
 Or add this setting to vs-code:
 ```
-"vs-squash.squahs-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server-service/proxy/api/v1"
+"vs-squash.squahs-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2"
 ```
 
 Just note that `kubectl proxy` should remain running in the background.

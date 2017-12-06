@@ -2,7 +2,6 @@ package e2e_test
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -41,7 +40,7 @@ var _ = Describe("Single debug mode", func() {
 		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-server.yml"); err != nil {
 			panic(err)
 		}
-		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-ds.yml"); err != nil {
+		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-client.yml"); err != nil {
 			panic(err)
 		}
 		if err := kubectl.Run("create", "-f", "../../contrib/example/service1/service1.yml"); err != nil {
@@ -61,7 +60,7 @@ var _ = Describe("Single debug mode", func() {
 			switch {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "example-service1"):
 				MicroservicePods[pod.Spec.NodeName] = &newpod
-			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server-rc"):
+			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server-"):
 				ServerPod = &newpod
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-client"):
 				ClientPods[pod.Spec.NodeName] = &newpod
@@ -86,7 +85,7 @@ var _ = Describe("Single debug mode", func() {
 
 			container := p.Spec.Containers[0]
 
-			dbgconfig, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "dlv")
+			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "dlv")
 			if err != nil {
 				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
 				fmt.Println(string(logs))
@@ -94,7 +93,7 @@ var _ = Describe("Single debug mode", func() {
 			}
 			time.Sleep(time.Second)
 
-			dbgsession, err := squash.Wait(dbgconfig.ID)
+			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
 			if err != nil {
 				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
 				fmt.Println("server logs:")
@@ -105,52 +104,55 @@ var _ = Describe("Single debug mode", func() {
 				panic(err)
 			}
 
-			Expect(dbgsession).ToNot(Equal(nil))
+			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
 
 		})
 	})
-	Describe("Service mode", func() {
-		It("should get a debug server endpoint", func() {
 
-			var p *v1.Pod
-			for _, v := range MicroservicePods {
-				p = v
-				break
-			}
+	/*
+		Describe("Service mode", func() {
+			It("should get a debug server endpoint", func() {
 
-			container := p.Spec.Containers[0]
-			dbgconfig, err := squash.Service(container.Image, "example-service1-svc", "dlv", "main.go:80")
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println(string(logs))
-				panic(err)
-			}
-			time.Sleep(60 * time.Second)
-
-			serviceurl := fmt.Sprintf(KubeEndpoint+"/v1/namespaces/%s/services/example-service1-svc/proxy/calc", kubectl.Namespace)
-			go func() {
-				_, err := http.Get(serviceurl)
-				if err != nil {
-					fmt.Println("Error issuing http request ", err)
-				} else {
-					fmt.Println("http request OK")
-
+				var p *v1.Pod
+				for _, v := range MicroservicePods {
+					p = v
+					break
 				}
 
-			}()
-			dbgsession, err := squash.Wait(dbgconfig.ID)
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println("server logs:")
-				fmt.Println(string(logs))
-				clogs, _ := kubectl.Logs(ClientPods[p.Spec.NodeName].ObjectMeta.Name)
-				fmt.Println("client logs:")
-				fmt.Println(string(clogs))
-				panic(err)
-			}
+				container := p.Spec.Containers[0]
+				dbgconfig, err := squash.Service(container.Image, "example-service1-svc", "dlv", "main.go:80")
+				if err != nil {
+					logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
+					fmt.Println(string(logs))
+					panic(err)
+				}
+				time.Sleep(60 * time.Second)
 
-			Expect(dbgsession).ToNot(Equal(nil))
+				serviceurl := fmt.Sprintf(KubeEndpoint+"/v1/namespaces/%s/services/example-service1-svc/proxy/calc", kubectl.Namespace)
+				go func() {
+					_, err := http.Get(serviceurl)
+					if err != nil {
+						fmt.Println("Error issuing http request ", err)
+					} else {
+						fmt.Println("http request OK")
 
+					}
+
+				}()
+				dbgsession, err := squash.Wait(dbgconfig.ID)
+				if err != nil {
+					logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
+					fmt.Println("server logs:")
+					fmt.Println(string(logs))
+					clogs, _ := kubectl.Logs(ClientPods[p.Spec.NodeName].ObjectMeta.Name)
+					fmt.Println("client logs:")
+					fmt.Println(string(clogs))
+					panic(err)
+				}
+
+				Expect(dbgsession).ToNot(Equal(nil))
+
+			})
 		})
-	})
+	*/
 })

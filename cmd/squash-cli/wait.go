@@ -30,10 +30,11 @@ func init() {
 			id := args[0]
 
 			params := debugattachment.NewGetDebugAttachmentsParams()
-			params.Names = []string{id}
 			attached := models.DebugAttachmentStatusStateAttached
 			params.State = &attached
 			params.Names = []string{id}
+			t := true
+			params.Wait = &t
 			params.XTimeout = &attachmentWaitTimeout
 
 			res, err := c.Debugattachment.GetDebugAttachments(params)
@@ -57,7 +58,7 @@ func init() {
 
 			attachments := res.Payload
 			if len(attachments) != 1 {
-				panic("error getting attachments - successfull call ambigous")
+				panic(fmt.Sprintf("error getting attachments - successfull call ambiguous %v", attachments))
 			}
 			attachment := attachments[0]
 

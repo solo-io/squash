@@ -63,7 +63,12 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		dbgattachment.Spec = &models.DebugAttachmentSpec{}
 	}
 	dbgattachment.Spec.Attachment = attachment
-	dbgattachment.Spec.Image = container.Image
+	if dbgattachment.Spec.Image == "" {
+		dbgattachment.Spec.Image = container.Image
+	} else if dbgattachment.Spec.Image != container.Image {
+		return debugattachment.NewAddDebugAttachmentBadRequest()
+	}
+
 	dbgattachment.Spec.Node = container.Node
 
 	if dbgattachment.Metadata == nil {
@@ -319,6 +324,8 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 				filter()
 			case <-ctx.Done():
 				// return timeout!
+				log.Debug("GetDebugAttachmentsHandler timing out!")
+
 				return debugattachment.NewGetDebugAttachmentsRequestTimeout()
 			}
 
