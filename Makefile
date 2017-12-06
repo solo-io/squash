@@ -8,7 +8,7 @@ containers: target/squash-server-container target/squash-client-container
 prep-containers: ./target/squash-server/squash-server target/squash-server/Dockerfile target/squash-client/squash-client target/squash-client/Dockerfile
 
 DOCKER_REPO ?= soloio
-VERSION ?= v0.1.4
+VERSION ?= v0.2.0
 
 
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
@@ -59,13 +59,13 @@ target/%.yml : contrib/%.yml.tmpl
 	SQUASH_REPO=$(DOCKER_REPO) SQUASH_VERSION=$(VERSION) go run contrib/templategen.go $< > $@
 
 target/kubernetes/squash-server.yml: target/squash-server-container
-target/kubernetes/squash-ds.yml: target/squash-client-container
+target/kubernetes/squash-client.yml: target/squash-client-container
 
 target/kubernetes/:
 	[ -d $@ ] || mkdir -p $@
 
 deployment: | target/kubernetes/
-deployment: target/kubernetes/squash-ds.yml target/kubernetes/squash-server.yml
+deployment: target/kubernetes/squash-client.yml target/kubernetes/squash-server.yml
 
 
 .PHONY: clean

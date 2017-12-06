@@ -301,7 +301,6 @@ definitions:
   DebugAttachment:
     type: object
     required:
-    - "metadata"
     - "spec"
     properties:
       metadata:
@@ -331,7 +330,6 @@ definitions:
   DebugRequest:
     type: object
     required:
-    - "metadata"
     - "spec"
     properties:
       metadata:

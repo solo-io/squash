@@ -2,6 +2,7 @@ package debuggers
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/url"
@@ -86,23 +87,25 @@ func (d *DebugHandler) handleAttachment() error {
 	}
 
 	for _, attachment := range attachments {
+		// notify the server that we are attaching, so we won't get the same attachment object next time.
+		if err := d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching); err != nil {
+			log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name, "err": err}).Debug("Failed set state to attaching in squash server. aborting.")
+
+			d.notifyError(attachment)
+		}
 		go d.handleSingleAttachment(attachment)
 	}
 	return nil
 }
 
-func (d *DebugHandler) handleSingleAttachment(attachment *models.DebugAttachment) error {
-	d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching)
+func (d *DebugHandler) handleSingleAttachment(attachment *models.DebugAttachment) {
 
 	err := retry(func() error { return d.tryToAttach(attachment) })
 
 	if err != nil {
-
 		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
-
 		d.notifyError(attachment)
 	}
-	return err
 }
 
 func retry(f func() error) error {
@@ -137,9 +140,13 @@ func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
 	if !d.debugees[pid] {
 		log.WithField("pid", pid).Info("starting to debug")
 		d.debugees[pid] = true
-		go d.startDebug(attachment, p)
+		err := d.startDebug(attachment, p)
+		if err != nil {
+			d.notifyError(attachment)
+		}
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
+		d.notifyError(attachment)
 	}
 	return nil
 }
@@ -148,7 +155,7 @@ func (d *DebugHandler) notifyError(attachment *models.DebugAttachment) {
 	d.notifyState(attachment, models.DebugAttachmentStatusStateError)
 }
 
-func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate string) {
+func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate string) error {
 
 	attachmentCopy := *attachment
 
@@ -168,17 +175,16 @@ func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate 
 	} else {
 		log.Info("debug attachment notified of attachment!")
 	}
-
+	return err
 }
 
-func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process) {
+func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process) error {
 	log.Info("start debug called")
 
 	curdebugger := d.debugger(*attachment.Spec.Debugger)
 
 	if curdebugger == nil {
-		d.notifyError(attachment)
-		return
+		return errors.New("debugger doesn't exist")
 	}
 
 	log.WithFields(log.Fields{"curdebugger": attachment.Spec.Debugger}).Info("start debug params")
@@ -189,12 +195,15 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 
 	if err != nil {
 		log.WithField("err", err).Error("Starting debug server error")
-		return // err
+		return err
 	}
 
 	log.WithField("pid", p.Pid).Info("StartDebugServer - posting debug session")
 
-	attachmentPatch := &models.DebugAttachment{}
+	attachmentPatch := &models.DebugAttachment{
+		Metadata: attachment.Metadata,
+		Spec:     attachment.Spec,
+	}
 	attachmentPatch.Status = &models.DebugAttachmentStatus{
 		DebugServerAddress: fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), port.Port()),
 		State:              models.DebugAttachmentStatusStateAttached,
@@ -212,6 +221,7 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 	} else {
 		log.Info("debug session added!")
 	}
+	return nil
 }
 
 func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, error) {

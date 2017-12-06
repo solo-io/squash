@@ -16,19 +16,16 @@ import (
 
 func init() {
 
+	namespace := "default"
+
 	var debugContainerCmd = &cobra.Command{
-		Use:   "debug-container [namespace] image pod container [type]",
+		Use:   "debug-container image pod container [type]",
 		Short: "debug-container adds a container type debug config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var image, pod, container, debuggertype string
 			debuggertype = "gdb"
-			namespace := "default"
 			var err error
 			switch len(args) {
-			case 5:
-				namespace = args[0] // BUG!
-				args = args[1:]
-				fallthrough
 			case 4:
 				debuggertype = args[3]
 				fallthrough
@@ -66,7 +63,7 @@ func init() {
 				if !jsonoutput {
 					fmt.Println("Failed adding container - check parameter names match container on the platform. error:", err)
 				} else {
-					json.NewEncoder(os.Stdout).Encode(Error{Type: "unkown", Info: err.Error()})
+					json.NewEncoder(os.Stdout).Encode(Error{Type: "unknown", Info: err.Error()})
 				}
 				os.Exit(1)
 			}
@@ -82,6 +79,8 @@ func init() {
 			return nil
 		},
 	}
+
+	debugContainerCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "Namespace the pod belongs to")
 
 	RootCmd.AddCommand(debugContainerCmd)
 

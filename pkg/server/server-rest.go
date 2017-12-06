@@ -9,6 +9,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms"
@@ -47,22 +48,32 @@ func verify_or_generate(s string) string {
 func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattachment.AddDebugAttachmentParams) middleware.Responder {
 	// if then else!
 	// TODO generate name if needed
+	log.Info("DebugattachmentAddDebugAttachmentHandler called!")
 
 	// validate the attachment
 	dbgattachment := params.Body
 
 	attachment, container, err := r.containerLocator.Locate(params.HTTPRequest.Context(), dbgattachment.Spec.Attachment)
 	if err != nil {
+		log.WithError(err).Warn("DebugattachmentAddDebugAttachmentHandler can't locate container")
 		return debugattachment.NewAddDebugAttachmentNotFound()
 	}
 
+	if dbgattachment.Spec == nil {
+		dbgattachment.Spec = &models.DebugAttachmentSpec{}
+	}
 	dbgattachment.Spec.Attachment = attachment
 	dbgattachment.Spec.Image = container.Image
 	dbgattachment.Spec.Node = container.Node
 
+	if dbgattachment.Metadata == nil {
+		dbgattachment.Metadata = &models.ObjectMeta{}
+	}
 	dbgattachment.Metadata.Name = verify_or_generate(dbgattachment.Metadata.Name)
 
 	if dbgattachment.Spec.MatchRequest {
+		log.WithField("dbgattachment", dbgattachment).Debug("trying to match a debug request for debug attachment")
+
 		// find a matching request for the same image
 		dr := r.findUnboundDebugRequest(dbgattachment)
 		if dr == nil {
@@ -80,13 +91,15 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 
 		go func(dr models.DebugRequest) {
 			dr.Status.DebugAttachmentRef = dbgattachment.Metadata.Name
-			// place teh debug attachment
+			// place the debug attachment
 			// update  the debug request
 			// release all locks
 			r.updateDebugRequest(dr)
 		}(*dr)
 
 	} else {
+		log.WithField("dbgattachment", dbgattachment).Debug("DebugattachmentAddDebugAttachmentHandler match not needed, done.")
+
 		r.saveDebugAttachment(dbgattachment)
 	}
 
@@ -123,9 +136,18 @@ func (r *RestHandler) updateDebugRequest(dr models.DebugRequest) {
 }
 
 func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
-	r.debugAttachmentsMapLock.Lock()
-	defer r.debugAttachmentsMapLock.Unlock()
-	r.debugAttachments[da.Metadata.Name] = da
+	if da.Status == nil {
+		da.Status = &models.DebugAttachmentStatus{
+			State: models.DebugAttachmentStatusStateNone,
+		}
+	}
+	func() {
+		r.debugAttachmentsMapLock.Lock()
+		defer r.debugAttachmentsMapLock.Unlock()
+		r.debugAttachments[da.Metadata.Name] = da
+	}()
+
+	log.WithField("dbgattachment", da).Debug("saveDebugAttachment - notifying waiters")
 	r.notify()
 }
 
@@ -137,8 +159,14 @@ func (r *RestHandler) getDebugAttachment(name string) *models.DebugAttachment {
 
 func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.CreateDebugRequestParams) middleware.Responder {
 	dr := params.Body
-	dr.Metadata.Name = verify_or_generate(dr.Metadata.Name)
 
+	if dr.Metadata == nil {
+		dr.Metadata = &models.ObjectMeta{}
+	}
+	dr.Metadata.Name = verify_or_generate(dr.Metadata.Name)
+	if dr.Status == nil {
+		dr.Status = &models.DebugRequestStatus{}
+	}
 	r.debugRequestsMapLock.Lock()
 	defer r.debugRequestsMapLock.Unlock()
 
@@ -153,6 +181,11 @@ func (r *RestHandler) DebugattachmentPatchDebugAttachmentHandler(params debugatt
 	if oldDa == nil {
 		return debugattachment.NewPatchDebugAttachmentNotFound()
 	}
+
+	log.WithFields(log.Fields{
+		"oldDa": spew.Sdump(oldDa), "newDa": spew.Sdump(newDa),
+	}).Warn("DebugattachmentPatchDebugAttachmentHandler")
+
 	oldDaCopy := *oldDa
 	if newDa.Status != nil {
 		if oldDaCopy.Status == nil {
@@ -162,12 +195,20 @@ func (r *RestHandler) DebugattachmentPatchDebugAttachmentHandler(params debugatt
 		if newDa.Status.State != "" {
 			if canUpdateState(oldDaCopy.Status.State, newDa.Status.State) {
 				oldDaCopy.Status.State = newDa.Status.State
+			} else {
+				log.WithFields(log.Fields{"attachment": oldDaCopy,
+					"oldstate": oldDaCopy.Status.State, "newstate": newDa.Status.State,
+				}).Warn("Conflict - trying to update to an old state")
+				return debugattachment.NewPatchDebugAttachmentConflict()
 			}
 		}
 		if newDa.Status.DebugServerAddress != "" {
 			if oldDaCopy.Status.DebugServerAddress == "" {
 				oldDaCopy.Status.DebugServerAddress = newDa.Status.DebugServerAddress
 			} else {
+				log.WithFields(log.Fields{"attachment": oldDaCopy,
+					"old": oldDaCopy.Status.DebugServerAddress, "new": newDa.Status.DebugServerAddress,
+				}).Warn("Conflict - trying to update to an existing debug server address")
 				return debugattachment.NewPatchDebugAttachmentConflict()
 			}
 		}
@@ -223,13 +264,6 @@ func contains(s string, sa []string) bool {
 }
 
 func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugattachment.GetDebugAttachmentsParams) middleware.Responder {
-	// get list of debug configs
-	// filter by node
-	// filter by status
-
-	// is the list empty?!
-	// watch for new ones!
-	//
 	node := params.Node
 	state := params.State
 	wait := false
@@ -255,10 +289,10 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 		defer r.debugAttachmentsMapLock.RUnlock()
 
 		for _, attachment := range r.debugAttachments {
-			if node != nil && *node != attachment.Spec.Node {
+			if node != nil && attachment.Spec != nil && *node != attachment.Spec.Node {
 				continue
 			}
-			if state != nil && *state != attachment.Status.State {
+			if state != nil && attachment.Status != nil && *state != attachment.Status.State {
 				continue
 			}
 			if len(names) != 0 && !contains(attachment.Metadata.Name, names) {
@@ -320,6 +354,7 @@ func (r *RestHandler) removeListener(listener chan int) {
 	defer r.attachmentlistenersLock.Unlock()
 	for i := range r.attachmentlisteners {
 		if r.attachmentlisteners[i] == listener {
+			r.attachmentlisteners[i] = nil
 			r.attachmentlisteners[i] = r.attachmentlisteners[len(r.attachmentlisteners)-1]
 			r.attachmentlisteners = r.attachmentlisteners[:len(r.attachmentlisteners)-1]
 			return

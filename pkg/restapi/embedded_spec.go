@@ -395,7 +395,6 @@ func init() {
     "DebugAttachment": {
       "type": "object",
       "required": [
-        "metadata",
         "spec"
       ],
       "properties": {
@@ -454,7 +453,6 @@ func init() {
     "DebugRequest": {
       "type": "object",
       "required": [
-        "metadata",
         "spec"
       ],
       "properties": {

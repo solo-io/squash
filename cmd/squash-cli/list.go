@@ -26,7 +26,7 @@ func init() {
 			if len(args) > 2 {
 				return errors.New("too many args")
 			}
-			if len(args) > 0 {
+			if len(args) == 0 {
 				return errors.New("no type provided")
 			}
 			objType := args[0]
@@ -139,9 +139,9 @@ func listrequests(c *client.Squash, name string) {
 }
 
 func printDebugAttachments(debugconfigs []*models.DebugAttachment) {
-	table := []string{"State\tID\tDebugger\tImage\n"}
+	table := []string{"State\tID\tDebugger\tImage\tDebugger Address\n"}
 	for _, atch := range debugconfigs {
-		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\n", atch.Status.State, atch.Metadata.Name, atch.Spec.Debugger, atch.Spec.Image))
+		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", atch.Status.State, atch.Metadata.Name, nilToEmpty(atch.Spec.Debugger), atch.Spec.Image, atch.Status.DebugServerAddress))
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
@@ -155,7 +155,7 @@ func printDebugAttachments(debugconfigs []*models.DebugAttachment) {
 func printDebugRequests(debugconfigs []*models.DebugRequest) {
 	table := []string{"ID\tDebugger\tImage\tBound Attachment name\n"}
 	for _, rqst := range debugconfigs {
-		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\n", rqst.Metadata.Name, rqst.Spec.Debugger, rqst.Spec.Image, rqst.Status.DebugAttachmentRef))
+		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\n", rqst.Metadata.Name, nilToEmpty(rqst.Spec.Debugger), nilToEmpty(rqst.Spec.Image), rqst.Status.DebugAttachmentRef))
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
@@ -164,4 +164,10 @@ func printDebugRequests(debugconfigs []*models.DebugRequest) {
 	}
 	w.Flush()
 
+}
+func nilToEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -18,8 +18,7 @@ import (
 type DebugRequest struct {
 
 	// metadata
-	// Required: true
-	Metadata *ObjectMeta `json:"metadata"`
+	Metadata *ObjectMeta `json:"metadata,omitempty"`
 
 	// spec
 	// Required: true
@@ -56,8 +55,8 @@ func (m *DebugRequest) Validate(formats strfmt.Registry) error {
 
 func (m *DebugRequest) validateMetadata(formats strfmt.Registry) error {
 
-	if err := validate.Required("metadata", "body", m.Metadata); err != nil {
-		return err
+	if swag.IsZero(m.Metadata) { // not required
+		return nil
 	}
 
 	if m.Metadata != nil {

@@ -51,11 +51,7 @@ spec:
         ports:
         - containerPort: 8080
           protocol: TCP
-        env:
-        - name: KUBE_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+          name: http-rest-api
 ---
 kind: Service
 apiVersion: v1
@@ -65,7 +61,7 @@ spec:
   selector:
     app: squash-server
   ports:
-    - name: http
+    - name: http-squash-api
       protocol: TCP
       port: 80
       targetPort: 8080

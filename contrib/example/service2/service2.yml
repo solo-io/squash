@@ -18,15 +18,6 @@ spec:
         ports:
         - containerPort: 8080
           protocol: TCP
-        env:
-        - name: HOST_ADDR
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: KUBE_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
 ---
 kind: Service
 apiVersion: v1
