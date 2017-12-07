@@ -17,7 +17,13 @@ target:
 	[ -d $@ ] || mkdir -p $@
 
 target/squash: target $(SRCS)
-	go build -o ./target/squash ./cmd/squash-cli
+	go build -o $@ ./cmd/squash-cli
+
+target/squash-linux: target $(SRCS)
+	GOOS=linux go build -o $@ ./cmd/squash-cli
+
+target/squash-osx: target $(SRCS)
+	GOOS=darwin go build -o $@ ./cmd/squash-cli
 
 target/squash-client/: | target
 target/squash-client/:
