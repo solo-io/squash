@@ -26,7 +26,7 @@ type DebugAttachmentSpec struct {
 	// image
 	Image string `json:"image,omitempty"`
 
-	// match request
+	// If true, this attachment must match a pending debug request.
 	MatchRequest bool `json:"match_request,omitempty"`
 
 	// node

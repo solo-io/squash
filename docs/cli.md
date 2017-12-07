@@ -8,9 +8,9 @@ To use the Squash tool, provide the url of the squash server via the `--url` fla
 
 ## Commands:
   * [`squash debug-container`](cli.md#debug-a-container)
-  * [`squash debug-service`](cli.md#debug-a-service)
+  * [`squash debug-request`](cli.md#debug-request)
   * [`squash delete`](cli.md#delete-a-debug-config)
-  * [`squash list`](cli.md#list-debug-configs)
+  * [`squash list`](cli.md#list-debug-attachments-and-requests)
   * [`squash wait`](cli.md#wwait-for-a-debug-session)
 
 ## debug a container
@@ -21,33 +21,36 @@ $ squash debug-container soloio/example-service:v1.0.0 service-rc-dcjsh21  examp
 Debug config id: 1427131847
 ```
 
-## debug a service
-This command adds a debug configuration for a service. A debug session will be created for the first contaienr 
-of the service that generates a debug event (crash or breakpoint). 
-For example, to debug a go service:
+## debug request
+This command adds a debug request for a yet unknown debug attachment. The first debug attachment that has the 'match_request' set to true and matches this request will be bound to the request. 
+For example, to request a debug attachment for a go service:
 ```
-$ squash debug-container service-name soloio/example-service:v1.0.0  dlv --breakpoint main.go:80
+$ squash debug-request soloio/example-service:v1.0.0  dlv
 Debug config id: 336122540
 ```
 
-## delete a debug config
-This command deletes a debug configuration.
+## delete a debug attachment
+This command deletes a debug attachment.
 Example:
 ```
 $ squash delete 336122540
 ```
 
-## list debug configs
+## list debug attachments and requests
 Lists debug configs.
 Example:
 ```
-$ squash list
-Active |ID         |Attachment.Name |Attachment.Type |Debugger |Image  |Immediately
-true   |336122540  |pod1:container1 |service         |dlv      |image1 |false
-true   |1298498081 |pod4:container1 |container       |dlv      |image1 |true
-false  |2019727887 |pod3:container2 |container       |dlv      |image2 |true
-false  |1427131847 |pod2:container2 |container       |dlv      |image2 |true
+$ squash list a
+State    |ID         |Debugger |Image                          |Debugger Address
+attached |vnCv7CoVWe |dlv      |soloio/example-service1:v0.2.1 |squash-client-47mlm:39985
+none     |jeqFghAYem |dlv      |soloio/example-service1:v0.2.1 |
+```
 
+```
+$ squash list r
+ID         |Debugger |Image                                      |Bound Attachment name
+aYHv1cxVsz |dlv      |soloio/example-service1:v0.2.1             |vnCv7CoVWe
+qOh7O8ccP5 |dlv      |soloio/example-service1:v0.2.2             |
 ```
 
 ## wait for a debug session
@@ -57,6 +60,6 @@ Squash server.
  
 Example:
 ```
-$ squash wait 336122540
+$ squash wait vnCv7CoVWe
 Debug session started! debug server is at: pod1:23421
 ```

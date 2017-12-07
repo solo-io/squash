@@ -94,7 +94,7 @@ func init() {
         }
       },
       "post": {
-        "description": "A debug attachment instructs squash to attach to a container. Debug attachment is made of\n  - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results. if not provided huerisrtics will be used to identify it.\n  - debugger: Type of debugger to use. \"dlv\" and \"gdb\" are supported now.\n  - match_request: Whether to match this attachment to a debug request. This is used in automated use-cases to guarantee that the attachment will be noticed.\n",
+        "description": "A debug attachment instructs squash to attach to a container. Debug attachment is made of\n  - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results. if not provided huerisrtics will be used to identify it.\n  - debugger: Type of debugger to use. \"dlv\" and \"gdb\" are supported now.\n  - match_request: Whether to match this attachment to a debug request. This is used in automated use-cases to guarantee that the attachment matches a pending debug request.\n",
         "consumes": [
           "application/json"
         ],
@@ -425,6 +425,7 @@ func init() {
           "type": "string"
         },
         "match_request": {
+          "description": "If true, this attachment must match a pending debug request.",
           "type": "boolean"
         },
         "node": {

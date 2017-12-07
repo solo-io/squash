@@ -16,23 +16,23 @@ Future planes:
 **Platforms** conform to interfaces used by squash server
 
 ```go
-
-type ServiceWatcher interface {
-
-	WatchService(context context.Context, servicename string) (<-chan Container, error)
-}
-
+/// Get the container object from its attachment.
 type ContainerLocator interface {
-
-	Locate(context context.Context, containername string) (*Container, error)
+	/// Takes a platform specific attachment object, and returns an updated attachment object, and a Container object.
+	/// The updated attachment object will eventually make its way to Container2Pid.GetPid
+	Locate(context context.Context, attachment interface{}) (interface{}, *Container, error)
 }
+
 ```
 
 **Platforms** conform to interface used by squash client
 
 ```go
+/// Get the pid of a process that runs in the container. the pid should be in our pid namespace,
+/// not in the container's namespace.
 type Container2Pid interface {
-
-	GetPid(context context.Context, containername string) (int, error)
+	/// Take a platform specific attachment object and return the pid the host pid namespace of the process we want to debug.
+	GetPid(context context.Context, attachment interface{}) (int, error)
 }
+
 ```

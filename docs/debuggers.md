@@ -18,8 +18,8 @@ Future planes:
 ```go
 type Debugger interface {
 
-	AttachTo(pid int) (LiveDebugSession, error)
-	StartDebugServer(pid int) (DebugServer, error)
+	/// Attach a debugger to pid and return the a debug server object
+	Attach(pid int) (DebugServer, error)
 }
 ```
 
@@ -27,34 +27,14 @@ Where `DebugServer` consists of the following:
 
 ```go
 type DebugServer interface {
-
-	Detachable
+	/// Detach from the process we are debugging (allowing it to resume normal execution).
+	Detach() error
+	///  Return the port that the debug server listens on.
 	Port() int
 }
 ```
 
-and `Detachable` consists of the following:
-
-```go
-type Detachable interface {
-
-	Detach() error
-}
-```
-
-and `LiveDebugSession` consists of the following:
-
-```go
-type LiveDebugSession interface {
-
-	SetBreakpoint(bp string) error
-  	Continue() (<-chan Event, error)
-  	IntoDebugServer() (DebugServer, error)
-  	Detachable
-}
-```
-
-To add debugger support to squash, implement the functions and add it to the squash client [main file](../../cmd/squash-client/platforms/kubernetes/main.go).
+To add debugger support to squash, implement the functions above and add it to the squash client [main file](../../cmd/squash-client/platforms/kubernetes/main.go).
 
 ```go
 func getDebugger(dbgtype string) debuggers.Debugger {
@@ -66,9 +46,9 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	case "dlv":
 		return &d
 	case "gdb":
-		fallthrough
-	default:
 		return &g
+	default:
+		return nil
 	}
 }
 

@@ -11,7 +11,7 @@ Squash also works with [minikube](https://kubernetes.io/docs/getting-started-gui
 Execute in order:
 ```
 $ kubectl create -f https://raw.githubusercontent.com/solo-io/squash/master/contrib/kubernetes/squash-server.yml
-$ kubectl create -f https://raw.githubusercontent.com/solo-io/squash/master/contrib/kubernetes/squash-ds.yml
+$ kubectl create -f https://raw.githubusercontent.com/solo-io/squash/master/contrib/kubernetes/squash-client.yml
 ```
 
 The next step is to [get started](../getting-started.md) to debug your first microservice with squash. 

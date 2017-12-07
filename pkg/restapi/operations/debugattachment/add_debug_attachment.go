@@ -36,7 +36,7 @@ Request squash to attach to a running container.
 A debug attachment instructs squash to attach to a container. Debug attachment is made of
   - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results. if not provided huerisrtics will be used to identify it.
   - debugger: Type of debugger to use. "dlv" and "gdb" are supported now.
-  - match_request: Whether to match this attachment to a debug request. This is used in automated use-cases to guarantee that the attachment will be noticed.
+  - match_request: Whether to match this attachment to a debug request. This is used in automated use-cases to guarantee that the attachment matches a pending debug request.
 
 
 */
