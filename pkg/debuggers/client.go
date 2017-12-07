@@ -181,7 +181,7 @@ func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate 
 func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process) error {
 	log.Info("start debug called")
 
-	curdebugger := d.debugger(*attachment.Spec.Debugger)
+	curdebugger := d.debugger(attachment.Spec.Debugger)
 
 	if curdebugger == nil {
 		return errors.New("debugger doesn't exist")

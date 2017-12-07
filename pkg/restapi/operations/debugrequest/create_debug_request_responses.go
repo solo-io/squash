@@ -16,7 +16,7 @@ import (
 // CreateDebugRequestCreatedCode is the HTTP code returned for type CreateDebugRequestCreated
 const CreateDebugRequestCreatedCode int = 201
 
-/*CreateDebugRequestCreated OK
+/*CreateDebugRequestCreated Created
 
 swagger:response createDebugRequestCreated
 */

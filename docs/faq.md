@@ -41,7 +41,7 @@ $ squash --url=http://localhost:8001/api/v1/namespaces/default/services/squash-s
 
 Or add this setting to vs-code:
 ```
-"vs-squash.squahs-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2"
+"vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2"
 ```
 
 Just note that `kubectl proxy` should remain running in the background.

@@ -87,8 +87,8 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		}
 
 		// copy the requested debugger if needed
-		if dbgattachment.Spec.Debugger == nil {
-			dbgattachment.Spec.Debugger = dr.Spec.Debugger
+		if dbgattachment.Spec.Debugger == "" && dr.Spec.Debugger != nil {
+			dbgattachment.Spec.Debugger = *dr.Spec.Debugger
 		}
 
 		// we found a matching request - we can save now.
@@ -123,7 +123,7 @@ func (r *RestHandler) findUnboundDebugRequest(dbgattachment *models.DebugAttachm
 			continue
 		}
 		// logical NOT XOR
-		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == nil) {
+		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == "") {
 			continue
 		}
 

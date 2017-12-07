@@ -51,7 +51,7 @@ func init() {
 						Container: container,
 					},
 					Image:    image,
-					Debugger: &debuggertype,
+					Debugger: debuggertype,
 				},
 			}
 

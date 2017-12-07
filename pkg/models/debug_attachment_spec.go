@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // DebugAttachmentSpec debug attachment spec
@@ -22,8 +21,7 @@ type DebugAttachmentSpec struct {
 	Attachment Attachment `json:"attachment"`
 
 	// debugger
-	// Required: true
-	Debugger *string `json:"debugger"`
+	Debugger string `json:"debugger,omitempty"`
 
 	// image
 	Image string `json:"image,omitempty"`
@@ -44,11 +42,6 @@ func (m *DebugAttachmentSpec) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateDebugger(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -56,15 +49,6 @@ func (m *DebugAttachmentSpec) Validate(formats strfmt.Registry) error {
 }
 
 func (m *DebugAttachmentSpec) validateAttachment(formats strfmt.Registry) error {
-
-	return nil
-}
-
-func (m *DebugAttachmentSpec) validateDebugger(formats strfmt.Registry) error {
-
-	if err := validate.Required("debugger", "body", m.Debugger); err != nil {
-		return err
-	}
 
 	return nil
 }

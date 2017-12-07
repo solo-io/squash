@@ -216,7 +216,7 @@ paths:
           $ref: "#/definitions/DebugRequest"
       responses:
         201:
-          description: OK
+          description: Created
           schema:
             $ref: "#/definitions/DebugRequest"
   /debugrequest/{debugRequestId}:
@@ -276,7 +276,6 @@ definitions:
     type: object
     required:
     - "attachment"
-    - "debugger"
     properties:
       attachment:
         $ref: "#/definitions/Attachment"

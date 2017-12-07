@@ -141,7 +141,7 @@ func listrequests(c *client.Squash, name string) {
 func printDebugAttachments(debugconfigs []*models.DebugAttachment) {
 	table := []string{"State\tID\tDebugger\tImage\tDebugger Address\n"}
 	for _, atch := range debugconfigs {
-		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", atch.Status.State, atch.Metadata.Name, nilToEmpty(atch.Spec.Debugger), atch.Spec.Image, atch.Status.DebugServerAddress))
+		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", atch.Status.State, atch.Metadata.Name, atch.Spec.Debugger, atch.Spec.Image, atch.Status.DebugServerAddress))
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)

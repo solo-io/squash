@@ -44,7 +44,7 @@ func NewCreateDebugRequestCreated() *CreateDebugRequestCreated {
 
 /*CreateDebugRequestCreated handles this case with default header values.
 
-OK
+Created
 */
 type CreateDebugRequestCreated struct {
 	Payload *models.DebugRequest

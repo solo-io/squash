@@ -316,7 +316,7 @@ func init() {
         ],
         "responses": {
           "201": {
-            "description": "OK",
+            "description": "Created",
             "schema": {
               "$ref": "#/definitions/DebugRequest"
             }
@@ -412,8 +412,7 @@ func init() {
     "DebugAttachmentSpec": {
       "type": "object",
       "required": [
-        "attachment",
-        "debugger"
+        "attachment"
       ],
       "properties": {
         "attachment": {

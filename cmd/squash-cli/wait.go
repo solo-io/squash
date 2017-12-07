@@ -16,7 +16,7 @@ func init() {
 	attachmentWaitTimeout := 1.0
 	var waitForAttachmentCmd = &cobra.Command{
 		Use:   "wait dbgattachmentid",
-		Short: "wait for a debug config to have a debug server url appearv ",
+		Short: "wait for a debug config to have a debug server url appear",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := getClient()
 			if err != nil {
