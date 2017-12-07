@@ -1,0 +1,135 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    sidecar.istio.io/status: injected-version-yuval@yuvallaptop-2018-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty
+  creationTimestamp: null
+  name: example-service1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-service1
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/status: injected-version-yuval@yuvallaptop-2018-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty
+      creationTimestamp: null
+      labels:
+        app: example-service1
+    spec:
+      containers:
+      - image: soloio/example-service1:v0.2.1
+        name: example-service1
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      - args:
+        - proxy
+        - sidecar
+        - -v
+        - "2"
+        - --configPath
+        - /etc/istio/proxy
+        - --binaryPath
+        - /usr/local/bin/envoy
+        - --serviceCluster
+        - example-service1
+        - --drainDuration
+        - 45s
+        - --parentShutdownDuration
+        - 1m0s
+        - --discoveryAddress
+        - istio-pilot.istio-system:15003
+        - --discoveryRefreshDelay
+        - 1s
+        - --zipkinAddress
+        - zipkin.istio-system:9411
+        - --connectTimeout
+        - 10s
+        - --statsdUdpAddress
+        - istio-mixer.istio-system:9125
+        - --proxyAdminPort
+        - "15000"
+        - --controlPlaneAuthPolicy
+        - NONE
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        image: docker.io/soloio/proxy_debug:squash_demo_2
+        imagePullPolicy: IfNotPresent
+        name: istio-proxy
+        resources: {}
+        securityContext:
+          privileged: true
+          readOnlyRootFilesystem: false
+          runAsUser: 1337
+        volumeMounts:
+        - mountPath: /etc/istio/proxy
+          name: istio-envoy
+        - mountPath: /etc/certs/
+          name: istio-certs
+          readOnly: true
+      initContainers:
+      - args:
+        - -p
+        - "15001"
+        - -u
+        - "1337"
+        image: docker.io/istio/proxy_init:0.3.0
+        imagePullPolicy: IfNotPresent
+        name: istio-init
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: true
+      - args:
+        - -c
+        - sysctl -w kernel.core_pattern=/etc/istio/proxy/core.%e.%p.%t && ulimit -c
+          unlimited
+        command:
+        - /bin/sh
+        image: alpine
+        imagePullPolicy: IfNotPresent
+        name: enable-core-dump
+        resources: {}
+        securityContext:
+          privileged: true
+      volumes:
+      - emptyDir:
+          medium: Memory
+          sizeLimit: "0"
+        name: istio-envoy
+      - name: istio-certs
+        secret:
+          optional: true
+          secretName: istio.default
+status: {}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: example-service1
+spec:
+  selector:
+    app: example-service1
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+---
