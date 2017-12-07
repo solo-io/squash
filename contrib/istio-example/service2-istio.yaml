@@ -4,12 +4,12 @@ metadata:
   annotations:
     sidecar.istio.io/status: injected-version-yuval@yuvallaptop-2018-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty
   creationTimestamp: null
-  name: example-service1
+  name: example-service2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: example-service1
+      app: example-service2
   strategy: {}
   template:
     metadata:
@@ -17,11 +17,11 @@ spec:
         sidecar.istio.io/status: injected-version-yuval@yuvallaptop-2018-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty-63b73cdd8674025d3a3e9e93e4f01ed3b836b8a4-dirty
       creationTimestamp: null
       labels:
-        app: example-service1
+        app: example-service2
     spec:
       containers:
-      - image: soloio/example-service1:v0.2.1
-        name: example-service1
+      - image: soloio/example-service2:v0.2.2
+        name: example-service2
         ports:
         - containerPort: 8080
           protocol: TCP
@@ -36,7 +36,7 @@ spec:
         - --binaryPath
         - /usr/local/bin/envoy
         - --serviceCluster
-        - example-service1
+        - example-service2
         - --drainDuration
         - 45s
         - --parentShutdownDuration
@@ -123,10 +123,10 @@ status: {}
 kind: Service
 apiVersion: v1
 metadata:
-  name: example-service1
+  name: example-service2
 spec:
   selector:
-    app: example-service1
+    app: example-service2
   ports:
     - name: http
       protocol: TCP

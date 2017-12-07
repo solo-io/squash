@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
-const ServiceToCall = "example-service2"
+var ServiceToCall = "example-service2"
+
 const form = `
 <html>
 <head>
@@ -61,6 +63,11 @@ const form = `
 `
 
 func main() {
+
+	potentialservice2 := os.Getenv("SERVICE2_URL")
+	if potentialservice2 != "" {
+		ServiceToCall = potentialservice2
+	}
 
 	http.HandleFunc("/calc", handler)
 	http.HandleFunc("/", view)
