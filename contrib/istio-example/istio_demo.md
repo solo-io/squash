@@ -1,33 +1,33 @@
-# How to use squash with istio
+# How to use Squash with istio
 
 ## Why?
-Using squash with istio enbles you debugging the service mesh in a different way. instead of specifying creating a debug attachment that specifies which container you wish to debug, you (or the IDE for that matter) create a debug request, that species what container image the developer is currently debugging. Then when a request is sent to the mesh with the "x-squash-debug" header, the mesh and squash together will match the debug request to the specific container.
+Using Squash with istio enables you to debug the service mesh in a different way. Instead of attaching to a specific container you wish to debug, you (or the IDE for that matter) create a debug request that species which container image you want to debug. Then when a request is sent to the mesh with the "x-squash-debug" header, the mesh and Squash together will match the debug request to the specific container.
 
 # Create environment
 
-Note: To use squash with istio we need squash aware envoy and pilot. To make it easy we have created an istio version with the squash components baked inside. see istio.yaml in this folder. we will install it in one of the following steps.
+Note: To use Squash with istio we need Squash aware envoy and pilot. To make it easy, we have created an istio version with the Squash components baked inside. See istio.yaml in this folder. We will install it shown in the following steps.
 
 ## Kubernetes
 
-Let's start by create a kubernetes RBAC cluster. If you use minikube, these command can be helpful:
+Let's start by creating a kubernetes RBAC cluster. If you use minikube, these command can be helpful:
 
 ```
-# create a cluster with a decent amount of resources, with RBAC enabked.
+# create a cluster with a decent amount of resources, with RBAC enabled.
 minikube  start --extra-config=apiserver.Authorization.Mode=RBAC --cpus 3 --memory 8192
 # give kube dns the permissions it needs to work.
 kubectl create clusterrolebinding permissive-binding   --clusterrole=cluster-admin   --user=admin   --user=kubelet   --group=system:serviceaccounts
 ```
-Note: on linux, if you don't have virtualbox installed, you can try the `--vm-driver=kvm` option
+Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-driver=kvm` option.
 
 ## Squash enabled Istio
 
-Once the cluster is ready, install istio:
+Once the cluster is ready, install Squash aware Istio:
 
 ```
 kubectl apply -f ./istio.yaml
 ```
 
-verify that everything is running, this may take a few minutes:
+Verify that everything is running, this may take a few minutes:
 ```
 $ kubectl get pods --all-namespaces
 NAMESPACE      NAME                             READY     STATUS    RESTARTS   AGE
@@ -56,7 +56,7 @@ GATEWAY_HTTP_INGRESS=$(kubectl get svc istio-ingress -n istio-system -o 'jsonpat
 export HTTP_GATEWAY_URL=$GATEWAY_HOST:$GATEWAY_HTTP_INGRESS
 ```
 
-## Install squash
+## Install Squash
 
 ```
 kubectl apply -f ./squash-server.yml
@@ -64,7 +64,7 @@ kubectl apply -f ./squash-client.yml
 ```
 
 
-verify that everything is running, this may take a few minutes:
+Verify that everything is running. This may take a few minutes.
 ```
 $ kubectl get pods
 NAME                                READY     STATUS    RESTARTS   AGE
@@ -76,13 +76,13 @@ squash-server-6cbf6cb8c7-26b4x      1/1       Running   0          2m
 
 # Use the mesh to debug!
 
-Once squash is installed it's time to use the VSCode to debug the mesh.
+Once Squash is installed it's time to use the VSCode to debug the mesh.
 
-To test that everything works as expect, try running `curl http://$HTTP_GATEWAY_URL/`. It should return an html page (you can also try open that URL in your browser).
+To test that everything works as expect, try running `curl http://$HTTP_GATEWAY_URL/`. It should return an HTML page (you can also try open that URL in your browser).
 
 ## Accessing the cluster
 
-To give the VSCode access to squash server, please have `kubectl proxy` running in the background:
+To give the VSCode access to Squash server, please have `kubectl proxy` running in the background:
 ```
 kubectl proxy&
 ```
@@ -92,35 +92,34 @@ Configure these settings in VSCode:
    "vs-squash.squash-path": "<PATH-TO-SQUASH-BINARY>/squash",
    "vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2" 
 ```
-**Note:** that the squash binary should be of version 0.2 or higher.
+**Note:** that the Squash binary should be version 0.2 or higher.
 
 ## Prepare VSCode
-For this tutorial, let's debug example-service1. Open vscode in the service1 folder. this is important for source code mapping (and consequently breakpoints) to work.
+For this tutorial, let's debug example-service1. Open VSCode in the `service1` folder. This is important for source code mapping (and consequently breakpoints) to work.
 ```
 code ../example/service1
 ```
-In the new vscode window, place a breakpoint inside the handler method, around line 81.
+In the new VSCode window, place a breakpoint inside the handler method, around line 81.
 
-In the new vscodce window run the command: "Squash: Debug Container in Service Mesh"
-To choose the image to debug, by first select `example-service1` service, then the  `soloio/example-service1:v0.2.1`  image. The debugger you want to use is `dlv`. (of course, make sure you have dlv installed and configure with vscode go extension).
+In the new VSCode window, run the command: "Squash: Debug Container in Service Mesh"
+Choose the image to debug by first selecting `example-service1` service and then the  `soloio/example-service1:v0.2.1`  image. The debugger you want to use is `dlv`. (Of course, make sure you have `dlv` installed and configured with VSCode Go extension).
 
-
-That will put VSCode into a mode where it awaits a notification of a debug attachment.
+VSCode will now be in a waiting mode. It will wait for a notification of a debug attachment.
 
 ## Trigger a debug enabled request
 
-To trigger that debug attachment: note the squash debug header.
+To trigger that debug attachment: Note the Squash debug header.
 ```
 curl http://$HTTP_GATEWAY_URL/calc -H"x-squash-debug: true"
 ```
 
-If all goes well, you will see the request hang VSCode will start a debug session with the container the request hit.
+If all goes well, you will see the request hang and VSCode starts a debug session with the container that the request hit.
 SUCCESS!
 
-Note that you didn't have to specify the container yourself - the information of which container vscode should attach to is provided by the squash enabled service mesh.
+Note that you didn't have to specify the container yourself - the information about which container VSCode should attach to is provided by the Squash enabled service mesh.
 
 ## Notes:
-you can use the command line to see whats going on. specifically, try these commands:
+You can use the command line to see whats going on. Specifically, try these commands:
 ```
 squash list a --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
 squash list r --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
