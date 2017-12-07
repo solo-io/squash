@@ -46,7 +46,7 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	return dls, nil
 }
 
-func (d *DLV) StartDebugServer(pid int) (debuggers.DebugServer, error) {
+func (d *DLV) Attach(pid int) (debuggers.DebugServer, error) {
 	return d.attachTo(pid)
 }
 

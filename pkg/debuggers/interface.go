@@ -1,11 +1,7 @@
 package debuggers
 
-type Detachable interface {
-	Detach() error
-}
-
 type DebugServer interface {
-	Detachable
+	Detach() error
 	Port() int
 }
 
@@ -13,5 +9,5 @@ type DebugServer interface {
 type Debugger interface {
 
 	/// Attach a debugger to pid and return the port that the debug server listens on.
-	StartDebugServer(pid int) (DebugServer, error)
+	Attach(pid int) (DebugServer, error)
 }

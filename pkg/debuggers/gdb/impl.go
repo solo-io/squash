@@ -27,7 +27,7 @@ func (g *gdbDebugServer) Port() int {
 	return g.port
 }
 
-func (g *GdbInterface) StartDebugServer(pid int) (debuggers.DebugServer, error) {
+func (g *GdbInterface) Attach(pid int) (debuggers.DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	cmd := exec.Command("gdbserver", "--attach", ":0", fmt.Sprintf("%d", pid))

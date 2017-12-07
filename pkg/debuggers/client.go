@@ -191,7 +191,7 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 
 	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
 	var err error
-	port, err := curdebugger.StartDebugServer(p.Pid)
+	debugServer, err := curdebugger.Attach(p.Pid)
 
 	if err != nil {
 		log.WithField("err", err).Error("Starting debug server error")
@@ -205,7 +205,7 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 		Spec:     attachment.Spec,
 	}
 	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), port.Port()),
+		DebugServerAddress: fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), debugServer.Port()),
 		State:              models.DebugAttachmentStatusStateAttached,
 	}
 	params := debugattachment.NewPatchDebugAttachmentParams()
@@ -217,7 +217,7 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 
 	if err != nil {
 		log.WithField("err", err).Warn("Error adding debug session - detaching!")
-		port.Detach()
+		debugServer.Detach()
 	} else {
 		log.Info("debug session added!")
 	}
