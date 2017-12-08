@@ -4,12 +4,13 @@ def label = UUID.randomUUID().toString()
     containerTemplate(name: 'go', image: 'soloio/squash-build-container', ttyEnabled: true, command: 'cat',
         resourceRequestCpu: '100m',
         resourceLimitMemory: '1200Mi'),
-        containerTemplate(name: 'docker', image: 'docker:1.11', ttyEnabled: true, command: 'cat')
+        containerTemplate(name: 'docker', image: 'docker:17.11', ttyEnabled: true, command: 'cat')
     ], envVars: [
-        envVar(key: 'BRANCH_NAME', value: env.BRANCH_NAME)
+        envVar(key: 'BRANCH_NAME', value: env.BRANCH_NAME),
+        envVar(key: 'DOCKER_CONFIG', value: '/etc/docker'),
     ],
-    volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')],
-
+    volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
+              secretVolume(secretName: 'soloio-docker-hub', mountPath: '/etc/docker'),],
     ) {
 
     node(label) {
@@ -36,6 +37,12 @@ def label = UUID.randomUUID().toString()
       }
       stage('Build squash containers') {
         container('docker') {
+            sh 'apk add --update git make'
+            sh 'make containers'
+        }
+      }
+      stage('Build squash manifests') {
+        container('go') {
             sh 'make deployment'
         }
       }
@@ -45,11 +52,14 @@ def label = UUID.randomUUID().toString()
         }
       }
       /*
-      stage('Run e2e test') {  
+      stage('Run e2e test') {
         container('go') {
             // setup a (mini)kube cluster?!
         }
       }
       */
+      stage('Archive artifacts') {
+        archiveArtifacts 'target/kubernetes/*.yml,target/squash'
+      }
     }
   }
