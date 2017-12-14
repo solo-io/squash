@@ -86,6 +86,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   
 **IDEs**
   - [Eclipse](https://eclipse.org/ide/)
+  - [Intellij](https://www.jetbrains.com/idea/)
 
 
 Squash is still experimental! APIs and compatibility are subject to change. We are looking for community support to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
