@@ -12,36 +12,28 @@
 
 #### *-	debug container*
 
-**Extension:** When a user chooses this option, the extension communicates with kubectl and presents the user with the running pods. Once the user chooses a pod, the extension presents the containers currently running in the pod. When the user chooses a container, the extension makes a call to Squash server with the information of what to debug and waits for Squash server to supply the port for connecting to the debugger server. Finally, the extension connects to the debug server and transfers control to the native debug extension.
+**Extension:** When a user chooses this option, the extension communicates with kubectl and presents the user with the running pods. Once the user chooses a pod, the extension presents the containers currently running in the pod. When the user chooses a container, the extension makes a call to Squash server to create a debug attachment (with the information of what to debug) and waits for Squash server to supply the port for connecting to the debugger server. Finally, the extension connects to the debug server and transfers control to the native debug extension.
 
 **Squash server:** When the extension makes an api call to squash server, the server connects to the relevant squash client and sends the information of the pod and container that should be attached to a debugger, and the set of breakpoints. The server then waits for the reply that tells it which port to connect.
 
-**Squash client:** Upon getting a request from the server, the client communicates with CRI to obtain the container host pid, allowing the debugger to attach. The client then runs the debugger, attaches it to the process in the container, and sets the application breakpoints. Squash client return the debug server address to Squash server to allow the VS Code debugger client to connect directly to the native debug server. 
+**Squash client:** Upon getting a request from the server, the client communicates with CRI to obtain the container host pid, allowing the debugger to attach. The client then runs the debugger, attaches it to the process in the container. It then updates the debug attachment on the squash server with an updated state ('attached') and the debug server address to Squash server to allow the VS Code debugger client to connect directly to the native debug server. 
 
-#### *-	debug service*
+#### *-	debug container in mesh*
 
 **Extension:** When a user chooses this option, the extension communicates with kubectl and presents the user with the existing services. Once the user chooses a service, the extension presents the current images used in that service. 
-When the user chooses the image, the extension makes a call to Squash server with the information of what to debug, and waits on Squash server to supply the port to connect to the debugger server. The extension then connects the debug server and transfers control to the native debug extension.
+When the user chooses the image, the extension makes a call to Squash server to create a debug request (with the information of what it wants to debug). It then waits on Squash server to update the debug request with a debug attachment that was matched to it. The extension then reads the debug attachment to get the location of the debug server, connects the debug server and transfers control to the native debug extension.
 
-**Squash server:** When the extension makes an api call to squash server, the server starts to watch the service for the creation of a new container. When a container with the specified image is created, the server notifies the relevant squash client with the pod and container that should be attached to the debugger, and with the set of breakpoints. The server then waits for a reply that tells it which port to connect. The server sends the first reply back to the extension. The server only allows a single active session at a time, and returns an error to clients trying to add more sessions.
+**Squash server:** When the extension makes an api call to squash server, the server saves the debug requests, and waits for a creation of a debug attachment that matches the request (for example, they match on the image that should be debugged). Only debug attachment with the attribute `match_request` set to true will be taken to consideration. When a debug attachment that matches the request is created, the server updates the debug request object with a reference to the newly created debug attachment.
 
-**Squash client:** Upon getting a request from the server, the client communicates with CRI to convert container to host pid, allowing the debugger to attach. The client then runs the debugger, attaches it to the process (container), and sets the application breakpoints. 
+**Squash client:** Upon getting a request from the server, the client communicates with CRI to convert container to host pid, allowing the debugger to attach. The client then runs the debugger, attaches it to the process (container),. It then updates the debug attachment on the squash server with an updated state ('attached') and the debug server address to Squash server to allow the VS Code debugger client to connect directly to the native debug server. 
 
-When a debug event happens (either a breakpoint hit or program crash) the Squash client that manages the container where the event happened returns the debug server address to Squash server, allowing the VS Code debugger to connect. Squash also instruct the others squash clients, that manage other containers in the service, to detach the debuggers.
-
-#### *-	resume debug session*
-Resumes the session between the squash server and the IDE. This command should be used whenever the user that initiated a debug service command had lost the session with Squash server (by closing the IDE or for any other reason), and is interested in resuming the session. An indication that the session had been resumed can be found in the status bar: “⏱ Waiting for Debug Session” 
+**Squash enabled envoy** When receiving a request with 'x-squash-debug' header set, envoy stops the request and contacts the squash server to create a debug attachment (providing information on which pod it is running on, and sets the `match_request` property to 'true'). Once the debug attachment is created (assuming it was matched to a debug request), it will wait for its status changed to 'attached' before allowing the request to continue. On error or on timeout the requests continues regardless.
 
 #### *-	release debug session*
-Release the session with the squash server to the IDE. This command is used when the user who initiated a debug service command no longer wants to wait for debug session. This command does not detach the debugger from the process, but releases the session with the squash server. This command can be called from command palette, or simply by clicking the “⏱ Waiting for Debug Session” indication in the status bar. 
+Release the session with the squash server to the IDE. This command is used when the user who initiated a debug container in mesh command no longer wants to wait for debug attachment. This command does not detach the debugger from the process, but stops waiting for a debug attachment with the squash server. This command can be called from command palette, or simply by clicking the “⏱ Waiting for Debug Attachment indication in the status bar. 
 
 #### *-	stop debug service*
 The IDE extension instructs Squash server to stop debugging the service and release the session.
-
-#### *-	Toggle service breakpointg*
-When debugging a service with Squash, user can set Squash breakpoints []  from the command palette in the IDE. 
-After initiating the debug service command, Squash client attaches the debugger to all the containers (created by the requested image) in the service, and waits for a debug event to happen. A debug event is either an unmanagement exception or a Squash breakpoint being hit. The Squash client then returns the debug server address to Squash server, and instructs the others squash clients that manage other containers in the service to detach the debuggers. Once the port returns to Squash server and the debugger client connects to the debugger server the IDE breakpoint become active.
-
 
 ## Constraints
 - In order to debug a program, you need to have a debugger on the same node, with the process to be debugged visible to it.

@@ -4,7 +4,7 @@ The Squash CLI wraps calls to Squash's [REST API](http://squash.solo.io) to make
 
 See intallation guide [here](install/README.md#command-line-interface-cli).
 
-To use the Squash tool, provide the url of the squash server via the `--url` flag. If the squash server is deployed to kubernetes via the manifests included in the source code, the easiest way to do it is to run `kubectl proxy` in the background, and then and add the following url parameter: `--url=http://localhost:8001/api/v1/namespaces/default/services/squash-server-service/proxy/api/v1`
+To use the Squash tool, provide the url of the squash server via the `--url` flag. If the squash server is deployed to kubernetes via the manifests included in the source code, the easiest way to do it is to run `kubectl proxy` in the background, and then and add the following url parameter: `--url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2`
 
 ## Commands:
   * [`squash debug-container`](cli.md#debug-a-container)
