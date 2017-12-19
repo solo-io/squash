@@ -8,6 +8,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	errors "github.com/go-openapi/errors"
 	runtime "github.com/go-openapi/runtime"
@@ -30,8 +32,9 @@ import (
 var (
 	options = &struct {
 		Cluster    string `long:"cluster" short:"c" description:"Cluster type. currently only kube"`
-		KubeConfig string `long:"kubeurl" description:"Kube url (useful with kubectl proxy)"`
-	}{"kube", ""}
+		KubeConfig string `long:"kubeconfug" description:"Path to kube config file to use to connect to the cluster. in cluster is used if not provided"`
+		KubeUrl    string `long:"kubeurl" description:"Kube url (useful with kubectl proxy)"`
+	}{"kube", "", ""}
 )
 
 func configureFlags(api *operations.SquashAPI) {
@@ -65,7 +68,20 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 	case "kube":
 		var config *rest.Config = nil
 		if options.KubeConfig != "" {
-			config = &rest.Config{Host: options.KubeConfig}
+			var err error
+			config, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: options.KubeConfig},
+				&clientcmd.ConfigOverrides{
+					ClusterInfo: clientcmdapi.Cluster{
+						Server: options.KubeUrl,
+					},
+				}).ClientConfig()
+
+			if err != nil {
+				log.Fatalln(err)
+			}
+		} else if options.KubeUrl != "" {
+			config = &rest.Config{Host: options.KubeUrl}
 		}
 
 		kube, err := kubernetes.NewKubeOperations(nil, config)
@@ -76,6 +92,8 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 	case "debug":
 		var d debug.DebugPlatform
 		cl = &d
+	default:
+		panic("Invalid cluster option. perhaps you meant 'debug'?")
 	}
 
 	handler := server.NewRestHandler(cl)
