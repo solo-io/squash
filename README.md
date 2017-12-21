@@ -60,7 +60,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 ---
 
 ## Supported debuggers:
- - [gdb](docs/debuggers/gdb.md)
+ - [gdb](https://www.gnu.org/software/gdb/)
  - [dlv](https://github.com/derekparker/delve)
 
 ## Supported platforms:

@@ -24,7 +24,7 @@ spec:
           protocol: TCP
         env:
         - name: SERVERURL
-          value: "http://$(SQUASH_SERVER_SERVICE_HOST):$(SQUASH_SERVER_SERVICE_SERVICE_PORT)"
+          value: "http://$(SQUASH_SERVER_SERVICE_HOST):$(SQUASH_SERVER_SERVICE_PORT_HTTP_SQUASH_API)"
         - name: HOST_ADDR
           valueFrom:
             fieldRef:

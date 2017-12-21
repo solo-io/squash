@@ -8,17 +8,17 @@ Currently Suqash only supports Kubernets. Other platforms coming up...
 
 ### Command Line Interface (CLI)
 Download the CLI binary:
-- [Linux](https://github.com/solo-io/squash/releases/download/v0.1.0/squash-linux)     
-- [OS X](https://github.com/solo-io/squash/releases/download/v0.1.0/squash-osx)
+- [Linux](https://github.com/solo-io/squash/releases/download/v0.2.0/squash-linux)     
+- [OS X](https://github.com/solo-io/squash/releases/download/v0.2.0/squash-osx)
 
 **For Linux**
 ```
-curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.1.0/squash-linux
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.0/squash-linux
 ```
 
 **For Mac OS X**
 ```
-curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.1.0/squash-osx
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.0/squash-osx
 ```
 
 Then enable execution permission:
@@ -27,7 +27,7 @@ chmod +x squash
 ```
 The easiest way is to place it somewhere in your path, but it is not a must.
 
-To make sure everything is deployed correctly, you can create a port forward to the Squash server pod and invoke a sample CLI command. 
+To make sure everything is deployed correctly, you can use `kubectl proxy` to access the Squash server pod and invoke a sample CLI command. 
 
 1. Get the Squash server pod name by running ```kubectl get pods```. You should see something similar to this:
 ```
@@ -38,24 +38,23 @@ squash-client-ds-zw8pp                     1/1       Running   0          17m
 squash-server-rc-kwkdr                     1/1       Running   0          17m
 ```
 
-2. Create a port forward from your local machine (```http://localhost:8080```) to the ```squash-server-rc-kwkdr``` pod (note that the pod name on your machine will be different):
+2. Create a proxy to your kube api server:
 ```
-kubectl port-forward squash-server-rc-kwkdr 8080:8080 &
+kubectl proxy
 ```
 You should see something like this:
 ```
-Forwarding from 127.0.0.1:8080 -> 8080
-Forwarding from [::1]:8080 -> 8080
+Starting to serve on 127.0.0.1:8001
 ```
 
 3. Run a list command: 
 ```
-./squash --url=http://localhost:8080/api/v1 list
+./squash --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2 list attachments
 ```
 
 The output should be like this: 
 ```
-Active |ID |Attachment.Name |Attachment.Type |Debugger |Image |Immediately
+State |ID |tDebugger |Image |Debugger Address
 ```
 
-If you have an issue with either, see the [FAQ](faq.md) for help.
+If you have an issue with either, see the [FAQ](../faq.md) for help.
