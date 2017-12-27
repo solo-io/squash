@@ -27,6 +27,10 @@ func (g *gdbDebugServer) Port() int {
 	return g.port
 }
 
+func (g *gdbDebugServer) PodType() debuggers.DebugPodType {
+	return debuggers.DebugPodTypeClient
+}
+
 func (g *GdbInterface) Attach(pid int) (debuggers.DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")

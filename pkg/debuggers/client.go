@@ -204,8 +204,26 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 		Metadata: attachment.Metadata,
 		Spec:     attachment.Spec,
 	}
+
+	podName := ""
+	switch debugServer.PodType() {
+	case DebugPodTypeTarget:
+		att, ok := attachment.Spec.Attachment.(map[string]string)
+		if ok {
+			podName = att["pod"]
+		}
+	case DebugPodTypeClient:
+		podName = os.Getenv("HOST_ADDR")
+	}
+
+	if len(podName) == 0 {
+		err = fmt.Errorf("Cannot find POD name for type: %d", debugServer.PodType())
+		log.WithField("err", err).Error("Starting debug server error")
+		return err
+	}
+
 	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", os.Getenv("HOST_ADDR"), debugServer.Port()),
+		DebugServerAddress: fmt.Sprintf("%s:%d", podName, debugServer.Port()),
 		State:              models.DebugAttachmentStatusStateAttached,
 	}
 	params := debugattachment.NewPatchDebugAttachmentParams()
