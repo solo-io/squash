@@ -21,7 +21,8 @@ func GetCmdArgsByPid(pid int) ([]string, error) {
 		return nil, err
 	}
 
-	ss := strings.Split(string(l), "\x00")
+	s := strings.Replace(string(l), "\x00", " ", -1)
+	ss := strings.Split(s, " ")
 
 	return ss, nil
 }
