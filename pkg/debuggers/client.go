@@ -208,9 +208,9 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 	podName := ""
 	switch debugServer.PodType() {
 	case DebugPodTypeTarget:
-		att, ok := attachment.Spec.Attachment.(map[string]string)
+		att, ok := attachment.Spec.Attachment.(map[string]interface{})
 		if ok {
-			podName = att["pod"]
+			podName, _ = att["pod"].(string)
 		}
 	case DebugPodTypeClient:
 		podName = os.Getenv("HOST_ADDR")
