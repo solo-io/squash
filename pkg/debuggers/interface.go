@@ -1,20 +1,20 @@
 package debuggers
 
-// DebugPodType - type of pod to connect debugger
-type DebugPodType int
+// DebugHostType - type of host to connect debugger
+type DebugHostType int
 
 const (
-	// DebugPodTypeClient - debugger needs to connect to squash-client pod
-	DebugPodTypeClient = 0
-	// DebugPodTypeTarget - debugger needs to connect to target pod
-	DebugPodTypeTarget = 1
+	// DebugHostTypeClient - debugger needs to connect to squash-client
+	DebugHostTypeClient = 0
+	// DebugHostTypeTarget - debugger needs to connect to target
+	DebugHostTypeTarget = 1
 )
 
 type DebugServer interface {
 	/// Detach from the process we are debugging (allowing it to resume normal execution).
 	Detach() error
-	/// Returns either DebugPodTypeClient or DebugPodTypeTarget
-	PodType() DebugPodType
+	/// Returns either DebugHostTypeClient or DebugHostTypeTarget
+	HostType() DebugHostType
 	/// Return the port that the debug server listens on.
 	Port() int
 }

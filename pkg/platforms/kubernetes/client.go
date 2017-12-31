@@ -25,24 +25,24 @@ import (
 
 const criRuntime = "/var/run/cri.sock"
 
-type CRIContainer2Pid struct {
+type CRIContainerProcess struct {
 }
 
-func NewContainer2Pid() platforms.Container2Pid {
-	return &CRIContainer2Pid{}
+func NewContainerProcess() platforms.ContainerProcess {
+	return &CRIContainerProcess{}
 }
 
 func getDialer(a string, t time.Duration) (net.Conn, error) {
 	return net.DialTimeout("unix", a, t)
 }
-func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interface{}) (int, error) {
+func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
 
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
 	ka, err := genericToKubeAttachment(attachment)
 
 	if err != nil {
-		return 0, errors.New("bad attachment format")
+		return nil, errors.New("bad attachment format")
 	}
 
 	// contact the local CRI and get the container
@@ -66,11 +66,11 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interf
 	cancel()
 	if err != nil {
 		log.WithField("err", err).Warn("ListPodSandbox error")
-		return 0, err
+		return nil, err
 	}
 	if len(resp.Items) != 1 {
 		log.WithField("items", spew.Sdump(resp.Items)).Warn("Invalid number of pods")
-		return 0, errors.New("Invalid number of pods")
+		return nil, errors.New("Invalid number of pods")
 	}
 	pod := resp.Items[0]
 
@@ -90,7 +90,7 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interf
 
 	if err != nil {
 		log.WithField("err", err).Warn("ListContainers error")
-		return 0, err
+		return nil, err
 	}
 	log.WithField("respcont", spew.Sdump(respcont)).Debug("Cri GetPid ListContainers - got response")
 
@@ -104,7 +104,7 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interf
 
 	if len(containers) != 1 {
 		log.WithField("containers", containers).Warn("Invalid number of containers")
-		return 0, errors.New("Invalid number of containers")
+		return nil, errors.New("Invalid number of containers")
 	}
 	container := containers[0]
 	containerid := container.Id
@@ -115,22 +115,23 @@ func (c *CRIContainer2Pid) GetPid(maincontext context.Context, attachment interf
 	nsinod, err := getNS(maincontext, runtimeService, nstocheck, containerid)
 	if err != nil {
 		log.WithField("err", err).Warn("getNS error")
-		return 0, err
+		return nil, err
 	}
 
 	potentialpids, err := FindPidsInNS(nsinod, nstocheck)
 	if err != nil {
 		log.WithField("err", err).Warn("FindPidsInNS error")
-		return 0, err
+		return nil, err
 	}
 
 	log.WithField("potentialpids", potentialpids).Info("found some pids")
 	pid, err := FindFirstProcess(potentialpids)
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
-		return 0, err
+		return nil, err
 	}
-	return pid, nil
+
+	return &platforms.ContainerInfo{Pid: pid, Name: ka.Pod}, nil
 }
 
 func FindFirstProcess(pids []int) (int, error) {

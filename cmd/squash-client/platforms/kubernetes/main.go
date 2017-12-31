@@ -18,7 +18,7 @@ func main() {
 
 	log.Info("bridge started")
 
-	err := debuggers.RunSquashClient(getDebugger, kubernetes.NewContainer2Pid())
+	err := debuggers.RunSquashClient(getDebugger, kubernetes.NewContainerProcess())
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }

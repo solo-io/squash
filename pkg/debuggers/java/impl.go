@@ -19,8 +19,8 @@ func (g *javaDebugServer) Port() int {
 	return g.port
 }
 
-func (g *javaDebugServer) PodType() debuggers.DebugPodType {
-	return debuggers.DebugPodTypeTarget
+func (g *javaDebugServer) HostType() debuggers.DebugHostType {
+	return debuggers.DebugHostTypeTarget
 }
 
 func (g *JavaInterface) Attach(pid int) (debuggers.DebugServer, error) {

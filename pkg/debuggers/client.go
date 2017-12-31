@@ -18,7 +18,7 @@ import (
 	"github.com/solo-io/squash/pkg/platforms"
 )
 
-func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Container2Pid) error {
+func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
 	log.SetLevel(log.DebugLevel)
 
 	customFormatter := new(log.TextFormatter)
@@ -50,13 +50,13 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 
 type DebugHandler struct {
 	debugger  func(string) Debugger
-	conttopid platforms.Container2Pid
+	conttopid platforms.ContainerProcess
 	client    *client.Squash
 	debugees  map[int]bool
 }
 
 func NewDebugHandler(client *client.Squash, debugger func(string) Debugger,
-	conttopid platforms.Container2Pid) *DebugHandler {
+	conttopid platforms.ContainerProcess) *DebugHandler {
 	return &DebugHandler{
 		client:    client,
 		debugger:  debugger,
@@ -123,7 +123,8 @@ func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
 
 	// make sure this is not a duplicate
 
-	pid, err := d.conttopid.GetPid(context.Background(), attachment.Spec.Attachment)
+	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Spec.Attachment)
+	pid := ci.Pid
 
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
@@ -140,7 +141,7 @@ func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
 	if !d.debugees[pid] {
 		log.WithField("pid", pid).Info("starting to debug")
 		d.debugees[pid] = true
-		err := d.startDebug(attachment, p)
+		err := d.startDebug(attachment, p, ci.Name)
 		if err != nil {
 			d.notifyError(attachment)
 		}
@@ -178,7 +179,7 @@ func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate 
 	return err
 }
 
-func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process) error {
+func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process, t string) error {
 	log.Info("start debug called")
 
 	curdebugger := d.debugger(attachment.Spec.Debugger)
@@ -205,25 +206,22 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 		Spec:     attachment.Spec,
 	}
 
-	podName := ""
-	switch debugServer.PodType() {
-	case DebugPodTypeTarget:
-		att, ok := attachment.Spec.Attachment.(map[string]interface{})
-		if ok {
-			podName, _ = att["pod"].(string)
-		}
-	case DebugPodTypeClient:
-		podName = os.Getenv("HOST_ADDR")
+	hostName := ""
+	switch debugServer.HostType() {
+	case DebugHostTypeTarget:
+		hostName = t
+	case DebugHostTypeClient:
+		hostName = os.Getenv("HOST_ADDR")
 	}
 
-	if len(podName) == 0 {
-		err = fmt.Errorf("Cannot find POD name for type: %d", debugServer.PodType())
+	if len(hostName) == 0 {
+		err = fmt.Errorf("Cannot find Host name for type: %d", debugServer.HostType())
 		log.WithField("err", err).Error("Starting debug server error")
 		return err
 	}
 
 	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", podName, debugServer.Port()),
+		DebugServerAddress: fmt.Sprintf("%s:%d", hostName, debugServer.Port()),
 		State:              models.DebugAttachmentStatusStateAttached,
 	}
 	params := debugattachment.NewPatchDebugAttachmentParams()
