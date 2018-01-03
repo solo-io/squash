@@ -179,7 +179,7 @@ func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate 
 	return err
 }
 
-func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process, t string) error {
+func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process, targetName string) error {
 	log.Info("start debug called")
 
 	curdebugger := d.debugger(attachment.Spec.Debugger)
@@ -209,7 +209,7 @@ func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Proc
 	hostName := ""
 	switch debugServer.HostType() {
 	case DebugHostTypeTarget:
-		hostName = t
+		hostName = targetName
 	case DebugHostTypeClient:
 		hostName = os.Getenv("HOST_ADDR")
 	}
