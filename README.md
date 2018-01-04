@@ -62,10 +62,11 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 ## Supported debuggers:
  - [gdb](https://www.gnu.org/software/gdb/)
  - [dlv](https://github.com/derekparker/delve)
- - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html) [*\(see note\)*](#java-note)
+ - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html) [*\(\*\)*](#java-note)
 
+<br>
 
-##### Java Note
+#### Java Note
 Java process must be started with [JDWP](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html) options, for example:<br>
 *java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar MyApp.jar*
  
