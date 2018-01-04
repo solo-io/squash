@@ -1,11 +1,14 @@
 package e2e_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os/exec"
+	"strings"
 
 	"github.com/solo-io/squash/pkg/models"
 
@@ -40,6 +43,21 @@ func (k *Kubectl) Run(args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.innerunns(args)
 }
+func (k *Kubectl) CreateLocalRoles(yamlfile string) error {
+
+	b, err := ioutil.ReadFile(yamlfile)
+	if err != nil {
+		return err
+	}
+	yamlcontent := string(b)
+	yamlcontent = strings.Replace(yamlcontent, "ClusterRole", "Role", -1)
+	buffer := bytes.NewBuffer(([]byte)(yamlcontent))
+	cmd := k.innerpreparens([]string{"create", "-f", "-"})
+	cmd.Stdin = buffer
+
+	return cmd.Run()
+}
+
 func (k *Kubectl) Pods() (*v1.PodList, error) {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	out, err := k.Prepare("get", "pods", "--output=json").Output()

@@ -37,7 +37,7 @@ var _ = Describe("Single debug mode", func() {
 		}
 		fmt.Printf("create sutff %v \n", kubectl)
 
-		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-server.yml"); err != nil {
+		if err := kubectl.CreateLocalRoles("../../target/kubernetes/squash-server.yml"); err != nil {
 			panic(err)
 		}
 		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-client.yml"); err != nil {
