@@ -62,6 +62,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 ## Supported debuggers:
  - [gdb](https://www.gnu.org/software/gdb/)
  - [dlv](https://github.com/derekparker/delve)
+ - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)[^javanote]
 
 ## Supported platforms:
  - [Kubernetes](docs/platforms/kubernetes.md)
@@ -77,7 +78,6 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 **debuggers**:
   - [Nodejs](https://nodejs.org/api/debugger.html)
   - [Phython](https://docs.python.org/3/library/pdb.html)
-  - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
 
 **platforms**:
   - [Mesos](http://mesos.apache.org)
@@ -96,3 +96,7 @@ Squash is still experimental! APIs and compatibility are subject to change. We a
 ## Thanks
 
 **Squash** would not be possible without the valuable open-source work of projects in the community. We would like to extend a special thank-you to [Kubernetes](https://kubernetes.io), [gdb](https://www.gnu.org/software/gdb/) and [dlv](https://github.com/derekparker/delve).
+
+
+[^javanote]: Java process must be started with [JDWP](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html) options, for example: 
+*java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar MyApp.jar*
