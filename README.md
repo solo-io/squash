@@ -48,7 +48,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 - **User Documenation**
   - using [IDEs to debug](docs/IDEs.md)
   - using the [command line interface](docs/cli.md)
-  - [Debug application using service mesh](contrib/istio-example/istio_demo.md)
+  - [Debug your java microservices](docs/debuggers/java.md)
+  - [Debug application using service mesh](docs/platforms/istio.md)
 
 - **Developer Documentation**
   - how to [build squash](docs/build) from source
