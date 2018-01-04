@@ -80,6 +80,11 @@ type GetDebugAttachmentsParams struct {
 
 	*/
 	State *string
+	/*States
+	  filter by any of the states of the debugattachment (for example, attached and error)
+
+	*/
+	States []string
 	/*Wait
 	  wait until there's something to return instead of returning an empty list
 
@@ -168,6 +173,17 @@ func (o *GetDebugAttachmentsParams) SetState(state *string) {
 	o.State = state
 }
 
+// WithStates adds the states to the get debug attachments params
+func (o *GetDebugAttachmentsParams) WithStates(states []string) *GetDebugAttachmentsParams {
+	o.SetStates(states)
+	return o
+}
+
+// SetStates adds the states to the get debug attachments params
+func (o *GetDebugAttachmentsParams) SetStates(states []string) {
+	o.States = states
+}
+
 // WithWait adds the wait to the get debug attachments params
 func (o *GetDebugAttachmentsParams) WithWait(wait *bool) *GetDebugAttachmentsParams {
 	o.SetWait(wait)
@@ -234,6 +250,14 @@ func (o *GetDebugAttachmentsParams) WriteToRequest(r runtime.ClientRequest, reg 
 			}
 		}
 
+	}
+
+	valuesStates := o.States
+
+	joinedStates := swag.JoinByFormat(valuesStates, "")
+	// query array param states
+	if err := r.SetQueryParam("states", joinedStates...); err != nil {
+		return err
 	}
 
 	if o.Wait != nil {

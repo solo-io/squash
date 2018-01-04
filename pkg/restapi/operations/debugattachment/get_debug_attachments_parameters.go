@@ -48,6 +48,10 @@ type GetDebugAttachmentsParams struct {
 	  In: query
 	*/
 	State *string
+	/*filter by any of the states of the debugattachment (for example, attached and error)
+	  In: query
+	*/
+	States []string
 	/*wait until there's something to return instead of returning an empty list
 	  In: query
 	*/
@@ -78,6 +82,11 @@ func (o *GetDebugAttachmentsParams) BindRequest(r *http.Request, route *middlewa
 
 	qState, qhkState, _ := qs.GetOK("state")
 	if err := o.bindState(qState, qhkState, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qStates, qhkStates, _ := qs.GetOK("states")
+	if err := o.bindStates(qStates, qhkStates, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -159,6 +168,31 @@ func (o *GetDebugAttachmentsParams) bindState(rawData []string, hasKey bool, for
 	}
 
 	o.State = &raw
+
+	return nil
+}
+
+func (o *GetDebugAttachmentsParams) bindStates(rawData []string, hasKey bool, formats strfmt.Registry) error {
+
+	var qvStates string
+	if len(rawData) > 0 {
+		qvStates = rawData[len(rawData)-1]
+	}
+
+	statesIC := swag.SplitByFormat(qvStates, "")
+
+	if len(statesIC) == 0 {
+		return nil
+	}
+
+	var statesIR []string
+	for _, statesIV := range statesIC {
+		statesI := statesIV
+
+		statesIR = append(statesIR, statesI)
+	}
+
+	o.States = statesIR
 
 	return nil
 }

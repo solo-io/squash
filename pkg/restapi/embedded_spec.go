@@ -65,6 +65,15 @@ func init() {
             "items": {
               "type": "string"
             },
+            "description": "filter by any of the states of the debugattachment (for example, attached and error)",
+            "name": "states",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "description": "Only get a subset of debugattachments",
             "name": "names",
             "in": "query"
