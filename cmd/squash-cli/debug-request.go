@@ -13,12 +13,14 @@ import (
 
 func init() {
 
+	processName := ""
 	var debugServiceCmd = &cobra.Command{
 		Use:   "debug-request image debugger",
 		Short: "debug-request adds a debug request.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			image := ""
 			debugger := ""
+
 			switch len(args) {
 			case 2:
 				image, debugger = args[0], args[1]
@@ -28,8 +30,9 @@ func init() {
 			// parse
 			dbgrequest := models.DebugRequest{
 				Spec: &models.DebugRequestSpec{
-					Debugger: &debugger,
-					Image:    &image,
+					Debugger:    &debugger,
+					ProcessName: processName,
+					Image:       &image,
 				},
 			}
 
@@ -60,6 +63,8 @@ func init() {
 			return nil
 		},
 	}
+
+	debugServiceCmd.Flags().StringVarP(&processName, "processName", "p", "", "Process name to debug (defaults to the first running process)")
 
 	RootCmd.AddCommand(debugServiceCmd)
 

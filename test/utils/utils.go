@@ -9,11 +9,16 @@ import (
 	"math/rand"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/solo-io/squash/pkg/models"
 
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 type Kubectl struct {
 	Context, Namespace string
@@ -111,9 +116,13 @@ type Squash struct {
 	Namespace string
 }
 
-func (s *Squash) Attach(image, pod, container, dbgger string) (*models.DebugAttachment, error) {
+func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*models.DebugAttachment, error) {
+	args := []string{"debug-container", "--namespace=" + s.Namespace, image, pod, container, dbgger}
+	if processName != "" {
+		args = append(args, "--processName="+processName)
+	}
 
-	cmd := s.run("debug-container", "--namespace="+s.Namespace, image, pod, container, dbgger)
+	cmd := s.run(args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
