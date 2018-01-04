@@ -48,7 +48,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 - **User Documenation**
   - using [IDEs to debug](docs/IDEs.md)
   - using the [command line interface](docs/cli.md)
-  - [Debug application using service mesh](contrib/istio-example/istio_demo.md)
+  - [Debug your java microservices](docs/debuggers/java.md)
+  - [Debug application using service mesh](docs/platforms/istio.md)
 
 - **Developer Documentation**
   - how to [build squash](docs/build) from source
@@ -62,6 +63,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 ## Supported debuggers:
  - [gdb](https://www.gnu.org/software/gdb/)
  - [dlv](https://github.com/derekparker/delve)
+ - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
 
 ## Supported platforms:
  - [Kubernetes](docs/platforms/kubernetes.md)
@@ -77,7 +79,6 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 **debuggers**:
   - [Nodejs](https://nodejs.org/api/debugger.html)
   - [Phython](https://docs.python.org/3/library/pdb.html)
-  - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
 
 **platforms**:
   - [Mesos](http://mesos.apache.org)
