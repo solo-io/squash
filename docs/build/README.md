@@ -38,7 +38,7 @@ $ dep ensure
 
 To build the code, just do
 ```
-$ make
+$ make binaries
 ```
 
 This will build the squash binaries.
@@ -47,7 +47,7 @@ To deploy squash to kubernetes we need to build containers images for use with k
 
 To build the containers with a specific repository prefix, do:
 ```
-$ make DOCKER_REPO=yourrepor VERSION=0.1 containers
+$ make DOCKER_REPO=yourrepor VERSION=0.1
 ```
 To push them using docker push, do:
 ```
@@ -56,12 +56,12 @@ $ make DOCKER_REPO=yourrepor VERSION=0.1  dist
 
 ## Deploy
 
-You can use the `target/kubernetes/squash-ds.yml` and `target/kubernetes/squash-server.yml` to deploy your containers (they will match the docker repo and version specificed in make).
+You can use the `target/kubernetes/squash-client.yml` and `target/kubernetes/squash-server.yml` to deploy your containers (they will match the docker repo and version specificed in make).
 
 Deploy (remember to deploy the server first):
 ```
 kubectl create -f target/kubernetes/squash-server.yml
-kubectl create -f target/kubernetes/squash-ds.yml
+kubectl create -f target/kubernetes/squash-client.yml
 ```
 # Directory structure
 ```

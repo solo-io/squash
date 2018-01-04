@@ -1,9 +1,21 @@
 package debuggers
 
+// DebugHostType - type of host to connect debugger
+type DebugHostType int
+
+const (
+	// DebugHostTypeClient - debugger needs to connect to squash-client
+	DebugHostTypeClient = iota
+	// DebugHostTypeTarget - debugger needs to connect to target
+	DebugHostTypeTarget
+)
+
 type DebugServer interface {
 	/// Detach from the process we are debugging (allowing it to resume normal execution).
 	Detach() error
-	///  Return the port that the debug server listens on.
+	/// Returns either DebugHostTypeClient or DebugHostTypeTarget
+	HostType() DebugHostType
+	/// Return the port that the debug server listens on.
 	Port() int
 }
 

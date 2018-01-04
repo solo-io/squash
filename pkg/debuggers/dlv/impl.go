@@ -28,6 +28,10 @@ func (d *DLVLiveDebugSession) Port() int {
 	return d.port
 }
 
+func (d *DLVLiveDebugSession) HostType() debuggers.DebugHostType {
+	return debuggers.DebugHostTypeClient
+}
+
 func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	cmd, port, err := startDebugServer(pid)
 
