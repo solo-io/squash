@@ -53,9 +53,11 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 	labels := make(map[string]string)
 	labels["io.kubernetes.pod.name"] = ka.Pod
 	labels["io.kubernetes.pod.namespace"] = ka.Namespace
+	st := kubeapi.PodSandboxStateValue{State: kubeapi.PodSandboxState_SANDBOX_READY}
 	inpod := &kubeapi.ListPodSandboxRequest{
 		Filter: &kubeapi.PodSandboxFilter{
 			LabelSelector: labels,
+			State:         &st,
 		},
 	}
 
