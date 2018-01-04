@@ -30,8 +30,7 @@ func init() {
 			id := args[0]
 
 			params := debugattachment.NewGetDebugAttachmentsParams()
-			attached := models.DebugAttachmentStatusStateAttached
-			params.State = &attached
+			params.States = []string{models.DebugAttachmentStatusStateAttached, models.DebugAttachmentStatusStateError}
 			params.Names = []string{id}
 			t := true
 			params.Wait = &t

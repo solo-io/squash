@@ -271,6 +271,10 @@ func contains(s string, sa []string) bool {
 func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugattachment.GetDebugAttachmentsParams) middleware.Responder {
 	node := params.Node
 	state := params.State
+	states := params.States
+	if state != nil {
+		states = append(states, *state)
+	}
 	wait := false
 	if params.Wait != nil {
 		wait = *params.Wait
@@ -297,8 +301,18 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 			if node != nil && attachment.Spec != nil && *node != attachment.Spec.Node {
 				continue
 			}
-			if state != nil && attachment.Status != nil && *state != attachment.Status.State {
-				continue
+
+			if len(states) > 0 && attachment.Status != nil {
+				statusstate := attachment.Status.State
+				cont := true
+				for _, state := range states {
+					if statusstate == state {
+						cont = false
+					}
+				}
+				if cont {
+					continue
+				}
 			}
 			if len(names) != 0 && !contains(attachment.Metadata.Name, names) {
 				continue

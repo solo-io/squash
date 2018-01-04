@@ -77,6 +77,13 @@ paths:
         description: "filter by the state of debugattachment is assigned to"
         required: false
         type: "string"
+      - name: "states"
+        in: "query"
+        description: "filter by any of the states of the debugattachment (for example, attached and error)"
+        required: false
+        type: "array"
+        items:
+          type: "string"
       - name: "names"
         in: "query"
         description: "Only get a subset of debugattachments"
