@@ -91,6 +91,16 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 			dbgattachment.Spec.Debugger = *dr.Spec.Debugger
 		}
 
+		if dbgattachment.Spec.ProcessName != "" && dbgattachment.Spec.ProcessName != dr.Spec.ProcessName {
+			log.WithFields(
+				log.Fields{
+					"dbgattachment":                  dbgattachment,
+					"dbgattachment.Spec.ProcessName": dbgattachment.Spec.ProcessName,
+					"dr.Spec.ProcessName":            dr.Spec.ProcessName,
+				}).Warning("debug attachment processName conflict")
+		}
+		dbgattachment.Spec.ProcessName = dr.Spec.ProcessName
+
 		// we found a matching request - we can save now.
 		r.saveDebugAttachment(dbgattachment)
 
@@ -122,6 +132,7 @@ func (r *RestHandler) findUnboundDebugRequest(dbgattachment *models.DebugAttachm
 		if dr.Spec.Image == nil || *dr.Spec.Image != dbgattachment.Spec.Image {
 			continue
 		}
+
 		// logical NOT XOR
 		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == "") {
 			continue
@@ -271,6 +282,10 @@ func contains(s string, sa []string) bool {
 func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugattachment.GetDebugAttachmentsParams) middleware.Responder {
 	node := params.Node
 	state := params.State
+	states := params.States
+	if state != nil {
+		states = append(states, *state)
+	}
 	wait := false
 	if params.Wait != nil {
 		wait = *params.Wait
@@ -297,8 +312,18 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 			if node != nil && attachment.Spec != nil && *node != attachment.Spec.Node {
 				continue
 			}
-			if state != nil && attachment.Status != nil && *state != attachment.Status.State {
-				continue
+
+			if len(states) > 0 && attachment.Status != nil {
+				statusstate := attachment.Status.State
+				cont := true
+				for _, state := range states {
+					if statusstate == state {
+						cont = false
+					}
+				}
+				if cont {
+					continue
+				}
 			}
 			if len(names) != 0 && !contains(attachment.Metadata.Name, names) {
 				continue

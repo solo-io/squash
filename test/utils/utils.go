@@ -1,16 +1,24 @@
 package e2e_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/solo-io/squash/pkg/models"
 
 	v1 "k8s.io/client-go/pkg/api/v1"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 type Kubectl struct {
 	Context, Namespace string
@@ -40,6 +48,21 @@ func (k *Kubectl) Run(args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.innerunns(args)
 }
+func (k *Kubectl) CreateLocalRoles(yamlfile string) error {
+
+	b, err := ioutil.ReadFile(yamlfile)
+	if err != nil {
+		return err
+	}
+	yamlcontent := string(b)
+	yamlcontent = strings.Replace(yamlcontent, "ClusterRole", "Role", -1)
+	buffer := bytes.NewBuffer(([]byte)(yamlcontent))
+	cmd := k.innerpreparens([]string{"create", "-f", "-"})
+	cmd.Stdin = buffer
+
+	return cmd.Run()
+}
+
 func (k *Kubectl) Pods() (*v1.PodList, error) {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	out, err := k.Prepare("get", "pods", "--output=json").Output()
@@ -93,9 +116,13 @@ type Squash struct {
 	Namespace string
 }
 
-func (s *Squash) Attach(image, pod, container, dbgger string) (*models.DebugAttachment, error) {
+func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*models.DebugAttachment, error) {
+	args := []string{"debug-container", "--namespace=" + s.Namespace, image, pod, container, dbgger}
+	if processName != "" {
+		args = append(args, "--processName="+processName)
+	}
 
-	cmd := s.run("debug-container", "--namespace="+s.Namespace, image, pod, container, dbgger)
+	cmd := s.run(args...)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err

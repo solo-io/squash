@@ -17,6 +17,7 @@ import (
 func init() {
 
 	namespace := "default"
+	processName := ""
 
 	var debugContainerCmd = &cobra.Command{
 		Use:   "debug-container image pod container [type]",
@@ -50,8 +51,9 @@ func init() {
 						Pod:       pod,
 						Container: container,
 					},
-					Image:    image,
-					Debugger: debuggertype,
+					ProcessName: processName,
+					Image:       image,
+					Debugger:    debuggertype,
 				},
 			}
 
@@ -81,6 +83,7 @@ func init() {
 	}
 
 	debugContainerCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "Namespace the pod belongs to")
+	debugContainerCmd.Flags().StringVarP(&processName, "processName", "p", "", "Process name to debug (defaults to the first running process)")
 
 	RootCmd.AddCommand(debugContainerCmd)
 

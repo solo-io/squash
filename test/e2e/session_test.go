@@ -35,9 +35,9 @@ var _ = Describe("Single debug mode", func() {
 			fmt.Println("error creating ns", err)
 			panic(err)
 		}
-		fmt.Printf("create sutff %v \n", kubectl)
+		fmt.Printf("creating environment %v \n", kubectl)
 
-		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-server.yml"); err != nil {
+		if err := kubectl.CreateLocalRoles("../../target/kubernetes/squash-server.yml"); err != nil {
 			panic(err)
 		}
 		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-client.yml"); err != nil {
@@ -70,6 +70,19 @@ var _ = Describe("Single debug mode", func() {
 	})
 
 	AfterEach(func() {
+		var p *v1.Pod
+		for _, v := range MicroservicePods {
+			p = v
+			break
+		}
+
+		logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
+		fmt.Fprintln(GinkgoWriter, "server logs:")
+		fmt.Fprintln(GinkgoWriter, string(logs))
+		clogs, _ := kubectl.Logs(ClientPods[p.Spec.NodeName].ObjectMeta.Name)
+		fmt.Fprintln(GinkgoWriter, "client logs:")
+		fmt.Fprintln(GinkgoWriter, string(clogs))
+
 		kubectl.DeleteNS()
 
 	})
@@ -85,7 +98,7 @@ var _ = Describe("Single debug mode", func() {
 
 			container := p.Spec.Containers[0]
 
-			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "dlv")
+			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "", "dlv")
 			if err != nil {
 				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
 				fmt.Println(string(logs))
@@ -94,18 +107,54 @@ var _ = Describe("Single debug mode", func() {
 			time.Sleep(time.Second)
 
 			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println("server logs:")
-				fmt.Println(string(logs))
-				clogs, _ := kubectl.Logs(ClientPods[p.Spec.NodeName].ObjectMeta.Name)
-				fmt.Println("client logs:")
-				fmt.Println(string(clogs))
-				panic(err)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+		})
+		It("should get a debug server endpoint, specific process", func() {
+
+			var p *v1.Pod
+			for _, v := range MicroservicePods {
+				p = v
+				break
 			}
 
-			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+			container := p.Spec.Containers[0]
 
+			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "service1", "dlv")
+			if err != nil {
+				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
+				fmt.Println(string(logs))
+				panic(err)
+			}
+			time.Sleep(time.Second)
+
+			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+		})
+		It("should get a debug server endpoint, specific process that doesn't exist", func() {
+
+			var p *v1.Pod
+			for _, v := range MicroservicePods {
+				p = v
+				break
+			}
+
+			container := p.Spec.Containers[0]
+
+			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "processNameDoesntExist", "dlv")
+			if err != nil {
+				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
+				fmt.Println(string(logs))
+				panic(err)
+			}
+			time.Sleep(time.Second)
+
+			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.Status.State).To(Equal("error"))
 		})
 	})
 

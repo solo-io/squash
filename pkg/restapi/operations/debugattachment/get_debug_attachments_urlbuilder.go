@@ -15,10 +15,11 @@ import (
 
 // GetDebugAttachmentsURL generates an URL for the get debug attachments operation
 type GetDebugAttachmentsURL struct {
-	Names []string
-	Node  *string
-	State *string
-	Wait  *bool
+	Names  []string
+	Node   *string
+	State  *string
+	States []string
+	Wait   *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -85,6 +86,23 @@ func (o *GetDebugAttachmentsURL) Build() (*url.URL, error) {
 	}
 	if state != "" {
 		qs.Set("state", state)
+	}
+
+	var statesIR []string
+	for _, statesI := range o.States {
+		statesIS := statesI
+		if statesIS != "" {
+			statesIR = append(statesIR, statesIS)
+		}
+	}
+
+	states := swag.JoinByFormat(statesIR, "")
+
+	if len(states) > 0 {
+		qsv := states[0]
+		if qsv != "" {
+			qs.Set("states", qsv)
+		}
 	}
 
 	var wait string

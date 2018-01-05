@@ -24,6 +24,9 @@ type DebugRequestSpec struct {
 	// image
 	// Required: true
 	Image *string `json:"image"`
+
+	// process name
+	ProcessName string `json:"process_name,omitempty"`
 }
 
 // Validate validates this debug request spec

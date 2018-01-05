@@ -40,7 +40,6 @@ func init() {
         ],
         "summary": "Return all debug attachment",
         "operationId": "getDebugAttachments",
-        "security": null,
         "parameters": [
           {
             "type": "boolean",
@@ -58,6 +57,15 @@ func init() {
             "type": "string",
             "description": "filter by the state of debugattachment is assigned to",
             "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "filter by any of the states of the debugattachment (for example, attached and error)",
+            "name": "states",
             "in": "query"
           },
           {
@@ -106,7 +114,6 @@ func init() {
         ],
         "summary": "Request squash to attach to a running container.",
         "operationId": "addDebugAttachment",
-        "security": null,
         "parameters": [
           {
             "description": "DebugAttachment object",
@@ -148,7 +155,6 @@ func init() {
         ],
         "summary": "Return a debug attachment",
         "operationId": "getDebugAttachment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -183,7 +189,6 @@ func init() {
         ],
         "summary": "Delete a debug attachment",
         "operationId": "deleteDebugAttachment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -221,7 +226,6 @@ func init() {
         ],
         "summary": "Modify an existing attachment.",
         "operationId": "patchDebugAttachment",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -273,7 +277,6 @@ func init() {
         ],
         "summary": "Return all debug request",
         "operationId": "getDebugRequests",
-        "security": null,
         "responses": {
           "200": {
             "description": "OK",
@@ -302,7 +305,6 @@ func init() {
         ],
         "summary": "Return a debug attachment",
         "operationId": "createDebugRequest",
-        "security": null,
         "parameters": [
           {
             "description": "DebugRequest object",
@@ -332,7 +334,6 @@ func init() {
         ],
         "summary": "Get a debug request",
         "operationId": "getDebugRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -361,7 +362,6 @@ func init() {
         ],
         "summary": "Delete a debug request",
         "operationId": "deleteDebugRequest",
-        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -430,6 +430,9 @@ func init() {
         },
         "node": {
           "type": "string"
+        },
+        "process_name": {
+          "type": "string"
         }
       }
     },
@@ -478,6 +481,9 @@ func init() {
           "type": "string"
         },
         "image": {
+          "type": "string"
+        },
+        "process_name": {
           "type": "string"
         }
       }

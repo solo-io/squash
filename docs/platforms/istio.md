@@ -1,3 +1,4 @@
+
 # How to use Squash with istio
 
 ## Why?

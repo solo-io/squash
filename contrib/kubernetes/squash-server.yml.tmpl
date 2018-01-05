@@ -3,7 +3,7 @@ kind: ServiceAccount
 metadata:
   name: squash-server
 ---
-kind: Role
+kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: squash-pod-reader
@@ -12,7 +12,7 @@ rules:
   resources: ["pods"]
   verbs: ["get", "watch", "list"]
 ---
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: squash-read-pod-info
@@ -21,7 +21,7 @@ subjects:
   name: squash-server
 #  apiGroup: rbac.authorization.k8s.io # some reason this fails on kube 1.7.4
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: squash-pod-reader
   apiGroup: rbac.authorization.k8s.io
 ---

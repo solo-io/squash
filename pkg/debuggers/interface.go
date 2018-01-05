@@ -5,7 +5,7 @@ type DebugHostType int
 
 const (
 	// DebugHostTypeClient - debugger needs to connect to squash-client
-	DebugHostTypeClient = iota
+	DebugHostTypeClient DebugHostType = iota
 	// DebugHostTypeTarget - debugger needs to connect to target
 	DebugHostTypeTarget
 )
