@@ -9,6 +9,15 @@
             "program": "${workspaceRoot}/cmd/squash-server/main.go",
             "args": ["--cluster=debug", "--port=8012"],
             "showLog": true
+        },
+        {
+            "name": "Launch Client",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}/cmd/client/main.go",
+            "args": ["--url=http://localhost:8012/api/v1", "--json" , "wait", "DEBUGATTACHMENTIDHERE"],
+            "showLog": true
         }
     ]
 }
