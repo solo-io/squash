@@ -25,7 +25,7 @@ Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-dr
 Once the cluster is ready, install Squash aware Istio:
 
 ```
-kubectl apply -f ./istio.yaml
+kubectl apply -f contrib/istio-example/istio.yaml
 ```
 
 Verify that everything is running, this may take a few minutes:
@@ -45,9 +45,9 @@ kube-system    kube-dns-6fc954457d-phjtv        3/3       Running   0          4
 Deploy our demo services:
 Note that if you use istioctl kube-inject, you need to modify them to use our version of the proxy container.
 ```
-kubectl apply -f service2-istio.yaml
-kubectl apply -f service1-istio.yaml
-kubectl apply -f ingress.yaml
+kubectl apply -f contrib/istio-example/service2-istio.yaml
+kubectl apply -f contrib/istio-example/service1-istio.yaml
+kubectl apply -f contrib/istio-example/ingress.yaml
 ```
 
 Get access to the ingress. for minikube users:
@@ -60,8 +60,8 @@ export HTTP_GATEWAY_URL=$GATEWAY_HOST:$GATEWAY_HTTP_INGRESS
 ## Install Squash
 
 ```
-kubectl apply -f ./squash-server.yml
-kubectl apply -f ./squash-client.yml
+kubectl apply -f contrib/istio-example/squash-server.yml
+kubectl apply -f contrib/istio-example/squash-client.yml
 ```
 
 
@@ -71,6 +71,9 @@ $ kubectl get pods
 NAME                                READY     STATUS    RESTARTS   AGE
 example-service1-5bfd657c99-ltj45   2/2       Running   0          1m
 example-service2-c94bf78bc-tlm4s    2/2       Running   0          1m
+
+$ kubectl get pods --namespace squash
+NAME                                READY     STATUS    RESTARTS   AGE
 squash-client-49c8k                 1/1       Running   0          2m
 squash-server-6cbf6cb8c7-26b4x      1/1       Running   0          2m
 ```

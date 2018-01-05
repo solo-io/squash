@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"context"
 	"errors"
 	"io/ioutil"
@@ -125,7 +126,7 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 	}
 
 	log.WithField("potentialpids", potentialpids).Info("found some pids")
-	return &platforms.ContainerInfo{Pids: potentialpids, Name: ka.Pod}, nil
+	return &platforms.ContainerInfo{Pids: potentialpids, Name: fmt.Sprintf("%s.%s", ka.Pod, ka.Namespace)}, nil
 }
 
 func FindPidsInNS(inod uint64, ns string) ([]int, error) {
