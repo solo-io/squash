@@ -15,7 +15,7 @@ Let's start by creating a kubernetes RBAC cluster. If you use minikube, these co
 ```
 # create a cluster with a decent amount of resources, with RBAC enabled.
 minikube  start --extra-config=apiserver.Authorization.Mode=RBAC --cpus 3 --memory 8192
-# give kube dns the permissions it needs to work.
+# give kube dns the permissions it needs to work. NOT meant for production use.
 kubectl create clusterrolebinding permissive-binding   --clusterrole=cluster-admin   --user=admin   --user=kubelet   --group=system:serviceaccounts
 ```
 Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-driver=kvm` option.
@@ -91,7 +91,7 @@ kubectl proxy&
 Configure these settings in VSCode:
 ```
    "vs-squash.squash-path": "<PATH-TO-SQUASH-BINARY>/squash",
-   "vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2" 
+   "vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2" 
 ```
 **Note:** that the Squash binary should be version 0.2 or higher.
 
@@ -122,8 +122,8 @@ Note that you didn't have to specify the container yourself - the information ab
 ## Notes:
 You can use the command line to see whats going on. Specifically, try these commands:
 ```
-squash list a --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
-squash list r --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
+squash list a --url=http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2
+squash list r --url=http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2
 ```
 
 # More Resources:

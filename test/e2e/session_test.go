@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ var _ = Describe("Single debug mode", func() {
 	)
 
 	BeforeEach(func() {
+		ServerPod = nil
 		ClientPods = make(map[string]*v1.Pod)
 		MicroservicePods = make(map[string]*v1.Pod)
 		kubectl = NewKubectl("")
@@ -40,19 +42,20 @@ var _ = Describe("Single debug mode", func() {
 		if err := kubectl.CreateLocalRoles("../../target/kubernetes/squash-server.yml"); err != nil {
 			panic(err)
 		}
-		if err := kubectl.Run("create", "-f", "../../target/kubernetes/squash-client.yml"); err != nil {
+		if err := kubectl.Create("../../target/kubernetes/squash-client.yml"); err != nil {
 			panic(err)
 		}
-		if err := kubectl.Run("create", "-f", "../../contrib/example/service1/service1.yml"); err != nil {
+		if err := kubectl.Create("../../contrib/example/service1/service1.yml"); err != nil {
 			panic(err)
 		}
 		squash = NewSquash(kubectl)
-		time.Sleep(5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		err := kubectl.WaitPods(ctx)
+		cancel()
+		Expect(err).NotTo(HaveOccurred())
 
 		pods, err := kubectl.Pods()
-		if err != nil {
-			panic(err)
-		}
+		Expect(err).NotTo(HaveOccurred())
 
 		for _, pod := range pods.Items {
 			// make a copy
@@ -66,6 +69,7 @@ var _ = Describe("Single debug mode", func() {
 				ClientPods[pod.Spec.NodeName] = &newpod
 			}
 		}
+		// wait for pods to all be running
 
 	})
 
@@ -99,11 +103,8 @@ var _ = Describe("Single debug mode", func() {
 			container := p.Spec.Containers[0]
 
 			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "", "dlv")
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println(string(logs))
-				panic(err)
-			}
+			Expect(err).NotTo(HaveOccurred())
+
 			time.Sleep(time.Second)
 
 			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
@@ -121,11 +122,7 @@ var _ = Describe("Single debug mode", func() {
 			container := p.Spec.Containers[0]
 
 			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "service1", "dlv")
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println(string(logs))
-				panic(err)
-			}
+			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
 
 			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
@@ -144,11 +141,8 @@ var _ = Describe("Single debug mode", func() {
 			container := p.Spec.Containers[0]
 
 			dbgattachment, err := squash.Attach(container.Image, p.ObjectMeta.Name, container.Name, "processNameDoesntExist", "dlv")
-			if err != nil {
-				logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-				fmt.Println(string(logs))
-				panic(err)
-			}
+			Expect(err).NotTo(HaveOccurred())
+
 			time.Sleep(time.Second)
 
 			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
