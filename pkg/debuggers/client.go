@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -119,13 +121,48 @@ func retry(f func() error) error {
 	return f()
 }
 
+func FindFirstProcess(pids []int, processName string) (int, error) {
+	minpid := 0
+	var mintime *time.Time
+	for _, pid := range pids {
+		p := filepath.Join("/proc", fmt.Sprintf("%d", pid), "exe")
+		n, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+
+		resolvedExe, err := os.Readlink(p)
+		if err != nil {
+			continue
+		}
+
+		_, currentProcessName := filepath.Split(resolvedExe)
+		if processName == "" || strings.EqualFold(currentProcessName, processName) {
+			t := n.ModTime()
+			if (mintime == nil) || t.Before(*mintime) {
+				mintime = &t
+				minpid = pid
+			}
+		}
+	}
+
+	if minpid == 0 {
+		return 0, errors.New("no process found")
+	}
+	return minpid, nil
+}
+
 func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
 
 	// make sure this is not a duplicate
 
 	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Spec.Attachment)
-	pid := ci.Pid
+	if err != nil {
+		log.WithField("err", err).Warn("GetContainerInfo error")
+		return err
+	}
 
+	pid, err := FindFirstProcess(ci.Pids, attachment.Spec.ProcessName)
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
 		return err

@@ -31,6 +31,9 @@ type DebugAttachmentSpec struct {
 
 	// node
 	Node string `json:"node,omitempty"`
+
+	// process name
+	ProcessName string `json:"process_name,omitempty"`
 }
 
 // Validate validates this debug attachment spec

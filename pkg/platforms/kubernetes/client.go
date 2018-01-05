@@ -3,10 +3,8 @@ package kubernetes
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -127,35 +125,7 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 	}
 
 	log.WithField("potentialpids", potentialpids).Info("found some pids")
-	pid, err := FindFirstProcess(potentialpids)
-	if err != nil {
-		log.WithField("err", err).Warn("FindFirstProcess error")
-		return nil, err
-	}
-
-	return &platforms.ContainerInfo{Pid: pid, Name: ka.Pod}, nil
-}
-
-func FindFirstProcess(pids []int) (int, error) {
-	minpid := 0
-	var mintime *time.Time
-	for _, pid := range pids {
-		p := filepath.Join("/proc", fmt.Sprintf("%d", pid), "exe")
-		n, err := os.Stat(p)
-		if err != nil {
-			continue
-		}
-		t := n.ModTime()
-		if (mintime == nil) || t.Before(*mintime) {
-			mintime = &t
-			minpid = pid
-		}
-	}
-
-	if minpid == 0 {
-		return 0, errors.New("no process found")
-	}
-	return minpid, nil
+	return &platforms.ContainerInfo{Pids: potentialpids, Name: ka.Pod}, nil
 }
 
 func FindPidsInNS(inod uint64, ns string) ([]int, error) {

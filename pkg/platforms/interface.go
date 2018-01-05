@@ -20,7 +20,7 @@ type ContainerLocator interface {
 /// Runs in the squash client:
 /// Information for the squash client to be able to connect debugger to the process
 type ContainerInfo struct {
-	Pid  int
+	Pids []int
 	Name string
 }
 

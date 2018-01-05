@@ -25,7 +25,7 @@ paths:
       tags:
       - "debugattachment"
       summary: "Request squash to attach to a running container."
-      description: > 
+      description: >
                       A debug attachment instructs squash to attach to a container. Debug attachment is made of
                         - image: The container image we are debugging. this is used for extra validation, as placing breakpoints on the wrong binary can lead to unexpected results. if not provided huerisrtics will be used to identify it.
                         - debugger: Type of debugger to use. "dlv" and "gdb" are supported now.
@@ -58,7 +58,7 @@ paths:
     get:
       tags:
       - "debugattachment"
-      summary: "Return all debug attachment" 
+      summary: "Return all debug attachment"
       description: "Return all debug attachment"
       operationId: "getDebugAttachments"
       parameters:
@@ -110,7 +110,7 @@ paths:
       tags:
       - "debugattachment"
       summary: "Modify an existing attachment."
-      description: > 
+      description: >
                       Modify an existing attachment.
       operationId: "patchDebugAttachment"
       consumes:
@@ -147,7 +147,7 @@ paths:
     delete:
       tags:
       - "debugattachment"
-      summary: "Delete a debug attachment" 
+      summary: "Delete a debug attachment"
       description: "Delete a debug attachment. be careful not to delete on during attaching phase."
       operationId: "deleteDebugAttachment"
       parameters:
@@ -168,7 +168,7 @@ paths:
     get:
       tags:
       - "debugattachment"
-      summary: "Return a debug attachment" 
+      summary: "Return a debug attachment"
       description: "Return a debug attachment"
       operationId: "getDebugAttachment"
       parameters:
@@ -192,7 +192,7 @@ paths:
     get:
       tags:
       - "debugrequest"
-      summary: "Return all debug request" 
+      summary: "Return all debug request"
       description: "Return all debug requests"
       operationId: "getDebugRequests"
       responses:
@@ -207,7 +207,7 @@ paths:
     post:
       tags:
       - "debugrequest"
-      summary: "Return a debug attachment" 
+      summary: "Return a debug attachment"
       description: "Return a debug attachment"
       operationId: "createDebugRequest"
       consumes:
@@ -230,7 +230,7 @@ paths:
     get:
       tags:
       - "debugrequest"
-      summary: "Get a debug request" 
+      summary: "Get a debug request"
       description: "Get a debug request"
       operationId: "getDebugRequest"
       parameters:
@@ -249,7 +249,7 @@ paths:
     delete:
       tags:
       - "debugrequest"
-      summary: "Delete a debug request" 
+      summary: "Delete a debug request"
       description: "Delete a debug request."
       operationId: "deleteDebugRequest"
       parameters:
@@ -290,6 +290,8 @@ definitions:
         type: string
       image:
         type: string
+      process_name:
+        type: string
       node:
         type: string
       match_request:
@@ -327,6 +329,9 @@ definitions:
         type: string
       debugger:
         type: string
+      process_name:
+        type: string
+
 
   DebugRequestStatus:
     type: object

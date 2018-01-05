@@ -91,6 +91,16 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 			dbgattachment.Spec.Debugger = *dr.Spec.Debugger
 		}
 
+		if dbgattachment.Spec.ProcessName != "" && dbgattachment.Spec.ProcessName != dr.Spec.ProcessName {
+			log.WithFields(
+				log.Fields{
+					"dbgattachment":                  dbgattachment,
+					"dbgattachment.Spec.ProcessName": dbgattachment.Spec.ProcessName,
+					"dr.Spec.ProcessName":            dr.Spec.ProcessName,
+				}).Warning("debug attachment processName conflict")
+		}
+		dbgattachment.Spec.ProcessName = dr.Spec.ProcessName
+
 		// we found a matching request - we can save now.
 		r.saveDebugAttachment(dbgattachment)
 
@@ -122,6 +132,7 @@ func (r *RestHandler) findUnboundDebugRequest(dbgattachment *models.DebugAttachm
 		if dr.Spec.Image == nil || *dr.Spec.Image != dbgattachment.Spec.Image {
 			continue
 		}
+
 		// logical NOT XOR
 		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == "") {
 			continue
