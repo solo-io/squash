@@ -71,9 +71,6 @@ $ kubectl get pods
 NAME                                READY     STATUS    RESTARTS   AGE
 example-service1-5bfd657c99-ltj45   2/2       Running   0          1m
 example-service2-c94bf78bc-tlm4s    2/2       Running   0          1m
-
-$ kubectl get pods --namespace squash
-NAME                                READY     STATUS    RESTARTS   AGE
 squash-client-49c8k                 1/1       Running   0          2m
 squash-server-6cbf6cb8c7-26b4x      1/1       Running   0          2m
 ```
@@ -94,7 +91,7 @@ kubectl proxy&
 Configure these settings in VSCode:
 ```
    "vs-squash.squash-path": "<PATH-TO-SQUASH-BINARY>/squash",
-   "vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2" 
+   "vs-squash.squash-server-url": "http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2" 
 ```
 **Note:** that the Squash binary should be version 0.2 or higher.
 
@@ -106,7 +103,7 @@ code ../example/service1
 In the new VSCode window, place a breakpoint inside the handler method, around line 81.
 
 In the new VSCode window, run the command: "Squash: Debug Container in Service Mesh"
-Choose the image to debug by first selecting `example-service1` service and then the  `soloio/example-service1:v0.2.1`  image. The debugger you want to use is `dlv`. (Of course, make sure you have `dlv` installed and configured with VSCode Go extension).
+Choose the image to debug by first selecting `example-service1` service and then the  `soloio/example-service1:v0.2.2`  image. The debugger you want to use is `dlv`. (Of course, make sure you have `dlv` installed and configured with VSCode Go extension).
 
 VSCode will now be in a waiting mode. It will wait for a notification of a debug attachment.
 
@@ -125,8 +122,8 @@ Note that you didn't have to specify the container yourself - the information ab
 ## Notes:
 You can use the command line to see whats going on. Specifically, try these commands:
 ```
-squash list a --url=http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2
-squash list r --url=http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2
+squash list a --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
+squash list r --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2
 ```
 
 # More Resources:

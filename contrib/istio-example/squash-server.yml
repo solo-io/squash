@@ -44,7 +44,7 @@ spec:
       serviceAccountName: squash-server
       containers:
       - name: squash-server
-        image: soloio/squash-server:v0.2.0
+        image: soloio/squash-server:v0.2.0-46-gf2c3713
         ports:
         - containerPort: 8080
           protocol: TCP
