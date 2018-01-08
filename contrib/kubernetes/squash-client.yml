@@ -4,6 +4,7 @@ metadata:
   labels:
     app: squash-client
   name: squash-client
+  namespace: squash
 spec:
   template:
     metadata:
@@ -13,7 +14,7 @@ spec:
       hostPID: true
       containers:
       - name: squash-client
-        image: soloio/squash-client:v0.2.0
+        image: soloio/squash-client:v0.2.1
         volumeMounts:
         - mountPath: /var/run/cri.sock
           name: crisock
@@ -25,10 +26,18 @@ spec:
         env:
         - name: SERVERURL
           value: "http://$(SQUASH_SERVER_SERVICE_HOST):$(SQUASH_SERVER_SERVICE_PORT_HTTP_SQUASH_API)"
-        - name: HOST_ADDR
+        - name: POD_NAME
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: HOST_ADDR
+          value: $(POD_NAME).$(POD_NAMESPACE)
         - name: NODE_NAME
           valueFrom:
             fieldRef:
