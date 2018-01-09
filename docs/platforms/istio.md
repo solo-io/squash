@@ -15,7 +15,7 @@ Let's start by creating a kubernetes RBAC cluster. If you use minikube, these co
 ```
 # create a cluster with a decent amount of resources, with RBAC enabled.
 minikube  start --extra-config=apiserver.Authorization.Mode=RBAC --cpus 3 --memory 8192
-# give kube dns the permissions it needs to work.
+# give kube dns the permissions it needs to work. NOT meant for production use.
 kubectl create clusterrolebinding permissive-binding   --clusterrole=cluster-admin   --user=admin   --user=kubelet   --group=system:serviceaccounts
 ```
 Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-driver=kvm` option.
@@ -25,7 +25,7 @@ Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-dr
 Once the cluster is ready, install Squash aware Istio:
 
 ```
-kubectl apply -f ./istio.yaml
+kubectl apply -f contrib/istio-example/istio.yaml
 ```
 
 Verify that everything is running, this may take a few minutes:
@@ -45,9 +45,9 @@ kube-system    kube-dns-6fc954457d-phjtv        3/3       Running   0          4
 Deploy our demo services:
 Note that if you use istioctl kube-inject, you need to modify them to use our version of the proxy container.
 ```
-kubectl apply -f service2-istio.yaml
-kubectl apply -f service1-istio.yaml
-kubectl apply -f ingress.yaml
+kubectl apply -f contrib/istio-example/service2-istio.yaml
+kubectl apply -f contrib/istio-example/service1-istio.yaml
+kubectl apply -f contrib/istio-example/ingress.yaml
 ```
 
 Get access to the ingress. for minikube users:
@@ -60,8 +60,8 @@ export HTTP_GATEWAY_URL=$GATEWAY_HOST:$GATEWAY_HTTP_INGRESS
 ## Install Squash
 
 ```
-kubectl apply -f ./squash-server.yml
-kubectl apply -f ./squash-client.yml
+kubectl apply -f contrib/istio-example/squash-server.yml
+kubectl apply -f contrib/istio-example/squash-client.yml
 ```
 
 
@@ -103,7 +103,7 @@ code ../example/service1
 In the new VSCode window, place a breakpoint inside the handler method, around line 81.
 
 In the new VSCode window, run the command: "Squash: Debug Container in Service Mesh"
-Choose the image to debug by first selecting `example-service1` service and then the  `soloio/example-service1:v0.2.1`  image. The debugger you want to use is `dlv`. (Of course, make sure you have `dlv` installed and configured with VSCode Go extension).
+Choose the image to debug by first selecting `example-service1` service and then the  `soloio/example-service1:v0.2.2`  image. The debugger you want to use is `dlv`. (Of course, make sure you have `dlv` installed and configured with VSCode Go extension).
 
 VSCode will now be in a waiting mode. It will wait for a notification of a debug attachment.
 

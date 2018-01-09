@@ -29,13 +29,13 @@ The easiest way is to place it somewhere in your path, but it is not a must.
 
 To make sure everything is deployed correctly, you can use `kubectl proxy` to access the Squash server pod and invoke a sample CLI command. 
 
-1. Get the Squash server pod name by running ```kubectl get pods```. You should see something similar to this:
+1. Get the Squash server pod name by running ```kubectl --namespace=squash get pods```. You should see something similar to this:
 ```
 NAME                                       READY     STATUS    RESTARTS   AGE
 squash-client-ds-j7fqv                     1/1       Running   0          17m
 squash-client-ds-nwbkm                     1/1       Running   0          17m
 squash-client-ds-zw8pp                     1/1       Running   0          17m
-squash-server-rc-kwkdr                     1/1       Running   0          17m
+squash-server-86f67d75f8-ddpmn             1/1       Running   0          17m
 ```
 
 2. Create a proxy to your kube api server:
@@ -49,7 +49,7 @@ Starting to serve on 127.0.0.1:8001
 
 3. Run a list command: 
 ```
-./squash --url=http://localhost:8001/api/v1/namespaces/default/services/squash-server:http-squash-api/proxy/api/v2 list attachments
+./squash --url=http://localhost:8001/api/v1/namespaces/squash/services/squash-server:http-squash-api/proxy/api/v2 list attachments
 ```
 
 The output should be like this: 

@@ -2,7 +2,9 @@ package e2e_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -44,23 +46,41 @@ func (k *Kubectl) DeleteNS() error {
 	return nil
 }
 
-func (k *Kubectl) Run(args ...string) error {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
-	return k.innerunns(args)
-}
 func (k *Kubectl) CreateLocalRoles(yamlfile string) error {
+	return k.Apply(yamlfile, k.changedlocalrole, k.changenamespace)
+}
+
+func (k *Kubectl) Create(yamlfile string) error {
+	return k.Apply(yamlfile, k.changenamespace)
+}
+
+func (k *Kubectl) changedlocalrole(yamlfile string) string {
+	return strings.Replace(yamlfile, "ClusterRole", "Role", -1)
+}
+
+func (k *Kubectl) changenamespace(yamlfile string) string {
+	return strings.Replace(yamlfile, "namespace: squash", "namespace: "+k.Namespace, -1)
+}
+
+func (k *Kubectl) Apply(yamlfile string, modifier ...func(string) string) error {
 
 	b, err := ioutil.ReadFile(yamlfile)
 	if err != nil {
 		return err
 	}
 	yamlcontent := string(b)
-	yamlcontent = strings.Replace(yamlcontent, "ClusterRole", "Role", -1)
+
+	for _, m := range modifier {
+		yamlcontent = m(yamlcontent)
+	}
+
 	buffer := bytes.NewBuffer(([]byte)(yamlcontent))
-	cmd := k.innerpreparens([]string{"create", "-f", "-"})
+
+	cmd := k.innerpreparens([]string{"apply", "-f", "-"})
 	cmd.Stdin = buffer
 
 	return cmd.Run()
+
 }
 
 func (k *Kubectl) Pods() (*v1.PodList, error) {
@@ -76,6 +96,28 @@ func (k *Kubectl) Pods() (*v1.PodList, error) {
 	}
 
 	return &pods, nil
+}
+
+func (k *Kubectl) WaitPods(ctx context.Context) error {
+OuterLoop:
+	for {
+		time.Sleep(5 * time.Second)
+		select {
+		case <-ctx.Done():
+			return errors.New("timeout")
+		default:
+			pods, err := k.Pods()
+			if err != nil {
+				return err
+			}
+			for _, pod := range pods.Items {
+				if pod.Status.Phase != v1.PodRunning {
+					continue OuterLoop
+				}
+			}
+			return nil
+		}
+	}
 }
 
 func (k *Kubectl) Logs(name string) ([]byte, error) {
@@ -166,25 +208,4 @@ func (s *Squash) run(args ...string) *exec.Cmd {
 	log.Println("squash:", cmd.Args)
 
 	return cmd
-}
-
-func Inittest(k *Kubectl) (func(), error) {
-
-	if err := k.CreateNS(); err != nil {
-		fmt.Println("error creating ns", err)
-		return nil, err
-	}
-	fmt.Printf("create sutff %v \n", k)
-
-	if err := k.Run("create", "-f", "../../target/kubernetes/squash-server.yml"); err != nil {
-		return nil, err
-	}
-	if err := k.Run("create", "-f", "../../target/kubernetes/squash-ds.yml"); err != nil {
-		return nil, err
-	}
-	if err := k.Run("create", "-f", "../../contrib/example/service1/service1.yml"); err != nil {
-		return nil, err
-	}
-
-	return func() { k.DeleteNS() }, nil
 }

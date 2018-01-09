@@ -32,7 +32,7 @@ def label = UUID.randomUUID().toString()
       }
       stage('Build squash binaries') {
         container('go') {
-            sh 'cd /go/src/github.com/solo-io/squash/;make binaries'
+            sh 'cd /go/src/github.com/solo-io/squash/;make release-binaries'
         }
       }
       stage('Build squash containers') {
@@ -59,7 +59,7 @@ def label = UUID.randomUUID().toString()
       }
       */
       stage('Archive artifacts') {
-        archiveArtifacts 'target/kubernetes/*.yml,target/squash'
+        archiveArtifacts 'target/kubernetes/*.yml,target/squash-linux,target/squash-osx'
       }
     }
   }

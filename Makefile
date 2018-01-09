@@ -4,6 +4,9 @@ all: binaries deployment
 .PHONY: binaries
 binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
 
+.PHONY: release-binaries
+release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx
+
 .PHONY: containers
 containers: target/squash-server-container target/squash-client-container
 
