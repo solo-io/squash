@@ -6,6 +6,7 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers/dlv"
 	"github.com/solo-io/squash/pkg/debuggers/gdb"
 	"github.com/solo-io/squash/pkg/debuggers/java"
+	"github.com/solo-io/squash/pkg/debuggers/nodejs"
 
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
@@ -27,6 +28,7 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	var g gdb.GdbInterface
 	var d dlv.DLV
 	var j java.JavaInterface
+	var n nodejs.NodeJsInterface
 
 	switch dbgtype {
 	case "dlv":
@@ -35,6 +37,8 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 		return &g
 	case "java":
 		return &j
+	case "nodejs":
+		return &n
 	default:
 		return nil
 	}

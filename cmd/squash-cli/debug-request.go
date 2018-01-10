@@ -15,13 +15,16 @@ func init() {
 
 	processName := ""
 	var debugServiceCmd = &cobra.Command{
-		Use:   "debug-request image debugger",
+		Use:   "debug-request image debugger [processName]",
 		Short: "debug-request adds a debug request.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			image := ""
 			debugger := ""
 
 			switch len(args) {
+			case 3:
+				processName = args[2]
+				fallthrough
 			case 2:
 				image, debugger = args[0], args[1]
 			default:

@@ -20,13 +20,16 @@ func init() {
 	processName := ""
 
 	var debugContainerCmd = &cobra.Command{
-		Use:   "debug-container image pod container [type]",
+		Use:   "debug-container image pod container [debugger [processName]]",
 		Short: "debug-container adds a container type debug config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var image, pod, container, debuggertype string
 			debuggertype = "gdb"
 			var err error
 			switch len(args) {
+			case 5:
+				processName = args[4]
+				fallthrough
 			case 4:
 				debuggertype = args[3]
 				fallthrough

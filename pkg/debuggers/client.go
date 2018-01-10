@@ -18,6 +18,7 @@ import (
 	"github.com/solo-io/squash/pkg/client/debugattachment"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms"
+	"github.com/solo-io/squash/pkg/utils"
 )
 
 func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
@@ -122,21 +123,25 @@ func retry(f func() error) error {
 }
 
 func FindFirstProcess(pids []int, processName string) (int, error) {
+	log.WithField("processName", processName).Debug("Finding process to debug")
 	minpid := 0
 	var mintime *time.Time
 	for _, pid := range pids {
-		p := filepath.Join("/proc", fmt.Sprintf("%d", pid), "exe")
+		p := filepath.Join("/proc", fmt.Sprintf("%d", pid))
 		n, err := os.Stat(p)
 		if err != nil {
+			log.WithFields(log.Fields{"pid": pid, "err": err}).Info("Failed to stat the process, skipping")
 			continue
 		}
-
-		resolvedExe, err := os.Readlink(p)
-		if err != nil {
+		ss, err := utils.GetCmdArgsByPid(pid)
+		if err != nil || len(ss) < 1 {
+			log.WithFields(log.Fields{"pid": pid, "err": err}).Info("Failed to get command args for the process, skipping")
 			continue
 		}
+		log.WithField("pid", pid).Debug(ss)
 
-		_, currentProcessName := filepath.Split(resolvedExe)
+		currentProcessName := ss[0]
+
 		if processName == "" || strings.EqualFold(currentProcessName, processName) {
 			t := n.ModTime()
 			if (mintime == nil) || t.Before(*mintime) {
