@@ -1,10 +1,6 @@
 package nodejs
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os/exec"
-	"path/filepath"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,6 +8,7 @@ import (
 )
 
 type NodeJsInterface struct{}
+type NodeJsInterface8 struct{}
 
 type nodejsDebugServer struct {
 	port int
@@ -30,46 +27,33 @@ func (g *nodejsDebugServer) HostType() debuggers.DebugHostType {
 }
 
 func (g *NodeJsInterface) Attach(pid int) (debuggers.DebugServer, error) {
-
-	log.WithField("pid", pid).Debug("AttachToLiveSession called")
-	err := syscall.Kill(pid, syscall.SIGUSR1)
+	err := enableDebugger(pid)
 	if err != nil {
-		log.WithField("err", err).Error("can't send SIGUSR1 to the process")
 		return nil, err
 	}
-
-	vmaj, _, err := nodeVersion(pid)
-	if err != nil {
-		log.WithField("err", err).Error("can't determine the NodeJS version")
-		return nil, err
-	}
-
-	// Listening port after sending USR1 to node process.
-	nodePort := 9229
-	if vmaj < 8 {
-		nodePort = 5858
-	}
-
 	gds := &nodejsDebugServer{
-		port: nodePort,
+		port: 5858,
 	}
 	return gds, nil
 }
 
-func nodeVersion(pid int) (int, int, error) {
-	// run node executabl referenced by the process
-	cmd := exec.Command(filepath.Join("/proc", fmt.Sprintf("%d", pid), "exe"), "-v")
-	stdout, err := cmd.StdoutPipe()
+func (g *NodeJsInterface8) Attach(pid int) (debuggers.DebugServer, error) {
+	err := enableDebugger(pid)
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
-	if err = cmd.Start(); err != nil {
-		return 0, 0, err
+	gds := &nodejsDebugServer{
+		port: 9229,
 	}
-	verstr, _ := ioutil.ReadAll(stdout)
+	return gds, nil
+}
 
-	var maj, min int
-	fmt.Sscanf(string(verstr), "v%d.%d", &maj, &min)
-	log.WithFields(log.Fields{"major": maj, "minor": min}).Debug("NodeJS vsrsion")
-	return maj, min, nil
+func enableDebugger(pid int) error {
+	log.WithField("pid", pid).Debug("AttachToLiveSession called")
+	err := syscall.Kill(pid, syscall.SIGUSR1)
+	if err != nil {
+		log.WithField("err", err).Error("can't send SIGUSR1 to the process")
+		return err
+	}
+	return nil
 }

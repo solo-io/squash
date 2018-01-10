@@ -29,6 +29,7 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	var d dlv.DLV
 	var j java.JavaInterface
 	var n nodejs.NodeJsInterface
+	var n8 nodejs.NodeJsInterface8
 
 	switch dbgtype {
 	case "dlv":
@@ -39,6 +40,8 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 		return &j
 	case "nodejs":
 		return &n
+	case "nodejs8":
+		return &n8
 	default:
 		return nil
 	}
