@@ -7,8 +7,14 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers"
 )
 
-type NodeJsInterface struct{}
-type NodeJsInterface8 struct{}
+const (
+	nodeJSDebuggerPort  = 5858
+	nodeJSInspectorPort = 9229
+)
+
+type NodeJsDebugger struct {
+	isInspectorEnabled bool
+}
 
 type nodejsDebugServer struct {
 	port int
@@ -26,34 +32,28 @@ func (g *nodejsDebugServer) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeTarget
 }
 
-func (g *NodeJsInterface) Attach(pid int) (debuggers.DebugServer, error) {
-	err := enableDebugger(pid)
-	if err != nil {
-		return nil, err
-	}
-	gds := &nodejsDebugServer{
-		port: 5858,
-	}
-	return gds, nil
-}
+func (g *NodeJsDebugger) Attach(pid int) (debuggers.DebugServer, error) {
 
-func (g *NodeJsInterface8) Attach(pid int) (debuggers.DebugServer, error) {
-	err := enableDebugger(pid)
-	if err != nil {
-		return nil, err
-	}
-	gds := &nodejsDebugServer{
-		port: 9229,
-	}
-	return gds, nil
-}
-
-func enableDebugger(pid int) error {
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	err := syscall.Kill(pid, syscall.SIGUSR1)
 	if err != nil {
 		log.WithField("err", err).Error("can't send SIGUSR1 to the process")
-		return err
+		return nil, err
 	}
+	gds := &nodejsDebugServer{}
+
+	if g.isInspectorEnabled {
+		gds.port = nodeJSInspectorPort
+	} else {
+		gds.port = nodeJSDebuggerPort
+	}
+	return gds, nil
+}
+
+func (g *NodeJsDebugger) EnableInspector(i bool) {
+	g.isInspectorEnabled = i
+}
+
+func enableDebugger(pid int) error {
 	return nil
 }
