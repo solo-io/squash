@@ -28,7 +28,6 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	var g gdb.GdbInterface
 	var d dlv.DLV
 	var j java.JavaInterface
-	var n nodejs.NodeJsDebugger
 
 	switch dbgtype {
 	case "dlv":
@@ -38,11 +37,9 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 	case "java":
 		return &j
 	case "nodejs":
-		n.EnableInspector(false)
-		return &n
+		return nodejs.NewNodeDebugger(nodejs.DebuggerPort)
 	case "nodejs8":
-		n.EnableInspector(true)
-		return &n
+		return nodejs.NewNodeDebugger(nodejs.InspectorPort)
 	default:
 		return nil
 	}

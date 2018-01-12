@@ -8,16 +8,18 @@ import (
 )
 
 const (
-	nodeJSDebuggerPort  = 5858
-	nodeJSInspectorPort = 9229
+	DebuggerPort  = 5858
+	InspectorPort = 9229
 )
 
-type NodeJsDebugger struct {
-	isInspectorEnabled bool
-}
+type NodeJsDebugger struct{}
 
 type nodejsDebugServer struct {
 	port int
+}
+
+func NewNodeDebugger(p int) *nodejsDebugServer {
+	return &nodejsDebugServer{port: p}
 }
 
 func (g *nodejsDebugServer) Detach() error {
@@ -32,7 +34,7 @@ func (g *nodejsDebugServer) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeTarget
 }
 
-func (g *NodeJsDebugger) Attach(pid int) (debuggers.DebugServer, error) {
+func (g *nodejsDebugServer) Attach(pid int) (debuggers.DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	err := syscall.Kill(pid, syscall.SIGUSR1)
@@ -40,20 +42,5 @@ func (g *NodeJsDebugger) Attach(pid int) (debuggers.DebugServer, error) {
 		log.WithField("err", err).Error("can't send SIGUSR1 to the process")
 		return nil, err
 	}
-	gds := &nodejsDebugServer{}
-
-	if g.isInspectorEnabled {
-		gds.port = nodeJSInspectorPort
-	} else {
-		gds.port = nodeJSDebuggerPort
-	}
-	return gds, nil
-}
-
-func (g *NodeJsDebugger) EnableInspector(i bool) {
-	g.isInspectorEnabled = i
-}
-
-func enableDebugger(pid int) error {
-	return nil
+	return g, nil
 }
