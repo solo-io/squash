@@ -16,6 +16,10 @@ import (
 
 const KubeEndpoint = "http://localhost:8001/api"
 
+func Must(err error) {
+	Expect(err).NotTo(HaveOccurred())
+}
+
 var _ = Describe("Single debug mode", func() {
 
 	var (
@@ -39,15 +43,16 @@ var _ = Describe("Single debug mode", func() {
 		}
 		fmt.Printf("creating environment %v \n", kubectl)
 
-		if err := kubectl.CreateLocalRoles("../../target/kubernetes/squash-server.yml"); err != nil {
+		if err := kubectl.CreateLocalRolesAndSleep("../../contrib/kubernetes/squash-server.yml"); err != nil {
 			panic(err)
 		}
-		if err := kubectl.Create("../../target/kubernetes/squash-client.yml"); err != nil {
+		if err := kubectl.CreateSleep("../../contrib/kubernetes/squash-client.yml"); err != nil {
 			panic(err)
 		}
 		if err := kubectl.Create("../../contrib/example/service1/service1.yml"); err != nil {
 			panic(err)
 		}
+
 		squash = NewSquash(kubectl)
 		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		err := kubectl.WaitPods(ctx)
@@ -58,18 +63,26 @@ var _ = Describe("Single debug mode", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, pod := range pods.Items {
+
 			// make a copy
 			newpod := pod
 			switch {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "example-service1"):
 				MicroservicePods[pod.Spec.NodeName] = &newpod
-			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server-"):
+			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server"):
+				// replace squash server and client binaries with local binaries for easy debuggings
+				Must(kubectl.Cp("../../target/squash-server/squash-server", "/tmp/", pod.ObjectMeta.Name, "squash-server"))
+				Must(kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-server", "sh", "-c", "/tmp/squash-server --cluster=kube --host=0.0.0.0 --port=8080 > /proc/1/fd/1 2> /proc/1/fd/2"))
 				ServerPod = &newpod
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-client"):
+				// replace squash server and client binaries with local binaries for easy debuggings
+				Must(kubectl.Cp("../../target/squash-client/squash-client", "/tmp/", pod.ObjectMeta.Name, "squash-client"))
+				Must(kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-client", "sh", "-c", "/tmp/squash-client  > /proc/1/fd/1 2> /proc/1/fd/2"))
 				ClientPods[pod.Spec.NodeName] = &newpod
 			}
 		}
-		// wait for pods to all be running
+		// wait for the server to start
+		time.Sleep(10 * time.Second)
 
 	})
 
@@ -130,6 +143,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
 		})
+
 		It("should get a debug server endpoint, specific process that doesn't exist", func() {
 
 			var p *v1.Pod

@@ -10,9 +10,11 @@ import (
 	"log"
 	"math/rand"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/squash/pkg/models"
 
 	v1 "k8s.io/client-go/pkg/api/v1"
@@ -46,12 +48,16 @@ func (k *Kubectl) DeleteNS() error {
 	return nil
 }
 
-func (k *Kubectl) CreateLocalRoles(yamlfile string) error {
-	return k.Apply(yamlfile, k.changedlocalrole, k.changenamespace)
+func (k *Kubectl) CreateLocalRolesAndSleep(yamlfile string) error {
+	return k.Apply(yamlfile, k.changedlocalrole, k.changenamespace, k.addsleep)
 }
 
 func (k *Kubectl) Create(yamlfile string) error {
 	return k.Apply(yamlfile, k.changenamespace)
+}
+
+func (k *Kubectl) CreateSleep(yamlfile string) error {
+	return k.Apply(yamlfile, k.changenamespace, k.addsleep)
 }
 
 func (k *Kubectl) changedlocalrole(yamlfile string) string {
@@ -60,6 +66,28 @@ func (k *Kubectl) changedlocalrole(yamlfile string) string {
 
 func (k *Kubectl) changenamespace(yamlfile string) string {
 	return strings.Replace(yamlfile, "namespace: squash", "namespace: "+k.Namespace, -1)
+}
+
+func (k *Kubectl) addsleep(yamlfile string) string {
+	// find image: soloio/squash-server
+	// and add cmd and args
+	regex := regexp.MustCompilePOSIX("^([[:space:]-]*)image: .*$")
+
+	indexes := regex.FindStringSubmatchIndex(yamlfile)
+	// first 1 indexes fir the match and second for the first (and only) submatch.
+	if len(indexes) != 4 {
+		panic("invalid yaml")
+	}
+	indentation := indexes[3] - indexes[2]
+	insertion := indexes[1]
+	indent := ""
+	for i := 0; i < indentation; i++ {
+		indent += " "
+	}
+	newyaml := yamlfile[:insertion] + "\n" + indent + "command: [\"sleep\", \"600\"]" + yamlfile[insertion:]
+
+	return newyaml
+
 }
 
 func (k *Kubectl) Apply(yamlfile string, modifier ...func(string) string) error {
@@ -96,6 +124,33 @@ func (k *Kubectl) Pods() (*v1.PodList, error) {
 	}
 
 	return &pods, nil
+}
+
+func (k *Kubectl) Exec(pod, container, cmd string, args ...string) error {
+	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
+	prepareargs := []string{"exec", pod, "-c", container, "--" , cmd}
+	prepareargs = append(prepareargs, args...)
+	return k.Prepare(prepareargs...).Run()
+}
+
+func (k *Kubectl) ExecAsync(pod, container, cmd string, args ...string) error {
+	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
+	prepareargs := []string{"exec", pod, "-c", container, "--" , cmd}
+	prepareargs = append(prepareargs, args...)
+	cmdtorun := k.Prepare(prepareargs...)
+
+	err := cmdtorun.Start()
+	if err == nil {
+		go func() {
+			cmdtorun.Wait() 
+			}()
+	}
+	return err
+}
+
+func (k *Kubectl) Cp(local, remote, pod, container string) error {
+	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
+	return k.Prepare("cp", local, k.Namespace+"/"+pod+":"+remote, "-c", container).Run()
 }
 
 func (k *Kubectl) WaitPods(ctx context.Context) error {
@@ -165,8 +220,9 @@ func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*mod
 	}
 
 	cmd := s.run(args...)
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		GinkgoWriter.Write(out)
 		return nil, err
 	}
 
