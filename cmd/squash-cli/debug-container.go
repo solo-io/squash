@@ -20,7 +20,7 @@ func init() {
 	processName := ""
 
 	var debugContainerCmd = &cobra.Command{
-		Use:   "debug-container image pod container [type]",
+		Use:   "debug-container image pod container [debugger]",
 		Short: "debug-container adds a container type debug config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var image, pod, container, debuggertype string
