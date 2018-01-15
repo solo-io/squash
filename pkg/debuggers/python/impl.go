@@ -56,6 +56,7 @@ func (i *PythonInterface) Attach(pid int) (debuggers.DebugServer, error) {
 }
 
 // Search /proc/{PID}/cwd for file with "ptvsd.enable_attach" string and extracts port from it
+// Example of config: ptvsd.enable_attach("my_secret", address = ('0.0.0.0', 3000)), returns 3000
 func getPtvsdPort(pid int) (int, error) {
 	port := 0
 	fileNum := 0
@@ -70,7 +71,7 @@ func getPtvsdPort(pid int) (int, error) {
 	log.WithField("root", root).Debug("searching root")
 	re := regexp.MustCompile(PtvsdSearchString)
 
-	filepath.Walk(root+"/", func(p string, fi os.FileInfo, err error) error {
+	werr := filepath.Walk(root+"/", func(p string, fi os.FileInfo, err error) error {
 		if err != nil || fi == nil || fi.IsDir() {
 			return nil
 		}
@@ -92,20 +93,29 @@ func getPtvsdPort(pid int) (int, error) {
 			}
 			return nil
 		}
-		f.Seek(int64(idxs[0]), 0)
+
+		// String was found in a file - all errors from now on are reported
+		f.Seek(int64(idxs[0]), io.SeekStart)
 		b := make([]byte, idxs[1]-idxs[0])
 		_, err = f.Read(b)
 		if err != nil {
-			return nil
+			return err
 		}
 		args := strings.Split(string(b), ",")
 		if len(args) > 2 {
-			fmt.Sscanf(args[2], "%d", &port)
+			_, err = fmt.Sscanf(args[2], "%d", &port)
+			if err != nil {
+				return err
+			}
 		}
+		// Terminate walk
 		return errors.New("")
 	})
 
 	if port == 0 {
+		if werr != nil {
+			return 0, fmt.Errorf("%s is not found. Error: %s", PtvsdSearchString, werr)
+		}
 		return 0, fmt.Errorf("%s is not found in python sources", PtvsdSearchString)
 	}
 	return port, nil
