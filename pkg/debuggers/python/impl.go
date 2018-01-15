@@ -1,9 +1,10 @@
 package python
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,8 +15,10 @@ import (
 )
 
 const (
-	PtvsdPortEnvVariable = "PTVSD_PORT_NUMBER"
-	PtvsdSearchString    = `ptvsd\.enable_attach.*`
+	PtvsdPortEnvVariable  = "PTVSD_PORT_NUMBER"
+	PtvsdSearchString     = `ptvsd\.enable_attach.*`
+	PtvsdMaxFileSize      = 1024 * 1024
+	PtvsdMaxNumberOfFiles = 1000
 )
 
 type PythonInterface struct{}
@@ -55,7 +58,7 @@ func (i *PythonInterface) Attach(pid int) (debuggers.DebugServer, error) {
 // Search /proc/{PID}/cwd for file with "ptvsd.enable_attach" string and extracts port from it
 func getPtvsdPort(pid int) (int, error) {
 	port := 0
-
+	fileNum := 0
 	// Try environment var first
 	pe := os.Getenv(PtvsdPortEnvVariable)
 	if len(pe) >= 1 {
@@ -72,17 +75,30 @@ func getPtvsdPort(pid int) (int, error) {
 			return nil
 		}
 
-		b, ferr := ioutil.ReadFile(p)
-		if ferr != nil {
+		if filepath.Ext(p) != ".py" {
 			return nil
 		}
-
-		s := re.FindString(string(b))
-		if len(s) < 1 {
+		f, err := os.Open(p)
+		if err != nil {
 			return nil
 		}
+		defer f.Close()
 
-		args := strings.Split(s, ",")
+		idxs := re.FindReaderIndex(bufio.NewReader(io.LimitReader(f, PtvsdMaxFileSize)))
+		if idxs == nil {
+			fileNum++
+			if fileNum >= PtvsdMaxNumberOfFiles {
+				return errors.New("File limit reached")
+			}
+			return nil
+		}
+		f.Seek(int64(idxs[0]), 0)
+		b := make([]byte, idxs[1]-idxs[0])
+		_, err = f.Read(b)
+		if err != nil {
+			return nil
+		}
+		args := strings.Split(string(b), ",")
 		if len(args) > 2 {
 			fmt.Sscanf(args[2], "%d", &port)
 		}
