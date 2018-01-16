@@ -1,15 +1,10 @@
 package debuggers
 
 import (
-	"context"
-	"errors"
 	"flag"
-	"fmt"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -18,7 +13,6 @@ import (
 	"github.com/solo-io/squash/pkg/client/debugattachment"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms"
-	"github.com/solo-io/squash/pkg/utils"
 )
 
 func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
@@ -52,21 +46,22 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 }
 
 type DebugHandler struct {
-	debugger  func(string) Debugger
-	conttopid platforms.ContainerProcess
-	client    *client.Squash
-	debugees  map[int]bool
+	debugger        func(string) Debugger
+	conttopid       platforms.ContainerProcess
+	client          *client.Squash
+	debugController *DebugController
 }
 
 func NewDebugHandler(client *client.Squash, debugger func(string) Debugger,
 	conttopid platforms.ContainerProcess) *DebugHandler {
-	return &DebugHandler{
+	dbghandler := &DebugHandler{
 		client:    client,
 		debugger:  debugger,
 		conttopid: conttopid,
-		debugees:  make(map[int]bool),
 	}
 
+	dbghandler.debugController = NewDebugController(debugger, dbghandler.notifyState, conttopid)
+	return dbghandler
 }
 
 func getNodeName() string {
@@ -81,132 +76,24 @@ func (d *DebugHandler) handleAttachments() error {
 		}
 	}
 }
+
 func (d *DebugHandler) handleAttachment() error {
-	attachments, err := d.watchForAttached()
+	attachments, removedAtachment, err := d.watchForAttached()
 
 	if err != nil {
 		log.WithField("err", err).Warn("error watching for attached container")
 		return err
 	}
-
-	for _, attachment := range attachments {
-		// notify the server that we are attaching, so we won't get the same attachment object next time.
-		if err := d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching); err != nil {
-			log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name, "err": err}).Debug("Failed set state to attaching in squash server. aborting.")
-
-			d.notifyError(attachment)
-		}
-		go d.handleSingleAttachment(attachment)
-	}
-	return nil
+	return d.debugController.HandleAddedRemovedAttachments(attachments, removedAtachment)
 }
 
-func (d *DebugHandler) handleSingleAttachment(attachment *models.DebugAttachment) {
-
-	err := retry(func() error { return d.tryToAttach(attachment) })
-
-	if err != nil {
-		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
-		d.notifyError(attachment)
-	}
-}
-
-func retry(f func() error) error {
-	tries := 3
-	for i := 0; i < (tries - 1); i++ {
-		if err := f(); err == nil {
-			return nil
-		}
-		time.Sleep(time.Second)
-	}
-	return f()
-}
-
-func FindFirstProcess(pids []int, processName string) (int, error) {
-	log.WithField("processName", processName).Debug("Finding process to debug")
-	minpid := 0
-	var mintime *time.Time
-	for _, pid := range pids {
-		p := filepath.Join("/proc", fmt.Sprintf("%d", pid))
-		n, err := os.Stat(p)
-		if err != nil {
-			log.WithFields(log.Fields{"pid": pid, "err": err}).Info("Failed to stat the process, skipping")
-			continue
-		}
-		ss, err := utils.GetCmdArgsByPid(pid)
-		if err != nil || len(ss) < 1 {
-			log.WithFields(log.Fields{"pid": pid, "err": err}).Info("Failed to get command args for the process, skipping")
-			continue
-		}
-		log.WithField("pid", pid).Debug(ss)
-
-		currentProcessName := ss[0]
-
-		if processName == "" || strings.EqualFold(currentProcessName, processName) {
-			t := n.ModTime()
-			if (mintime == nil) || t.Before(*mintime) {
-				mintime = &t
-				minpid = pid
-			}
-		}
-	}
-
-	if minpid == 0 {
-		return 0, errors.New("no process found")
-	}
-	return minpid, nil
-}
-
-func (d *DebugHandler) tryToAttach(attachment *models.DebugAttachment) error {
-
-	// make sure this is not a duplicate
-
-	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Spec.Attachment)
-	if err != nil {
-		log.WithField("err", err).Warn("GetContainerInfo error")
-		return err
-	}
-
-	pid, err := FindFirstProcess(ci.Pids, attachment.Spec.ProcessName)
-	if err != nil {
-		log.WithField("err", err).Warn("FindFirstProcess error")
-		return err
-	}
-
-	log.WithField("app", attachment).Info("Attaching to live session")
-
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		log.WithField("err", err).Error("can't find process")
-		return err
-	}
-	if !d.debugees[pid] {
-		log.WithField("pid", pid).Info("starting to debug")
-		d.debugees[pid] = true
-		err := d.startDebug(attachment, p, ci.Name)
-		if err != nil {
-			d.notifyError(attachment)
-		}
-	} else {
-		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
-		d.notifyError(attachment)
-	}
-	return nil
-}
-
-func (d *DebugHandler) notifyError(attachment *models.DebugAttachment) {
-	d.notifyState(attachment, models.DebugAttachmentStatusStateError)
-}
-
-func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate string) error {
+func (d *DebugHandler) notifyState(attachment *models.DebugAttachment) error {
 
 	attachmentCopy := *attachment
-
 	params := debugattachment.NewPatchDebugAttachmentParams()
 	if attachmentCopy.Status == nil {
 		attachmentCopy.Status = &models.DebugAttachmentStatus{}
 	}
-	attachmentCopy.Status.State = newstate
 	params.Body = &attachmentCopy
 	params.DebugAttachmentID = attachment.Metadata.Name
 
@@ -221,68 +108,7 @@ func (d *DebugHandler) notifyState(attachment *models.DebugAttachment, newstate 
 	return err
 }
 
-func (d *DebugHandler) startDebug(attachment *models.DebugAttachment, p *os.Process, targetName string) error {
-	log.Info("start debug called")
-
-	curdebugger := d.debugger(attachment.Spec.Debugger)
-
-	if curdebugger == nil {
-		return errors.New("debugger doesn't exist")
-	}
-
-	log.WithFields(log.Fields{"curdebugger": attachment.Spec.Debugger}).Info("start debug params")
-
-	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
-	var err error
-	debugServer, err := curdebugger.Attach(p.Pid)
-
-	if err != nil {
-		log.WithField("err", err).Error("Starting debug server error")
-		return err
-	}
-
-	log.WithField("pid", p.Pid).Info("StartDebugServer - posting debug session")
-
-	attachmentPatch := &models.DebugAttachment{
-		Metadata: attachment.Metadata,
-		Spec:     attachment.Spec,
-	}
-
-	hostName := ""
-	switch debugServer.HostType() {
-	case DebugHostTypeTarget:
-		hostName = targetName
-	case DebugHostTypeClient:
-		hostName = os.Getenv("HOST_ADDR")
-	}
-
-	if len(hostName) == 0 {
-		err = fmt.Errorf("Cannot find Host name for type: %d", debugServer.HostType())
-		log.WithField("err", err).Error("Starting debug server error")
-		return err
-	}
-
-	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", hostName, debugServer.Port()),
-		State:              models.DebugAttachmentStatusStateAttached,
-	}
-	params := debugattachment.NewPatchDebugAttachmentParams()
-	params.Body = attachmentPatch
-	params.DebugAttachmentID = attachment.Metadata.Name
-
-	log.WithFields(log.Fields{"patchDebugAttachment": params.Body, "DebugAttachmentID": params.DebugAttachmentID}).Debug("Notifying server of attachment to debug config object")
-	_, err = d.client.Debugattachment.PatchDebugAttachment(params)
-
-	if err != nil {
-		log.WithField("err", err).Warn("Error adding debug session - detaching!")
-		debugServer.Detach()
-	} else {
-		log.Info("debug session added!")
-	}
-	return nil
-}
-
-func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, error) {
+func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, []*models.DebugAttachment, error) {
 	for {
 		params := debugattachment.NewGetDebugAttachmentsParams()
 		nodename := getNodeName()
@@ -294,6 +120,9 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, error) {
 		log.WithField("params", params).Debug("watchForAttached - calling PopContainerToDebug")
 
 		resp, err := d.client.Debugattachment.GetDebugAttachments(params)
+
+		// We need to find\get events for deleted attachments. to sync them.
+		// similar to the control loop in kubelet
 
 		if _, ok := err.(*debugattachment.GetDebugAttachmentsRequestTimeout); ok {
 			continue
@@ -309,6 +138,6 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, error) {
 
 		log.WithField("attachment", spew.Sdump(attachment)).Info("watchForAttached - got debug attachment!")
 
-		return attachment, nil
+		return attachment, nil, nil
 	}
 }
