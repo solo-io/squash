@@ -59,7 +59,7 @@ def label = UUID.randomUUID().toString()
       }
       */
       stage('Archive artifacts') {
-        archiveArtifacts 'target/kubernetes/*.yml,target/squash-linux,target/squash-osx'
+        archiveArtifacts 'target/kubernetes/*.yml,target/squash-linux,target/squash-osx,target/squash-windows'
       }
     }
   }

@@ -5,7 +5,7 @@ all: binaries deployment
 binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
 
 .PHONY: release-binaries
-release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx
+release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
 
 .PHONY: containers
 containers: target/squash-server-container target/squash-client-container
@@ -30,6 +30,9 @@ target/squash-linux: target $(SRCS)
 
 target/squash-osx: target $(SRCS)
 	GOOS=darwin go build -o $@ ./cmd/squash-cli
+
+target/squash-windows: target $(SRCS)
+	GOOS=windows go build -o $@ ./cmd/squash-cli
 
 target/squash-client/: | target
 target/squash-client/:
