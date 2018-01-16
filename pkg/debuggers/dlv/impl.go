@@ -15,12 +15,14 @@ type DLV struct {
 }
 
 type DLVLiveDebugSession struct {
-	client *rpc1.RPCClient
-	port   int
+	client  *rpc1.RPCClient
+	port    int
+	process *os.Process
 }
 
 func (d *DLVLiveDebugSession) Detach() error {
 	d.client.Detach(false)
+	d.process.Kill()
 	return nil
 }
 
@@ -44,8 +46,9 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	// use rpc1 client for vscode extension support
 	client := rpc1.NewClient(fmt.Sprintf("localhost:%d", port))
 	dls := &DLVLiveDebugSession{
-		client: client,
-		port:   port,
+		client:  client,
+		port:    port,
+		process: cmd.Process,
 	}
 	return dls, nil
 }
