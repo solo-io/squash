@@ -49,6 +49,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   - using [IDEs to debug](docs/IDEs.md)
   - using the [command line interface](docs/cli.md)
   - [Debug your java microservices](docs/debuggers/java.md)
+  - [Debug your NodeJS microservices](docs/debuggers/nodejs.md)
+  - [Debug your pyton microservices with VSCode](docs/debuggers/python_vscode.md)
   - [Debug application using service mesh](docs/platforms/istio.md)
 
 - **Developer Documentation**
@@ -64,7 +66,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
  - [gdb](https://www.gnu.org/software/gdb/)
  - [dlv](https://github.com/derekparker/delve)
  - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
-
+ - [Nodejs](https://nodejs.org/api/debugger.html)
+ - [Python - ptvsd](https://code.visualstudio.com/docs/python/debugging)
  
 ## Supported platforms:
  - [Kubernetes](docs/platforms/kubernetes.md)
@@ -76,10 +79,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 *We are looking for community help to add support for more debuggers, platforms and IDEs.*
 
 ## Roadmap:
-  
-**debuggers**:
-  - [Nodejs](https://nodejs.org/api/debugger.html)
-  - [Python](https://docs.python.org/3/library/pdb.html)
+**debuggers**
+ - [Python](https://docs.python.org/3/library/pdb.html)
 
 **platforms**:
   - [Mesos](http://mesos.apache.org)
