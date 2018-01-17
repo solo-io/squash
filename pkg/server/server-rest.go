@@ -26,7 +26,7 @@ type RestHandler struct {
 
 	containerLocator platforms.ContainerLocator
 
-	attachmentlisteners     []chan int
+	attachmentlisteners     []chan struct{}
 	attachmentlistenersLock sync.Mutex
 }
 
@@ -301,8 +301,6 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 
 	log.Info("GetDebugAttachmentsHandler called!")
 
-	var listener chan int
-
 	var debugattachments []*models.DebugAttachment
 	filter := func() {
 		r.debugAttachmentsMapLock.RLock()
@@ -339,11 +337,14 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 		// wait!
 		// wait!
 		// while the table is locked add a channel to listener list.
-		listener = make(chan int, 1)
+		listener := make(chan struct{}, 1)
 		r.addListener(listener)
 		defer r.removeListener(listener)
+		// Incase a debug attachment was added, just after the listener check again
+		// before waiting
+		filter()
 
-		for {
+		for len(debugattachments) == 0 {
 			select {
 			case <-listener:
 				filter()
@@ -353,18 +354,13 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 
 				return debugattachment.NewGetDebugAttachmentsRequestTimeout()
 			}
-
-			if len(debugattachments) != 0 {
-				break
-			}
-
 		}
 	}
 
 	return debugattachment.NewGetDebugAttachmentsOK().WithPayload(debugattachments)
 }
 
-func (r *RestHandler) addListener(listener chan int) {
+func (r *RestHandler) addListener(listener chan struct{}) {
 	r.attachmentlistenersLock.Lock()
 	defer r.attachmentlistenersLock.Unlock()
 	r.attachmentlisteners = append(r.attachmentlisteners, listener)
@@ -375,13 +371,13 @@ func (r *RestHandler) notify() {
 	defer r.attachmentlistenersLock.Unlock()
 	for _, l := range r.attachmentlisteners {
 		select {
-		case l <- 0:
+		case l <- struct{}{}:
 		default:
 		}
 	}
 }
 
-func (r *RestHandler) removeListener(listener chan int) {
+func (r *RestHandler) removeListener(listener chan struct{}) {
 	r.attachmentlistenersLock.Lock()
 	defer r.attachmentlistenersLock.Unlock()
 	for i := range r.attachmentlisteners {
