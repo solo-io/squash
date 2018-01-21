@@ -4,7 +4,7 @@
 Currently Squash integrate with the following IDEs:
  - [Visual Studio Code](https://github.com/solo-io/squash-vscode.git)
 
-Future planes:
+Future plans:
  - [IntelliJ](https://www.jetbrains.com/idea/)
  - [Eclipse](https://eclipse.org/ide/)
 
