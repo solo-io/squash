@@ -71,7 +71,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
  
 ## Supported platforms:
  - [Kubernetes](docs/platforms/kubernetes.md)
- - [Istio](contrib/istio-example/istio_demo.md)
+ - [Istio](docs/platforms/istio.md)
  
 ## Supported IDEs:
  - [VS Code](https://github.com/solo-io/squash-vscode)
