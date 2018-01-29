@@ -21,6 +21,10 @@ const GetDebugAttachmentsOKCode int = 200
 swagger:response getDebugAttachmentsOK
 */
 type GetDebugAttachmentsOK struct {
+	/*When querying for all the sessions on the node this can be used for to wait for a version update.
+	  Required: true
+	*/
+	ETag string `json:"ETag"`
 
 	/*
 	  In: Body
@@ -31,6 +35,17 @@ type GetDebugAttachmentsOK struct {
 // NewGetDebugAttachmentsOK creates GetDebugAttachmentsOK with default headers values
 func NewGetDebugAttachmentsOK() *GetDebugAttachmentsOK {
 	return &GetDebugAttachmentsOK{}
+}
+
+// WithETag adds the eTag to the get debug attachments o k response
+func (o *GetDebugAttachmentsOK) WithETag(eTag string) *GetDebugAttachmentsOK {
+	o.ETag = eTag
+	return o
+}
+
+// SetETag sets the eTag to the get debug attachments o k response
+func (o *GetDebugAttachmentsOK) SetETag(eTag string) {
+	o.ETag = eTag
 }
 
 // WithPayload adds the payload to the get debug attachments o k response
@@ -46,6 +61,13 @@ func (o *GetDebugAttachmentsOK) SetPayload(payload models.GetDebugAttachmentsOKB
 
 // WriteResponse to the client
 func (o *GetDebugAttachmentsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	// response header ETag
+
+	eTag := o.ETag
+	if eTag != "" {
+		rw.Header().Set("ETag", eTag)
+	}
 
 	rw.WriteHeader(200)
 	payload := o.Payload

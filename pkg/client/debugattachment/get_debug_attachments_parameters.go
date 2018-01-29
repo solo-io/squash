@@ -65,6 +65,11 @@ type GetDebugAttachmentsParams struct {
 
 	/*XTimeout*/
 	XTimeout *float64
+	/*IfNoneMatch
+	  If the quering for all the attachments on a node, this case be used to wait for an update
+
+	*/
+	IfNoneMatch *string
 	/*Names
 	  Only get a subset of debugattachments
 
@@ -140,6 +145,17 @@ func (o *GetDebugAttachmentsParams) SetXTimeout(xTimeout *float64) {
 	o.XTimeout = xTimeout
 }
 
+// WithIfNoneMatch adds the ifNoneMatch to the get debug attachments params
+func (o *GetDebugAttachmentsParams) WithIfNoneMatch(ifNoneMatch *string) *GetDebugAttachmentsParams {
+	o.SetIfNoneMatch(ifNoneMatch)
+	return o
+}
+
+// SetIfNoneMatch adds the ifNoneMatch to the get debug attachments params
+func (o *GetDebugAttachmentsParams) SetIfNoneMatch(ifNoneMatch *string) {
+	o.IfNoneMatch = ifNoneMatch
+}
+
 // WithNames adds the names to the get debug attachments params
 func (o *GetDebugAttachmentsParams) WithNames(names []string) *GetDebugAttachmentsParams {
 	o.SetNames(names)
@@ -207,6 +223,15 @@ func (o *GetDebugAttachmentsParams) WriteToRequest(r runtime.ClientRequest, reg 
 
 		// header param X-Timeout
 		if err := r.SetHeaderParam("X-Timeout", swag.FormatFloat64(*o.XTimeout)); err != nil {
+			return err
+		}
+
+	}
+
+	if o.IfNoneMatch != nil {
+
+		// header param if-none-match
+		if err := r.SetHeaderParam("if-none-match", *o.IfNoneMatch); err != nil {
 			return err
 		}
 

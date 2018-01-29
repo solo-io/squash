@@ -61,6 +61,10 @@ func NewGetDebugAttachmentsOK() *GetDebugAttachmentsOK {
 OK
 */
 type GetDebugAttachmentsOK struct {
+	/*When querying for all the sessions on the node this can be used for to wait for a version update.
+	 */
+	ETag string
+
 	Payload models.GetDebugAttachmentsOKBody
 }
 
@@ -69,6 +73,9 @@ func (o *GetDebugAttachmentsOK) Error() string {
 }
 
 func (o *GetDebugAttachmentsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	// response header ETag
+	o.ETag = response.GetHeader("ETag")
 
 	// response payload
 	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {

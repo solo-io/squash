@@ -40,6 +40,7 @@ func init() {
         ],
         "summary": "Return all debug attachment",
         "operationId": "getDebugAttachments",
+        "security": null,
         "parameters": [
           {
             "type": "boolean",
@@ -78,6 +79,12 @@ func init() {
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "If the quering for all the attachments on a node, this case be used to wait for an update",
+            "name": "if-none-match",
+            "in": "header"
+          },
+          {
             "type": "number",
             "name": "X-Timeout",
             "in": "header"
@@ -90,6 +97,12 @@ func init() {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/DebugAttachment"
+              }
+            },
+            "headers": {
+              "ETag": {
+                "type": "string",
+                "description": "When querying for all the sessions on the node this can be used for to wait for a version update."
               }
             }
           },
@@ -114,6 +127,7 @@ func init() {
         ],
         "summary": "Request squash to attach to a running container.",
         "operationId": "addDebugAttachment",
+        "security": null,
         "parameters": [
           {
             "description": "DebugAttachment object",
@@ -155,6 +169,7 @@ func init() {
         ],
         "summary": "Return a debug attachment",
         "operationId": "getDebugAttachment",
+        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -189,6 +204,7 @@ func init() {
         ],
         "summary": "Delete a debug attachment",
         "operationId": "deleteDebugAttachment",
+        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -226,6 +242,7 @@ func init() {
         ],
         "summary": "Modify an existing attachment.",
         "operationId": "patchDebugAttachment",
+        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -277,6 +294,7 @@ func init() {
         ],
         "summary": "Return all debug request",
         "operationId": "getDebugRequests",
+        "security": null,
         "responses": {
           "200": {
             "description": "OK",
@@ -305,6 +323,7 @@ func init() {
         ],
         "summary": "Return a debug attachment",
         "operationId": "createDebugRequest",
+        "security": null,
         "parameters": [
           {
             "description": "DebugRequest object",
@@ -334,6 +353,7 @@ func init() {
         ],
         "summary": "Get a debug request",
         "operationId": "getDebugRequest",
+        "security": null,
         "parameters": [
           {
             "type": "string",
@@ -362,6 +382,7 @@ func init() {
         ],
         "summary": "Delete a debug request",
         "operationId": "deleteDebugRequest",
+        "security": null,
         "parameters": [
           {
             "type": "string",

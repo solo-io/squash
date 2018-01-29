@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"math/rand"
 	"sync"
@@ -28,6 +29,9 @@ type RestHandler struct {
 
 	attachmentlisteners     []chan struct{}
 	attachmentlistenersLock sync.Mutex
+
+	nodeListEtags     map[string]uint64
+	nodeListEtagsLock sync.RWMutex
 }
 
 func NewRestHandler(containerLocator platforms.ContainerLocator) *RestHandler {
@@ -35,6 +39,7 @@ func NewRestHandler(containerLocator platforms.ContainerLocator) *RestHandler {
 		debugAttachments: make(map[string]*models.DebugAttachment),
 		debugRequests:    make(map[string]*models.DebugRequest),
 		containerLocator: containerLocator,
+		nodeListEtags:    make(map[string]uint64),
 	}
 }
 
@@ -45,9 +50,24 @@ func verify_or_generate(s string) string {
 	return randomString()
 }
 
+func (r *RestHandler) getNodeListVersion(node string) string {
+	r.nodeListEtagsLock.RLock()
+	defer r.nodeListEtagsLock.RUnlock()
+	return fmt.Sprintf("%v", r.nodeListEtags[node])
+}
+
+func (r *RestHandler) incrementNodeListVersion(node string) {
+	r.nodeListEtagsLock.Lock()
+	defer r.nodeListEtagsLock.Unlock()
+	r.nodeListEtags[node] = r.nodeListEtags[node] + 1
+}
+
+func (r *RestHandler) updateNodeListVersion(node string) {
+	r.incrementNodeListVersion(node)
+	r.notify()
+}
+
 func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattachment.AddDebugAttachmentParams) middleware.Responder {
-	// if then else!
-	// TODO generate name if needed
 	log.Info("DebugattachmentAddDebugAttachmentHandler called!")
 
 	// validate the attachment
@@ -162,7 +182,7 @@ func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
 		defer r.debugAttachmentsMapLock.Unlock()
 		r.debugAttachments[da.Metadata.Name] = da
 	}()
-
+	r.incrementNodeListVersion(da.Metadata.Name)
 	log.WithField("dbgattachment", da).Debug("saveDebugAttachment - notifying waiters")
 	r.notify()
 }
@@ -246,7 +266,11 @@ func canUpdateState(oldstate, newstate string) bool {
 func (r *RestHandler) DebugattachmentDeleteDebugAttachmentHandler(params debugattachment.DeleteDebugAttachmentParams) middleware.Responder {
 	r.debugAttachmentsMapLock.Lock()
 	defer r.debugAttachmentsMapLock.Unlock()
-	delete(r.debugAttachments, params.DebugAttachmentID)
+
+	if da, ok := r.debugAttachments[params.DebugAttachmentID]; ok {
+		r.updateNodeListVersion(da.Spec.Node)
+		delete(r.debugAttachments, params.DebugAttachmentID)
+	}
 
 	return debugattachment.NewDeleteDebugAttachmentOK()
 }
@@ -279,6 +303,12 @@ func contains(s string, sa []string) bool {
 	return false
 }
 
+/*
+either states OR if-none-match can be specified.
+if if-none-match is specfied, the etag is compare to the current etag.
+we have map of node -> etag
+
+*/
 func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugattachment.GetDebugAttachmentsParams) middleware.Responder {
 	node := params.Node
 	state := params.State
@@ -286,6 +316,15 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 	if state != nil {
 		states = append(states, *state)
 	}
+	useVersoin := (node != nil) && (*node != "") && (len(states) == 0)
+	etagversion := ""
+	if useVersoin {
+		// check for if-none-match header
+		if params.IfNoneMatch != nil && *params.IfNoneMatch != "" {
+			etagversion = *params.IfNoneMatch
+		}
+	}
+
 	wait := false
 	if params.Wait != nil {
 		wait = *params.Wait
@@ -303,6 +342,13 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 
 	var debugattachments []*models.DebugAttachment
 	filter := func() {
+
+		if useVersoin && etagversion != "" {
+			if etagversion == r.getNodeListVersion(*node) {
+				return
+			}
+		}
+
 		r.debugAttachmentsMapLock.RLock()
 		defer r.debugAttachmentsMapLock.RUnlock()
 
@@ -326,7 +372,6 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 			if len(names) != 0 && !contains(attachment.Metadata.Name, names) {
 				continue
 			}
-
 			debugattachments = append(debugattachments, attachment)
 		}
 	}
@@ -334,9 +379,6 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 	filter()
 
 	if wait && len(debugattachments) == 0 {
-		// wait!
-		// wait!
-		// while the table is locked add a channel to listener list.
 		listener := make(chan struct{}, 1)
 		r.addListener(listener)
 		defer r.removeListener(listener)
@@ -351,13 +393,20 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 			case <-ctx.Done():
 				// return timeout!
 				log.Debug("GetDebugAttachmentsHandler timing out!")
-
 				return debugattachment.NewGetDebugAttachmentsRequestTimeout()
 			}
 		}
 	}
 
-	return debugattachment.NewGetDebugAttachmentsOK().WithPayload(debugattachments)
+	resp := debugattachment.NewGetDebugAttachmentsOK().WithPayload(debugattachments)
+
+	// if the list is to a specific node, and no states are filtered, we can provide a
+	// resource version
+	if useVersoin {
+		resp.WithETag(r.getNodeListVersion(*node))
+	}
+
+	return resp
 }
 
 func (r *RestHandler) addListener(listener chan struct{}) {

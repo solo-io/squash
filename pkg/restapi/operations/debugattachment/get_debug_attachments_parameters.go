@@ -36,6 +36,10 @@ type GetDebugAttachmentsParams struct {
 	  In: header
 	*/
 	XTimeout *float64
+	/*If the quering for all the attachments on a node, this case be used to wait for an update
+	  In: header
+	*/
+	IfNoneMatch *string
 	/*Only get a subset of debugattachments
 	  In: query
 	*/
@@ -67,6 +71,10 @@ func (o *GetDebugAttachmentsParams) BindRequest(r *http.Request, route *middlewa
 	qs := runtime.Values(r.URL.Query())
 
 	if err := o.bindXTimeout(r.Header[http.CanonicalHeaderKey("X-Timeout")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.bindIfNoneMatch(r.Header[http.CanonicalHeaderKey("if-none-match")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -115,6 +123,20 @@ func (o *GetDebugAttachmentsParams) bindXTimeout(rawData []string, hasKey bool, 
 		return errors.InvalidType("X-Timeout", "header", "float64", raw)
 	}
 	o.XTimeout = &value
+
+	return nil
+}
+
+func (o *GetDebugAttachmentsParams) bindIfNoneMatch(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+
+	o.IfNoneMatch = &raw
 
 	return nil
 }

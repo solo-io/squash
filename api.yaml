@@ -91,12 +91,21 @@ paths:
         type: "array"
         items:
           type: "string"
+      - name: "if-none-match"
+        in: "header"
+        description: "If the quering for all the attachments on a node, this case be used to wait for an update"
+        required: false
+        type: string
       - name: "X-Timeout"
         in: "header"
         type: number
       responses:
         200:
           description: OK
+          headers:
+            ETag:
+              description: When querying for all the sessions on the node this can be used for to wait for a version update.
+              type: string
           schema:
             type: "array"
             items:
