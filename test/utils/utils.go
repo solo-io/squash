@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -26,6 +26,9 @@ func init() {
 
 type Kubectl struct {
 	Context, Namespace string
+
+	proxyProcess *os.Process
+	proxyAddress *string
 }
 
 func NewKubectl(kubectlctx string) *Kubectl {
@@ -128,22 +131,22 @@ func (k *Kubectl) Pods() (*v1.PodList, error) {
 
 func (k *Kubectl) Exec(pod, container, cmd string, args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
-	prepareargs := []string{"exec", pod, "-c", container, "--" , cmd}
+	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
 	return k.Prepare(prepareargs...).Run()
 }
 
 func (k *Kubectl) ExecAsync(pod, container, cmd string, args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
-	prepareargs := []string{"exec", pod, "-c", container, "--" , cmd}
+	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
 	cmdtorun := k.Prepare(prepareargs...)
 
 	err := cmdtorun.Start()
 	if err == nil {
 		go func() {
-			cmdtorun.Wait() 
-			}()
+			cmdtorun.Wait()
+		}()
 	}
 	return err
 }
@@ -175,6 +178,106 @@ OuterLoop:
 	}
 }
 
+var proxyregex = regexp.MustCompile(`Starting to serve on\s+(\S+:\d+)`)
+
+func (k *Kubectl) Proxy() error {
+	cmd := exec.Command("kubectl", "proxy", "--port=0")
+
+	portchan, err := runandreturn(cmd, proxyregex)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case port, ok := <-portchan:
+		if ok {
+			k.proxyProcess = cmd.Process
+			k.proxyAddress = &port[1]
+			return nil
+		}
+		cmd.Process.Kill()
+		return errors.New("can't find port")
+	case <-time.After(10 * time.Second):
+		cmd.Process.Kill()
+		return errors.New("timeout")
+	}
+}
+func (k *Kubectl) StopProxy() {
+	if k.proxyProcess != nil {
+		k.proxyProcess.Kill()
+	}
+}
+
+var portregex = regexp.MustCompile(`from\s+\S+:(\d+)\s+->`)
+
+func (k *Kubectl) PortForward(name string) (*os.Process, string, error) {
+	// name is pod.namespace:port
+
+	remoteparts := strings.Split(name, ":")
+	if len(remoteparts) != 2 {
+		return nil, "", errors.New("invalid remote")
+	}
+	podaddr := remoteparts[0]
+	port := remoteparts[1]
+
+	podparts := strings.Split(podaddr, ".")
+	if len(podparts) != 2 {
+		return nil, "", errors.New("invalid remote")
+	}
+	podName := podparts[0]
+	podNamespace := podparts[1]
+	args := []string{"--namespace=" + podNamespace, "port-forward", podName, ":" + port}
+	cmd := k.innerprepare(args)
+
+	portchan, err := runandreturn(cmd, portregex)
+	if err != nil {
+		return nil, "", err
+	}
+
+	select {
+	case port, ok := <-portchan:
+		if ok {
+			return cmd.Process, "localhost:" + port[1], nil
+		}
+		cmd.Process.Kill()
+		return nil, "", errors.New("can't find port")
+	case <-time.After(10 * time.Second):
+		cmd.Process.Kill()
+		return nil, "", errors.New("timeout")
+	}
+}
+
+func runandreturn(cmd *exec.Cmd, reg *regexp.Regexp) (<-chan []string, error) {
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	cmd.Start()
+	retchan := make(chan []string, 1)
+	go func() {
+		var buf bytes.Buffer
+		for {
+			b := make([]byte, 1024)
+			n, err := stdout.Read(b)
+			if err != nil || n == 0 {
+				close(retchan)
+				break
+			}
+			b = b[:n]
+			buf.Write(b)
+
+			std := buf.String()
+			matches := reg.FindStringSubmatch(std)
+			if len(matches) > 0 {
+				retchan <- matches
+				break
+			}
+		}
+		cmd.Wait()
+	}()
+	return retchan, nil
+}
+
 func (k *Kubectl) Logs(name string) ([]byte, error) {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.Prepare("logs", name).CombinedOutput()
@@ -200,17 +303,26 @@ func (k *Kubectl) innerprepare(args []string) *exec.Cmd {
 		newargs = []string{"--context=" + k.Context}
 	}
 	newargs = append(newargs, args...)
-	log.Println("kubectl", newargs)
+	fmt.Fprintln(GinkgoWriter,"kubectl", newargs)
 	cmd := exec.Command("kubectl", newargs...)
 	return cmd
 }
 
 func NewSquash(k *Kubectl) *Squash {
-	return &Squash{Namespace: k.Namespace}
+	kubeaddr := "localhost:8001"
+	if k.proxyAddress != nil {
+		kubeaddr = *k.proxyAddress
+	}
+	return &Squash{
+		Namespace: k.Namespace,
+		kubeAddr:  kubeaddr,
+	}
 }
 
 type Squash struct {
 	Namespace string
+
+	kubeAddr string
 }
 
 func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*models.DebugAttachment, error) {
@@ -234,6 +346,18 @@ func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*mod
 
 	return &dbgattachment, nil
 }
+func (s *Squash) Delete(da *models.DebugAttachment) error {
+	args := []string{"delete", da.Metadata.Name}
+
+	cmd := s.run(args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		GinkgoWriter.Write(out)
+		return err
+	}
+
+	return nil
+}
 
 func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 
@@ -241,14 +365,14 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Println("Failed service wait:", string(out))
+		fmt.Fprintln(GinkgoWriter,"Failed service wait:", string(out))
 		return nil, err
 	}
 
 	var dbgattachment models.DebugAttachment
 	err = json.Unmarshal(out, &dbgattachment)
 	if err != nil {
-		log.Println("Failed service wait:", string(out))
+		fmt.Fprintln(GinkgoWriter, "Failed service wait:", string(out))
 		return nil, err
 	}
 
@@ -256,12 +380,12 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 }
 
 func (s *Squash) run(args ...string) *exec.Cmd {
-	url := fmt.Sprintf("--url=http://localhost:8001/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
+	url := fmt.Sprintf( "--url=http://" + s.kubeAddr + "/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
 	newargs := []string{url, "--json"}
 	newargs = append(newargs, args...)
 
 	cmd := exec.Command("../../target/squash", newargs...)
-	log.Println("squash:", cmd.Args)
+	fmt.Fprintln(GinkgoWriter,"squash:", cmd.Args)
 
 	return cmd
 }

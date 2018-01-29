@@ -32,8 +32,8 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 	if err != nil {
 		log.WithField("err", err).Error("RunDebugBridge")
 		return err
-
 	}
+
 	cfg := &client.TransportConfig{
 		BasePath: path.Join(u.Path, client.DefaultBasePath),
 		Host:     u.Host,
@@ -50,6 +50,9 @@ type DebugHandler struct {
 	conttopid       platforms.ContainerProcess
 	client          *client.Squash
 	debugController *DebugController
+
+	etag        *string
+	attachments []*models.DebugAttachment
 }
 
 func NewDebugHandler(client *client.Squash, debugger func(string) Debugger,
@@ -113,10 +116,9 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, []*models.
 		params := debugattachment.NewGetDebugAttachmentsParams()
 		nodename := getNodeName()
 		params.Node = &nodename
+		params.IfNoneMatch = d.etag
 		t := true
 		params.Wait = &t
-		none := models.DebugAttachmentStatusStateNone
-		params.State = &none
 		log.WithField("params", params).Debug("watchForAttached - calling PopContainerToDebug")
 
 		resp, err := d.client.Debugattachment.GetDebugAttachments(params)
@@ -134,10 +136,60 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, []*models.
 			continue
 		}
 
-		attachment := resp.Payload
+		attachments := resp.Payload
+		d.etag = &resp.ETag
 
-		log.WithField("attachment", spew.Sdump(attachment)).Info("watchForAttached - got debug attachment!")
-
-		return attachment, nil, nil
+		return d.getUpdatedSnapshots(attachments)
 	}
+}
+
+func (d *DebugHandler) getUpdatedSnapshots(attachments []*models.DebugAttachment) ([]*models.DebugAttachment, []*models.DebugAttachment, error) {
+	prevttachments := d.attachments
+	d.attachments = attachments
+
+	if len(d.attachments) == 0 {
+		return attachments, prevttachments, nil
+	}
+
+	// find all attachments that are deleted
+	var deletedAttachments []*models.DebugAttachment
+	for _, attch := range prevttachments {
+		if !contains(attch, attachments) {
+			deletedAttachments = append(deletedAttachments, attch)
+		}
+	}
+
+	// ignore all the state none from the list. we don't do it earlier to not mistake them for
+	// deleted
+	var newattachments []*models.DebugAttachment
+	for _, attch := range attachments {
+		if attch.Status.State != "none" {
+			continue
+		}
+		if !contains(attch, prevttachments) {
+			newattachments = append(newattachments, attch)
+		}
+	}
+
+	// find all attachments that are new and in state none
+
+	log.WithFields(log.Fields{"newattachments": spew.Sdump(newattachments), "deletedAttachments": spew.Sdump(deletedAttachments)}).Info("watchForAttached - got debug attachment!")
+	return newattachments, deletedAttachments, nil
+}
+
+func contains(attachment *models.DebugAttachment, attachments []*models.DebugAttachment) bool {
+	name := func(a *models.DebugAttachment) string {
+		if a.Metadata != nil {
+			return a.Metadata.Name
+		}
+		return ""
+	}
+	attachmentName := name(attachment)
+	for _, a := range attachments {
+
+		if name(a) == attachmentName {
+			return true
+		}
+	}
+	return false
 }

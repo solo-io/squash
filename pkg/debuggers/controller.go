@@ -70,10 +70,15 @@ func (d *DebugController) addActiveAttachment(attachment *models.DebugAttachment
 func (d *DebugController) removeAttachment(name string) {
 	d.debugattachmentsLock.Lock()
 	data, ok := d.debugattachments[name]
+	delete(d.debugattachments, name)
 	d.debugattachmentsLock.Unlock()
 
 	if ok {
-		data.debugger.Detach()
+		log.WithFields(log.Fields{"attachment.Name": name}).Debug("Detaching attachment")
+		err := data.debugger.Detach()
+		if err != nil {
+			log.WithFields(log.Fields{"attachment.Name": name, "err": err}).Debug("Error detaching")
+		}
 		d.unlockProcess(data.pid)
 	}
 }
@@ -81,6 +86,7 @@ func (d *DebugController) removeAttachment(name string) {
 func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtachment []*models.DebugAttachment) error {
 
 	for _, attachment := range removedAtachment {
+		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Removing attachment")
 		d.removeAttachment(attachment.Metadata.Name)
 	}
 
@@ -133,9 +139,12 @@ func FindFirstProcess(pids []int, processName string) (int, error) {
 			log.WithFields(log.Fields{"pid": pid, "err": err}).Info("Failed to get command args for the process, skipping")
 			continue
 		}
-		log.WithField("pid", pid).Debug(ss)
 
 		currentProcessName := ss[0]
+
+		// take the base name
+		currentProcessName = filepath.Base(currentProcessName)
+		log.WithFields(log.Fields{"pid": pid, "currentProcessName": currentProcessName}).Debug("checking")
 
 		if processName == "" || strings.EqualFold(currentProcessName, processName) {
 			t := n.ModTime()
@@ -180,9 +189,9 @@ func (d *DebugController) tryToAttach(attachment *models.DebugAttachment) error 
 		if err != nil {
 			d.notifyError(attachment)
 			return nil // no retry
-		} else {
-			d.addActiveAttachment(attachment, pid, debugger)
 		}
+		d.addActiveAttachment(attachment, pid, debugger)
+
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
 		d.notifyError(attachment)
