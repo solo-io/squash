@@ -1,2 +1,5 @@
-target/*
+target/
+.idea/
+*.iml
+
 vendor/*
