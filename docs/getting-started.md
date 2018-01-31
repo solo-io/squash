@@ -155,18 +155,18 @@ Then wait for the debugger to attach. Note - this command has a default timeout 
 If it times out, just run it again. If nothing happens after a minute or so, please [contact us](faq.md#contact).
 ```
 $ squash --url=http://SQUASH-SERVER-ADDRESS/api/v2 wait 1427131847
-Debug session started! debug server is at: squash-client-ds-n7dgt:33355
+Debug session started! debug server is at: squash-client-56v2q.squash:33275
 ```
 
-This address is a pod:port. To easly and securly access the debugger server's port, you can use kubectl-portforward:
+This address is a pod.namespace:port. To easly and securly access the debugger server's port, you can use kubectl port-forward:
 ```
-$ kubectl port-forward squash-client-ds-n7dgt 33355
-Forwarding from 127.0.0.1:33355 -> 33355
-Forwarding from [::1]:33355 -> 33355
+$ kubectl port-forward --namespace squash squash-client-56v2q 33275
+Forwarding from 127.0.0.1:33275 -> 33275
+Forwarding from [::1]:33275 -> 33275
 ```
 Leave it running in the background. Then just attach (your ports may vary)
 ```
-$ dlv connect localhost:33355
+$ dlv connect localhost:33275
 ```
 
 If kubectl port-forward doesnt work for you or you can't access the sqash server from your laptop, check out our [FAQ](faq.md) page.
