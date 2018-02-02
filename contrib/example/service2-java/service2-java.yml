@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: example-service2-java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-service2-java
+  template:
+    metadata:
+      labels:
+        app: example-service2-java
+    spec:
+      containers:
+      - name: example-service2-java
+        image: soloio/example-service2-java:v0.2.2
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: example-service2-java
+spec:
+  selector:
+    app: example-service2-java
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
