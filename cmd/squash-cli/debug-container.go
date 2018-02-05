@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/solo-io/squash/pkg/client/debugattachment"
-	"github.com/solo-io/squash/pkg/platforms/kubernetes"
+	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/spf13/cobra"
@@ -46,7 +46,7 @@ func init() {
 
 			dbgattchment := models.DebugAttachment{
 				Spec: &models.DebugAttachmentSpec{
-					Attachment: &kubernetes.KubeAttachment{
+					Attachment: &k8models.KubeAttachment{
 						Namespace: namespace,
 						Pod:       pod,
 						Container: container,

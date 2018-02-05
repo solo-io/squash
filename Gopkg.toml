@@ -89,29 +89,17 @@
   branch = "master"
   name = "github.com/vishvananda/netlink"
 
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/net"
+#[[constraint]]
+#  branch = "master"
+#  name = "golang.org/x/net"
 
 [[constraint]]
   name = "google.golang.org/grpc"
   version = "1.5.1"
 
-[[constraint]]
-  name = "k8s.io/apimachinery"
-  branch = "release-1.6"
-
-[[constraint]]
-  name = "k8s.io/client-go"
-  version = "v3.0.0"
-
-[[constraint]]
-  name = "k8s.io/kubernetes"
-  version = "v1.7.2"
-
-[[constraint]]
-  name = "github.com/derekparker/delve"
-  version = "1.0.0-rc.1"
+#[[constraint]]
+#  name = "github.com/derekparker/delve"
+#  version = "1.0.0-rc.1"
 
 [[constraint]]
   name = "github.com/davecgh/go-spew"

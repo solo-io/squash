@@ -283,6 +283,8 @@ definitions:
     properties:
       name:
         type: string
+      version:
+        type: string
 
   Attachment:
     type: object

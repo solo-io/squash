@@ -522,6 +522,9 @@ func init() {
       "properties": {
         "name": {
           "type": "string"
+        },
+        "version": {
+          "type": "string"
         }
       }
     }

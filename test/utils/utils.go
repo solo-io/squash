@@ -16,8 +16,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/squash/pkg/models"
-
-	v1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/api/core/v1"
+	//	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
 func init() {
@@ -303,7 +303,7 @@ func (k *Kubectl) innerprepare(args []string) *exec.Cmd {
 		newargs = []string{"--context=" + k.Context}
 	}
 	newargs = append(newargs, args...)
-	fmt.Fprintln(GinkgoWriter,"kubectl", newargs)
+	fmt.Fprintln(GinkgoWriter, "kubectl", newargs)
 	cmd := exec.Command("kubectl", newargs...)
 	return cmd
 }
@@ -365,7 +365,7 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintln(GinkgoWriter,"Failed service wait:", string(out))
+		fmt.Fprintln(GinkgoWriter, "Failed service wait:", string(out))
 		return nil, err
 	}
 
@@ -380,12 +380,12 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 }
 
 func (s *Squash) run(args ...string) *exec.Cmd {
-	url := fmt.Sprintf( "--url=http://" + s.kubeAddr + "/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
+	url := fmt.Sprintf("--url=http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
 	newargs := []string{url, "--json"}
 	newargs = append(newargs, args...)
 
 	cmd := exec.Command("../../target/squash", newargs...)
-	fmt.Fprintln(GinkgoWriter,"squash:", cmd.Args)
+	fmt.Fprintln(GinkgoWriter, "squash:", cmd.Args)
 
 	return cmd
 }
