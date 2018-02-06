@@ -119,7 +119,7 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, []*models.
 		params.IfNoneMatch = d.etag
 		t := true
 		params.Wait = &t
-		log.WithField("params", params).Debug("watchForAttached - calling PopContainerToDebug")
+		log.WithField("params", spew.Sdump(params)).Debug("watchForAttached - calling GetDebugAttachments")
 
 		resp, err := d.client.Debugattachment.GetDebugAttachments(params)
 
@@ -138,6 +138,7 @@ func (d *DebugHandler) watchForAttached() ([]*models.DebugAttachment, []*models.
 
 		attachments := resp.Payload
 		d.etag = &resp.ETag
+		log.WithField("attachments", spew.Sdump(attachments)).Debug("getUpdatedSnapshots - filtering new attachments")
 
 		return d.getUpdatedSnapshots(attachments)
 	}
@@ -148,6 +149,7 @@ func (d *DebugHandler) getUpdatedSnapshots(attachments []*models.DebugAttachment
 	d.attachments = attachments
 
 	if len(d.attachments) == 0 {
+		log.WithFields(log.Fields{"prevttachments": spew.Sdump(prevttachments)}).Info("no current attachments.")
 		return attachments, prevttachments, nil
 	}
 

@@ -58,6 +58,9 @@ func (r *RestHandler) incrementNodeListVersion(node string) {
 	r.nodeListEtagsLock.Lock()
 	defer r.nodeListEtagsLock.Unlock()
 	r.nodeListEtags[node] = r.nodeListEtags[node] + 1
+	// DELETE
+	log.WithField("noidemap", r.nodeListEtags).Info("incrementNodeListVersion")
+
 }
 
 func (r *RestHandler) updateNodeListVersion(node string) {
@@ -95,7 +98,7 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 	dbgattachment.Metadata.Name = verify_or_generate(dbgattachment.Metadata.Name)
 
 	if dbgattachment.Spec.MatchRequest {
-		log.WithField("dbgattachment", dbgattachment).Debug("trying to match a debug request for debug attachment")
+		log.WithField("dbgattachment", spew.Sdump(dbgattachment)).Debug("trying to match a debug request for debug attachment")
 
 		// find a matching request for the same image
 		dr := r.data.FindUnboundDebugRequest(dbgattachment)
@@ -131,7 +134,7 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		}(*dr)
 
 	} else {
-		log.WithField("dbgattachment", dbgattachment).Debug("DebugattachmentAddDebugAttachmentHandler match not needed, done.")
+		log.WithField("dbgattachment", spew.Sdump(dbgattachment)).Debug("DebugattachmentAddDebugAttachmentHandler match not needed, done.")
 
 		dbgattachment = r.saveDebugAttachment(dbgattachment)
 	}
@@ -146,9 +149,8 @@ func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) *models.De
 		}
 	}
 	da = r.data.UpdateDebugAttachment(da, r.store)
-	r.incrementNodeListVersion(da.Metadata.Name)
-	log.WithField("dbgattachment", da).Debug("saveDebugAttachment - notifying waiters")
-	r.notify()
+	log.WithField("dbgattachment", spew.Sdump(da)).Debug("saveDebugAttachment - notifying waiters")
+	r.updateNodeListVersion(da.Spec.Node)
 	return da
 }
 
@@ -264,9 +266,9 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 	if state != nil {
 		states = append(states, *state)
 	}
-	useVersoin := (node != nil) && (*node != "") && (len(states) == 0)
+	useVersion := (node != nil) && (*node != "") && (len(states) == 0)
 	etagversion := ""
-	if useVersoin {
+	if useVersion {
 		// check for if-none-match header
 		if params.IfNoneMatch != nil && *params.IfNoneMatch != "" {
 			etagversion = *params.IfNoneMatch
@@ -289,16 +291,23 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 	log.Info("GetDebugAttachmentsHandler called!")
 
 	var debugattachments []*models.DebugAttachment
+	var etagUsed = ""
 	filter := func() {
 
-		if useVersoin && etagversion != "" {
+		if useVersion && etagversion != "" {
 			if etagversion == r.getNodeListVersion(*node) {
+				log.WithFields(
+					log.Fields{"etag": etagversion, "node": *node}).Debug("GetDebugAttachmentsHandler - etags did not change!")
 				return
 			}
 		}
 
 		r.data.debugAttachmentsMapLock.RLock()
 		defer r.data.debugAttachmentsMapLock.RUnlock()
+
+		if useVersion {
+			etagUsed = r.getNodeListVersion(*node)
+		}
 
 		for _, attachment := range r.data.debugAttachments {
 			if node != nil && attachment.Spec != nil && *node != attachment.Spec.Node {
@@ -334,11 +343,18 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 		// before waiting
 		filter()
 
+	loop:
 		for len(debugattachments) == 0 {
 			select {
 			case <-listener:
 				filter()
 			case <-ctx.Done():
+				// test one last time..
+				filter()
+				if len(debugattachments) != 0 {
+					break loop
+				}
+
 				// return timeout!
 				log.Debug("GetDebugAttachmentsHandler timing out!")
 				return debugattachment.NewGetDebugAttachmentsRequestTimeout()
@@ -350,8 +366,8 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 
 	// if the list is to a specific node, and no states are filtered, we can provide a
 	// resource version
-	if useVersoin {
-		resp.WithETag(r.getNodeListVersion(*node))
+	if useVersion {
+		resp.WithETag(etagUsed)
 	}
 
 	return resp
