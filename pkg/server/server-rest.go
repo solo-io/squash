@@ -120,7 +120,7 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		dbgattachment.Spec.ProcessName = dr.Spec.ProcessName
 
 		// we found a matching request - we can save now.
-		r.saveDebugAttachment(dbgattachment)
+		dbgattachment = r.saveDebugAttachment(dbgattachment)
 
 		go func(dr models.DebugRequest) {
 			dr.Status.DebugAttachmentRef = dbgattachment.Metadata.Name
@@ -133,22 +133,23 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 	} else {
 		log.WithField("dbgattachment", dbgattachment).Debug("DebugattachmentAddDebugAttachmentHandler match not needed, done.")
 
-		r.saveDebugAttachment(dbgattachment)
+		dbgattachment = r.saveDebugAttachment(dbgattachment)
 	}
 
 	return debugattachment.NewAddDebugAttachmentCreated().WithPayload(dbgattachment)
 }
 
-func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
+func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) *models.DebugAttachment {
 	if da.Status == nil {
 		da.Status = &models.DebugAttachmentStatus{
 			State: models.DebugAttachmentStatusStateNone,
 		}
 	}
-	r.data.UpdateDebugAttachment(da, r.store)
+	da = r.data.UpdateDebugAttachment(da, r.store)
 	r.incrementNodeListVersion(da.Metadata.Name)
 	log.WithField("dbgattachment", da).Debug("saveDebugAttachment - notifying waiters")
 	r.notify()
+	return da
 }
 
 func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.CreateDebugRequestParams) middleware.Responder {
@@ -161,7 +162,7 @@ func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.
 	if dr.Status == nil {
 		dr.Status = &models.DebugRequestStatus{}
 	}
-	r.data.UpdateDebugRequest(dr, r.store)
+	dr = r.data.UpdateDebugRequest(dr, r.store)
 	return debugrequest.NewCreateDebugRequestCreated().WithPayload(dr)
 }
 

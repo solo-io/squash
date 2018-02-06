@@ -20,10 +20,12 @@ func NewServerData() *ServerData {
 	}
 }
 
+/*
 func (r *ServerData) GetAttachments() *map[string]*models.DebugAttachment { return &r.debugAttachments }
 func (r *ServerData) GetRequests() *map[string]*models.DebugRequest       { return &r.debugRequests }
 func (r *ServerData) GetAttachmentsLock() *sync.RWMutex                   { return &r.debugAttachmentsMapLock }
 func (r *ServerData) GetRequestsLock() *sync.RWMutex                      { return &r.debugRequestsMapLock }
+*/
 
 func (r *ServerData) GetDebugRequestNoLock(name string) *models.DebugRequest {
 	return r.debugRequests[name]
@@ -57,14 +59,16 @@ func (r *ServerData) FindUnboundDebugRequest(dbgattachment *models.DebugAttachme
 	return nil
 }
 
-func (r *ServerData) UpdateDebugRequest(dr *models.DebugRequest, store DataStore) {
+func (r *ServerData) UpdateDebugRequest(dr *models.DebugRequest, store DataStore) *models.DebugRequest {
 	r.debugRequestsMapLock.Lock()
 	defer r.debugRequestsMapLock.Unlock()
 	if store != nil {
-		r.debugRequests[dr.Metadata.Name] = store.UpdateRequest(dr)
-	} else {
-		r.debugRequests[dr.Metadata.Name] = dr
+		// Name of the object will change!
+		dr = store.UpdateRequest(dr)
 	}
+	r.debugRequests[dr.Metadata.Name] = dr
+	return dr
+
 }
 
 func (r *ServerData) GetDebugRequest(name string) *models.DebugRequest {
@@ -83,14 +87,15 @@ func (r *ServerData) DeleteDebugRequest(name string, store DataStore) {
 	}
 }
 
-func (r *ServerData) UpdateDebugAttachment(a *models.DebugAttachment, store DataStore) {
+func (r *ServerData) UpdateDebugAttachment(a *models.DebugAttachment, store DataStore) *models.DebugAttachment {
 	r.debugAttachmentsMapLock.Lock()
 	defer r.debugAttachmentsMapLock.Unlock()
 	if store != nil {
-		r.debugAttachments[a.Metadata.Name] = store.UpdateAttachment(a)
-	} else {
-		r.debugAttachments[a.Metadata.Name] = a
+		// Name of the object will change!
+		a = store.UpdateAttachment(a)
 	}
+	r.debugAttachments[a.Metadata.Name] = a
+	return a
 }
 
 func (r *ServerData) GetDebugAttachment(name string) *models.DebugAttachment {
