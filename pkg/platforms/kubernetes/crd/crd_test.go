@@ -1,10 +1,12 @@
 package crd_test
 
 import (
-	"fmt"
+	"os"
+	"path"
 	"testing"
-	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes/crd"
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
@@ -12,7 +14,7 @@ import (
 )
 
 const (
-	kubecfg    = "/Users/anton/.kube/config"
+	kubecfgsfx = ".kube/config"
 	master     = ""
 	dbgName    = "testDebugger"
 	badDbgName = "badDebugger"
@@ -21,169 +23,115 @@ const (
 
 var crdClient *crd.CrdClient
 
+// CRD callback
 func cb(objtype crd.ObjectType, action crd.Action, obj interface{}) {
-	fmt.Println("Callback:", objtype, action)
 	if objtype == crd.TypeDebugAttachment {
-		v := obj.(*models.DebugAttachment)
-		fmt.Println("DebugAttachment: ", v.Metadata.Name)
+		v, ok := obj.(*models.DebugAttachment)
+		Expect(ok).To(BeTrue())
+		Expect(v).ToNot(BeNil())
+		Expect(v.Metadata).ToNot(BeNil())
 	} else {
-		v := obj.(*models.DebugRequest)
-		fmt.Println("DebugRequest: ", v.Metadata.Name)
+		v, ok := obj.(*models.DebugRequest)
+		Expect(ok).To(BeTrue())
+		Expect(v).ToNot(BeNil())
+		Expect(v.Metadata).ToNot(BeNil())
 	}
 }
 
 func init() {
+	RegisterFailHandler(Fail)
 	var err error
 	crdClient, err = initTests(cb)
-	if err != nil {
-		fmt.Errorf("Test initialization failed: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func TestAttachment(t *testing.T) {
-	if crdClient == nil {
-		return
-	}
+	Expect(crdClient).NotTo(BeNil())
 
 	a, err := createAttachment()
-	if err != nil {
-		t.Fatalf("Error creating attachment: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	a.Spec.Debugger = dbgName
 	a, err = crdClient.UpdateAttachment(a)
-	if err != nil {
-		t.Fatalf("Error updating attachment: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	ab, err := crdClient.GetAttachment(a.Metadata.Name)
-	if err != nil {
-		t.Fatalf("Error getting attachment: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
-	if a.Spec.Debugger != ab.Spec.Debugger {
-		t.Fatalf("Saved and retrived attachments are not identical: %s != %s", a.Spec.Debugger, ab.Spec.Debugger)
-	}
+	Expect(a.Spec.Debugger == ab.Spec.Debugger).To(BeTrue())
 
-	ka := a.Spec.Attachment.(*k8models.KubeAttachment)
-
-	t.Log(ka)
+	_, ok := a.Spec.Attachment.(*k8models.KubeAttachment)
+	Expect(ok).To(BeTrue())
 
 	err = crdClient.DeleteAttachment(a.Metadata.Name)
-	if err != nil {
-		t.Fatalf("Error deleting attachment: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func TestRequest(t *testing.T) {
-	if crdClient == nil {
-		return
-	}
+	Expect(crdClient).NotTo(BeNil())
 
 	r, err := createRequest()
-	if err != nil {
-		t.Fatalf("Error creating request: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	dbgNameGood := dbgName
 	r.Spec.Debugger = &dbgNameGood
 
 	r, err = crdClient.UpdateRequest(r)
-	if err != nil {
-		t.Fatalf("Error updating request: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	rb, err := crdClient.GetRequest(r.Metadata.Name)
-	if err != nil {
-		t.Fatalf("Error getting request: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
-	if *r.Spec.Debugger != *rb.Spec.Debugger {
-		t.Fatalf("Saved and retrived requests are not identical: %s != %s", r.Spec.Debugger, rb.Spec.Debugger)
-	}
+	Expect(*r.Spec.Debugger == *rb.Spec.Debugger).To(BeTrue())
 
 	err = crdClient.DeleteRequest(r.Metadata.Name)
-	if err != nil {
-		t.Fatalf("Error deleting request: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func TestAttachmentsList(t *testing.T) {
-	if crdClient == nil {
-		return
-	}
+	Expect(crdClient).NotTo(BeNil())
 
+	names := make(map[string]bool)
 	for i := 0; i < numInList; i++ {
-		_, err := createAttachment()
-		if err != nil {
-			t.Fatalf("Error creating attachment: %s", err.Error())
-		}
+		r, err := createAttachment()
+		Expect(err).NotTo(HaveOccurred())
+		names[r.Metadata.Name] = true
 	}
 
 	v, err := crdClient.ListAttachments()
-	if err != nil {
-		t.Fatalf("Error listing attachments: %s", err.Error())
-	}
-	if len(v) != numInList {
-		t.Fatalf("Wrong number of items in list: %d (expected %d)", len(v), numInList)
-	}
+	Expect(err).NotTo(HaveOccurred())
 
-	for _, i := range v {
-		t.Logf("Item: %s", i.Metadata.Name)
-		err = crdClient.DeleteAttachment(i.Metadata.Name)
-		if err != nil {
-			t.Errorf("Error deleting attachment: %s", err.Error())
+	for _, rv := range v {
+		if _, ok := names[rv.Metadata.Name]; ok {
+			err = crdClient.DeleteAttachment(rv.Metadata.Name)
+			Expect(err).NotTo(HaveOccurred())
+			delete(names, rv.Metadata.Name)
 		}
 	}
+	Expect(len(names)).To(BeZero())
 }
 
 func TestRequestsList(t *testing.T) {
-	if crdClient == nil {
-		return
-	}
+	Expect(crdClient).NotTo(BeNil())
 
+	names := make(map[string]bool)
 	for i := 0; i < numInList; i++ {
-		_, err := createRequest()
-		if err != nil {
-			t.Fatalf("Error creating request: %s", err.Error())
-		}
+		r, err := createRequest()
+		Expect(err).NotTo(HaveOccurred())
+		names[r.Metadata.Name] = true
 	}
 
 	v, err := crdClient.ListRequests()
-	if err != nil {
-		t.Fatalf("Error listing requests: %s", err.Error())
-	}
-	if len(v) != numInList {
-		t.Fatalf("Wrong number of items in list: %d (expected %d)", len(v), numInList)
-	}
+	Expect(err).NotTo(HaveOccurred())
 
-	for _, i := range v {
-		t.Logf("Item: %s", i.Metadata.Name)
-		err = crdClient.DeleteRequest(i.Metadata.Name)
-		if err != nil {
-			t.Errorf("Error deleting request: %s", err.Error())
+	for _, rv := range v {
+		if _, ok := names[rv.Metadata.Name]; ok {
+			err = crdClient.DeleteRequest(rv.Metadata.Name)
+			Expect(err).NotTo(HaveOccurred())
+			delete(names, rv.Metadata.Name)
 		}
 	}
-}
-
-func TestCleanup(t *testing.T) {
-	cleanupAttachments()
-	cleanupRequests()
-}
-
-func TestUpdate(t *testing.T) {
-	//	t.Skip("Debug only")
-	if crdClient == nil {
-		return
-	}
-
-	a, err := createAttachment()
-	if err != nil {
-		t.Fatalf("Error creating attachment: %s", err.Error())
-	}
-
-	time.Sleep(290 * time.Second)
-	crdClient.DeleteAttachment(a.Metadata.Name)
+	Expect(len(names)).To(BeZero())
 }
 
 func createAttachment() (*models.DebugAttachment, error) {
@@ -213,49 +161,21 @@ func createRequest() (*models.DebugRequest, error) {
 	return crdClient.CreateRequest(r, false)
 }
 
-func cleanupAttachments() error {
-	v, err := crdClient.ListAttachments()
-	if err != nil {
-		return err
-	}
-
-	for _, i := range v {
-		crdClient.DeleteAttachment(i.Metadata.Name)
-	}
-	return nil
-}
-
-func cleanupRequests() error {
-	v, err := crdClient.ListRequests()
-	if err != nil {
-		return err
-	}
-
-	for _, i := range v {
-		crdClient.DeleteRequest(i.Metadata.Name)
-	}
-	return nil
-}
-
 func initTests(cb func(objtype crd.ObjectType, action crd.Action, obj interface{})) (*crd.CrdClient, error) {
 
 	if crdClient != nil {
 		return crdClient, nil
 	}
 
+	kubecfg := path.Join(os.Getenv("HOME"), kubecfgsfx)
 	cfg, err := clientcmd.BuildConfigFromFlags(master, kubecfg)
-	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	crdClient, err := crd.NewCrdClient(cfg, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating client: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	err = crdClient.CreateCRDs()
-	if err != nil {
-		return nil, fmt.Errorf("Error creating CRDs attachment: %s", err.Error())
-	}
+	Expect(err).NotTo(HaveOccurred())
+
 	return crdClient, nil
 }
