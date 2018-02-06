@@ -26,16 +26,19 @@ var _ = Describe("Single debug mode", func() {
 		kubectl *Kubectl
 		squash  *Squash
 
-		ServerPod              *v1.Pod
-		ClientPods             map[string]*v1.Pod
-		MicroservicePods       map[string]*v1.Pod
-		CurrentMicroservicePod *v1.Pod
+		ServerPod               *v1.Pod
+		ClientPods              map[string]*v1.Pod
+		Microservice1Pods       map[string]*v1.Pod
+		Microservice2Pods       map[string]*v1.Pod
+		CurrentMicroservicePod  *v1.Pod
+		Current2MicroservicePod *v1.Pod
 	)
 
 	BeforeEach(func() {
 		ServerPod = nil
 		ClientPods = make(map[string]*v1.Pod)
-		MicroservicePods = make(map[string]*v1.Pod)
+		Microservice1Pods = make(map[string]*v1.Pod)
+		Microservice2Pods = make(map[string]*v1.Pod)
 		kubectl = NewKubectl("")
 
 		if err := kubectl.Proxy(); err != nil {
@@ -58,6 +61,9 @@ var _ = Describe("Single debug mode", func() {
 		if err := kubectl.Create("../../contrib/example/service1/service1.yml"); err != nil {
 			panic(err)
 		}
+		if err := kubectl.Create("../../contrib/example/service2/service2.yml"); err != nil {
+			panic(err)
+		}
 
 		squash = NewSquash(kubectl)
 		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -73,7 +79,9 @@ var _ = Describe("Single debug mode", func() {
 			newpod := pod
 			switch {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "example-service1"):
-				MicroservicePods[pod.Spec.NodeName] = &newpod
+				Microservice1Pods[pod.Spec.NodeName] = &newpod
+			case strings.HasPrefix(pod.ObjectMeta.Name, "example-service2"):
+				Microservice2Pods[pod.Spec.NodeName] = &newpod
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server"):
 				// replace squash server and client binaries with local binaries for easy debuggings
 				Must(kubectl.Cp("../../target/squash-server/squash-server", "/tmp/", pod.ObjectMeta.Name, "squash-server"))
@@ -92,8 +100,12 @@ var _ = Describe("Single debug mode", func() {
 		}
 
 		// choose one of the microservice pods to be our victim.
-		for _, v := range MicroservicePods {
+		for _, v := range Microservice1Pods {
 			CurrentMicroservicePod = v
+			break
+		}
+		for _, v := range Microservice2Pods {
+			Current2MicroservicePod = v
 			break
 		}
 
@@ -157,6 +169,24 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).To(Equal("error"))
 		})
+		It("should attach to two micro services", func() {
+			container := CurrentMicroservicePod.Spec.Containers[0]
+
+			dbgattachment, err := squash.Attach(container.Image, CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			Expect(err).NotTo(HaveOccurred())
+			time.Sleep(time.Second)
+			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.Status.State).To(Equal("attached"))
+
+			container = Current2MicroservicePod.Spec.Containers[0]
+			dbgattachment, err = squash.Attach(container.Image, Current2MicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			Expect(err).NotTo(HaveOccurred())
+			time.Sleep(time.Second)
+			updatedattachment, err = squash.Wait(dbgattachment.Metadata.Name)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.Status.State).To(Equal("attached"))
+		})
 
 		It("Be able to re-attach once session exited", func() {
 			container := CurrentMicroservicePod.Spec.Containers[0]
@@ -181,67 +211,7 @@ var _ = Describe("Single debug mode", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
-
-			// kube portfowrad...
-			// proc, localaddr, err := kubectl.PortForward(updatedattachment.Status.DebugServerAddress)
-			// Expect(err).NotTo(HaveOccurred())
-			// defer proc.Kill()
-			// fmt.Println("Connect " + localaddr)
-			// err = exec.Command("sleep", "1h").Run()
-			// Expect(err).NotTo(HaveOccurred())
-			// dlv connect localaddr
-			// dlv exit
-			//			exec.Cmd()
-
-			// connect with dlv and detach
-			// dlv connect updatedattachment.Status.DebugServerAddress
 		})
 	})
 
-	/*
-		Describe("Service mode", func() {
-			It("should get a debug server endpoint", func() {
-
-				var p *v1.Pod
-				for _, v := range MicroservicePods {
-					p = v
-					break
-				}
-
-				container := p.Spec.Containers[0]
-				dbgconfig, err := squash.Service(container.Image, "example-service1-svc", "dlv", "main.go:80")
-				if err != nil {
-					logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-					fmt.Println(string(logs))
-					panic(err)
-				}
-				time.Sleep(60 * time.Second)
-
-				serviceurl := fmt.Sprintf(KubeEndpoint+"/v1/namespaces/%s/services/example-service1-svc/proxy/calc", kubectl.Namespace)
-				go func() {
-					_, err := http.Get(serviceurl)
-					if err != nil {
-						fmt.Println("Error issuing http request ", err)
-					} else {
-						fmt.Println("http request OK")
-
-					}
-
-				}()
-				dbgsession, err := squash.Wait(dbgconfig.ID)
-				if err != nil {
-					logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
-					fmt.Println("server logs:")
-					fmt.Println(string(logs))
-					clogs, _ := kubectl.Logs(ClientPods[p.Spec.NodeName].ObjectMeta.Name)
-					fmt.Println("client logs:")
-					fmt.Println(string(clogs))
-					panic(err)
-				}
-
-				Expect(dbgsession).ToNot(Equal(nil))
-
-			})
-		})
-	*/
 })

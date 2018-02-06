@@ -372,7 +372,7 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 	var dbgattachment models.DebugAttachment
 	err = json.Unmarshal(out, &dbgattachment)
 	if err != nil {
-		fmt.Fprintln(GinkgoWriter, "Failed service wait:", string(out))
+		fmt.Fprintln(GinkgoWriter, "Failed to parse response for service wait:", string(out))
 		return nil, err
 	}
 

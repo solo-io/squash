@@ -60,6 +60,9 @@ func (r *RestHandler) incrementNodeListVersion(node string) {
 	r.nodeListEtagsLock.Lock()
 	defer r.nodeListEtagsLock.Unlock()
 	r.nodeListEtags[node] = r.nodeListEtags[node] + 1
+	// DELETE
+	log.WithField("noidemap", r.nodeListEtags).Info("incrementNodeListVersion")
+
 }
 
 func (r *RestHandler) updateNodeListVersion(node string) {
@@ -183,8 +186,8 @@ func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
 		r.debugAttachments[da.Metadata.Name] = da
 	}()
 
-	log.WithField("dbgattachment", da).Debug("saveDebugAttachment - notifying waiters")
-	r.updateNodeListVersion(da.Metadata.Name)
+	log.WithField("dbgattachment", spew.Sdump(da)).Debug("saveDebugAttachment - notifying waiters")
+	r.updateNodeListVersion(da.Spec.Node)
 }
 
 func (r *RestHandler) getDebugAttachment(name string) *models.DebugAttachment {
@@ -346,7 +349,8 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 
 		if useVersion && etagversion != "" {
 			if etagversion == r.getNodeListVersion(*node) {
-				log.WithField("etag", etagversion).Debug("GetDebugAttachmentsHandler - etags did not change!")
+				log.WithFields(
+					log.Fields{"etag": etagversion, "node": *node}).Debug("GetDebugAttachmentsHandler - etags did not change!")
 				return
 			}
 		}
