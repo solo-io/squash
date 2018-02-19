@@ -1,9 +1,9 @@
 package kubernetes
 
 import (
-	"fmt"
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"path/filepath"
@@ -18,6 +18,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 	"google.golang.org/grpc"
 	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 )
@@ -38,7 +39,7 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
-	ka, err := genericToKubeAttachment(attachment)
+	ka, err := k8models.GenericToKubeAttachment(attachment)
 
 	if err != nil {
 		return nil, errors.New("bad attachment format")

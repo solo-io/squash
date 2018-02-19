@@ -1,4 +1,4 @@
-package kubernetes
+package models
 
 import "encoding/json"
 
@@ -8,7 +8,7 @@ type KubeAttachment struct {
 	Container string `json:"container"`
 }
 
-func genericToKubeAttachment(attachment interface{}) (*KubeAttachment, error) {
+func GenericToKubeAttachment(attachment interface{}) (*KubeAttachment, error) {
 	jsonbytes, err := json.Marshal(attachment)
 	if err != nil {
 		return nil, err

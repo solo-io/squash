@@ -19,12 +19,7 @@ import (
 )
 
 type RestHandler struct {
-	debugAttachments        map[string]*models.DebugAttachment
-	debugAttachmentsMapLock sync.RWMutex
-
-	debugRequests        map[string]*models.DebugRequest
-	debugRequestsMapLock sync.RWMutex
-
+	data             *ServerData
 	containerLocator platforms.ContainerLocator
 
 	attachmentlisteners     []chan struct{}
@@ -32,14 +27,17 @@ type RestHandler struct {
 
 	nodeListEtags     map[string]uint64
 	nodeListEtagsLock sync.RWMutex
+
+	store DataStore
 }
 
-func NewRestHandler(containerLocator platforms.ContainerLocator) *RestHandler {
+func NewRestHandler(data *ServerData, containerLocator platforms.ContainerLocator, store DataStore) *RestHandler {
+
 	return &RestHandler{
-		debugAttachments: make(map[string]*models.DebugAttachment),
-		debugRequests:    make(map[string]*models.DebugRequest),
+		data:             data,
 		containerLocator: containerLocator,
 		nodeListEtags:    make(map[string]uint64),
+		store:            store,
 	}
 }
 
@@ -103,7 +101,7 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		log.WithField("dbgattachment", spew.Sdump(dbgattachment)).Debug("trying to match a debug request for debug attachment")
 
 		// find a matching request for the same image
-		dr := r.findUnboundDebugRequest(dbgattachment)
+		dr := r.data.FindUnboundDebugRequest(dbgattachment)
 		if dr == nil {
 			// error!
 			return debugattachment.NewAddDebugAttachmentNotFound()
@@ -125,75 +123,35 @@ func (r *RestHandler) DebugattachmentAddDebugAttachmentHandler(params debugattac
 		dbgattachment.Spec.ProcessName = dr.Spec.ProcessName
 
 		// we found a matching request - we can save now.
-		r.saveDebugAttachment(dbgattachment)
+		dbgattachment = r.saveDebugAttachment(dbgattachment)
 
 		go func(dr models.DebugRequest) {
 			dr.Status.DebugAttachmentRef = dbgattachment.Metadata.Name
 			// place the debug attachment
 			// update  the debug request
 			// release all locks
-			r.updateDebugRequest(dr)
+			r.data.UpdateDebugRequest(&dr, r.store)
 		}(*dr)
 
 	} else {
 		log.WithField("dbgattachment", spew.Sdump(dbgattachment)).Debug("DebugattachmentAddDebugAttachmentHandler match not needed, done.")
 
-		r.saveDebugAttachment(dbgattachment)
+		dbgattachment = r.saveDebugAttachment(dbgattachment)
 	}
 
 	return debugattachment.NewAddDebugAttachmentCreated().WithPayload(dbgattachment)
 }
 
-func (r *RestHandler) findUnboundDebugRequest(dbgattachment *models.DebugAttachment) *models.DebugRequest {
-	r.debugRequestsMapLock.RLock()
-	defer r.debugRequestsMapLock.RUnlock()
-	for _, dr := range r.debugRequests {
-		if dr.Status.DebugAttachmentRef != "" {
-			continue
-		}
-
-		if dr.Spec.Image == nil || *dr.Spec.Image != dbgattachment.Spec.Image {
-			continue
-		}
-
-		// logical NOT XOR
-		if (dr.Spec.Debugger == nil) == (dbgattachment.Spec.Debugger == "") {
-			continue
-		}
-
-		// Found a match, return it!
-
-		return dr
-	}
-	return nil
-}
-
-func (r *RestHandler) updateDebugRequest(dr models.DebugRequest) {
-	r.debugRequestsMapLock.Lock()
-	defer r.debugRequestsMapLock.Unlock()
-	r.debugRequests[dr.Metadata.Name] = &dr
-}
-
-func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) {
+func (r *RestHandler) saveDebugAttachment(da *models.DebugAttachment) *models.DebugAttachment {
 	if da.Status == nil {
 		da.Status = &models.DebugAttachmentStatus{
 			State: models.DebugAttachmentStatusStateNone,
 		}
 	}
-	func() {
-		r.debugAttachmentsMapLock.Lock()
-		defer r.debugAttachmentsMapLock.Unlock()
-		r.debugAttachments[da.Metadata.Name] = da
-	}()
-
+	da = r.data.UpdateDebugAttachment(da, r.store)
 	log.WithField("dbgattachment", spew.Sdump(da)).Debug("saveDebugAttachment - notifying waiters")
 	r.updateNodeListVersion(da.Spec.Node)
-}
-
-func (r *RestHandler) getDebugAttachment(name string) *models.DebugAttachment {
-	r.debugAttachmentsMapLock.RLock()
-	defer r.debugAttachmentsMapLock.RUnlock()
-	return r.debugAttachments[name]
+	return da
 }
 
 func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.CreateDebugRequestParams) middleware.Responder {
@@ -206,17 +164,13 @@ func (r *RestHandler) DebugrequestCreateDebugRequestHandler(params debugrequest.
 	if dr.Status == nil {
 		dr.Status = &models.DebugRequestStatus{}
 	}
-	r.debugRequestsMapLock.Lock()
-	defer r.debugRequestsMapLock.Unlock()
-
-	r.debugRequests[dr.Metadata.Name] = dr
-
+	dr = r.data.UpdateDebugRequest(dr, r.store)
 	return debugrequest.NewCreateDebugRequestCreated().WithPayload(dr)
 }
 
 func (r *RestHandler) DebugattachmentPatchDebugAttachmentHandler(params debugattachment.PatchDebugAttachmentParams) middleware.Responder {
 	newDa := params.Body
-	oldDa := r.getDebugAttachment(newDa.Metadata.Name)
+	oldDa := r.data.GetDebugAttachment(newDa.Metadata.Name)
 	if oldDa == nil {
 		return debugattachment.NewPatchDebugAttachmentNotFound()
 	}
@@ -267,30 +221,23 @@ func canUpdateState(oldstate, newstate string) bool {
 }
 
 func (r *RestHandler) DebugattachmentDeleteDebugAttachmentHandler(params debugattachment.DeleteDebugAttachmentParams) middleware.Responder {
-	r.debugAttachmentsMapLock.Lock()
-	defer r.debugAttachmentsMapLock.Unlock()
 
-	if da, ok := r.debugAttachments[params.DebugAttachmentID]; ok {
+	da := r.data.GetDebugAttachment(params.DebugAttachmentID)
+	if da != nil {
 		r.updateNodeListVersion(da.Spec.Node)
-		delete(r.debugAttachments, params.DebugAttachmentID)
+		r.data.DeleteDebugAttachment(params.DebugAttachmentID, r.store)
 	}
 
 	return debugattachment.NewDeleteDebugAttachmentOK()
 }
 
 func (r *RestHandler) DebugrequestDeleteDebugRequestHandler(params debugrequest.DeleteDebugRequestParams) middleware.Responder {
-	r.debugRequestsMapLock.Lock()
-	defer r.debugRequestsMapLock.Unlock()
-	delete(r.debugRequests, params.DebugRequestID)
-
+	r.data.DeleteDebugRequest(params.DebugRequestID, r.store)
 	return debugrequest.NewDeleteDebugRequestOK()
 }
 
 func (r *RestHandler) DebugattachmentGetDebugAttachmentHandler(params debugattachment.GetDebugAttachmentParams) middleware.Responder {
-	r.debugAttachmentsMapLock.RLock()
-	defer r.debugAttachmentsMapLock.RUnlock()
-
-	da := r.debugAttachments[params.DebugAttachmentID]
+	da := r.data.GetDebugAttachment(params.DebugAttachmentID)
 	if da != nil {
 		return debugattachment.NewGetDebugAttachmentOK().WithPayload(da)
 	}
@@ -355,14 +302,14 @@ func (r *RestHandler) DebugattachmentGetDebugAttachmentsHandler(params debugatta
 			}
 		}
 
-		r.debugAttachmentsMapLock.RLock()
-		defer r.debugAttachmentsMapLock.RUnlock()
+		r.data.debugAttachmentsMapLock.RLock()
+		defer r.data.debugAttachmentsMapLock.RUnlock()
 
 		if useVersion {
 			etagUsed = r.getNodeListVersion(*node)
 		}
 
-		for _, attachment := range r.debugAttachments {
+		for _, attachment := range r.data.debugAttachments {
 			if node != nil && attachment.Spec != nil && *node != attachment.Spec.Node {
 				continue
 			}
@@ -457,20 +404,18 @@ func (r *RestHandler) removeListener(listener chan struct{}) {
 }
 
 func (r *RestHandler) DebugrequestGetDebugRequestsHandler(params debugrequest.GetDebugRequestsParams) middleware.Responder {
-	r.debugRequestsMapLock.RLock()
-	defer r.debugRequestsMapLock.RUnlock()
-	debugrequests := make([]*models.DebugRequest, 0, len(r.debugRequests))
-	for _, dr := range r.debugRequests {
+	r.data.debugRequestsMapLock.RLock()
+	defer r.data.debugRequestsMapLock.RUnlock()
+	debugrequests := make([]*models.DebugRequest, 0, len(r.data.debugRequests))
+	for _, dr := range r.data.debugRequests {
 		debugrequests = append(debugrequests, dr)
 	}
 	return debugrequest.NewGetDebugRequestsOK().WithPayload(debugrequests)
 }
 
 func (r *RestHandler) DebugrequestGetDebugRequestHandler(params debugrequest.GetDebugRequestParams) middleware.Responder {
-	r.debugRequestsMapLock.RLock()
-	defer r.debugRequestsMapLock.RUnlock()
 
-	dr := r.debugRequests[params.DebugRequestID]
+	dr := r.data.GetDebugRequest(params.DebugRequestID)
 	if dr != nil {
 		return debugrequest.NewGetDebugRequestOK().WithPayload(dr)
 	}

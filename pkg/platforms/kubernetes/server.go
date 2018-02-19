@@ -5,12 +5,14 @@ import (
 	"errors"
 
 	log "github.com/Sirupsen/logrus"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/v1"
+	//	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/solo-io/squash/pkg/platforms"
+	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 )
 
 type KubeOperations struct {
@@ -36,7 +38,7 @@ func NewKubeOperations(ctx context.Context, config *rest.Config) (*KubeOperation
 
 func (s *KubeOperations) Locate(context context.Context, attachment interface{}) (interface{}, *platforms.Container, error) {
 
-	kubeAttachment, err := genericToKubeAttachment(attachment)
+	kubeAttachment, err := k8models.GenericToKubeAttachment(attachment)
 	if err != nil {
 		log.Warn("Locate - error converting attachment")
 		return nil, nil, err

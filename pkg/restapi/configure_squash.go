@@ -64,6 +64,10 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	var cl platforms.ContainerLocator = nil
+
+	data := server.NewServerData()
+	dataStore := server.NewNOPDataStore()
+
 	switch options.Cluster {
 	case "kube":
 		var config *rest.Config = nil
@@ -89,6 +93,10 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 			log.Fatalln(err)
 		}
 		cl = kube
+		dataStore, err = kubernetes.NewCRDDataStore(config, data)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	case "debug":
 		var d debug.DebugPlatform
 		cl = &d
@@ -96,7 +104,7 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 		panic("Invalid cluster option. perhaps you meant 'debug'?")
 	}
 
-	handler := server.NewRestHandler(cl)
+	handler := server.NewRestHandler(data, cl, dataStore)
 
 	api.DebugattachmentAddDebugAttachmentHandler = debugattachment.AddDebugAttachmentHandlerFunc(handler.DebugattachmentAddDebugAttachmentHandler)
 	api.DebugrequestCreateDebugRequestHandler = debugrequest.CreateDebugRequestHandlerFunc(handler.DebugrequestCreateDebugRequestHandler)
