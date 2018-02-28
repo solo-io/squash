@@ -36,7 +36,7 @@ To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSo
 
 ## Demo
 
-In the following demo we  debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The applications are composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
+In the following demo we  debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The application is composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
 
 <img src="images/squash-demo-2.gif" alt="Squash Demo" />
 
