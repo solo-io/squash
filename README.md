@@ -9,15 +9,15 @@
 <BR>
 
 
-Debugging microservices applications is a difficult task. The state of the application is spread across multi microservices and it is hard to get the holistic view of the state of the application. Currently debugging of microservices is assisted by openTracing, which helps in tracing of a transaction or workflow for post-mortem analysis, and service mesh like itsio which monitor the network to identify latency problems. These tools however, do not allow to monitor and interfere with the application during run time. 
+Debugging microservices applications is a difficult task. The state of the application is spread across multi microservices and it is hard to get the holistic view of the state of the application. Currently debugging of microservices is assisted by openTracing, which helps in tracing of a transaction or workflow for post-mortem analysis, and service mesh like Istio which monitor the network to identify latency problems. These tools however, do not allow to monitor and interfere with the application during run time. 
 
-In contrast, "traditional" debuggers of monolitic application provide devs with powerful features like setting breakpoints in their codes, following values of variables on the fly, stepping through the code, and changing these variables during run time. 
+In contrast, "traditional" debuggers of monolithic application provide devs with powerful features like setting breakpoints in their codes, following values of variables on the fly, stepping through the code, and changing these variables during run time. 
 
 Squash brings the power of modern popular debuggers to developers of microservices apps that run on container orchestration platforms. Squash bridges between the orchestration platform (without changing it) and IDE. Users are free to choose which containers, pods, services or images they are interested in debugging, and are allowed to set breakpoints in their codes, follow values of their variables on the fly, step through the code while jumping between microservices, and change these values during run time. 
 
 Squash is built to be easily extensible, allowing – and encouraging – adding support for more platforms, debuggers and IDEs.
 
-**[Envoy](https://www.envoyproxy.io) can ingerate with Squash through an HTTP filter, part of Envoy upstream - learn more [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html)**
+**[Envoy](https://www.envoyproxy.io) can integrate with Squash through an HTTP filter, part of Envoy upstream - learn more [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html)**
 
 To learn more about the motivation behind project squash, read our blog [post](https://www.solo.io/single-post/2017/05/14/Squash-Microservices-Debugger) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://www.solo.io/single-post/2017/08/22/Technical-introduction-to-Squash).
 
@@ -36,7 +36,7 @@ To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSo
 
 ## Demo
 
-In the following demo we  debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The applications is composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the exectution of the appliation.
+In the following demo we  debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The applications are composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
 
 <img src="images/squash-demo-2.gif" alt="Squash Demo" />
 
@@ -48,7 +48,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   - [install squash](docs/install)
 - **Getting Started**
   - [debug your microservice](docs/getting-started.md)
-- **User Documenation**
+- **User Documentation**
   - using [IDEs to debug](docs/IDEs.md)
   - using the [command line interface](docs/cli.md)
   - [Debug your java microservices](docs/debuggers/java.md)
@@ -59,7 +59,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 - **Developer Documentation**
   - how to [build squash](docs/build) from source
   - [technical overview](docs/techincal-overview.md)
-  - adding [debbuger](docs/debuggers.md) support
+  - adding [debugger](docs/debuggers.md) support
   - adding [platform](docs/platforms.md) support
   - squash's [REST API](http://squash.solo.io)
 
