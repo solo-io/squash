@@ -8,17 +8,17 @@ Currently Suqash only supports Kubernets. Other platforms coming up...
 
 ### Command Line Interface (CLI)
 Download the CLI binary:
-- [Linux](https://github.com/solo-io/squash/releases/download/v0.2.0/squash-linux)     
-- [OS X](https://github.com/solo-io/squash/releases/download/v0.2.0/squash-osx)
+- [Linux](https://github.com/solo-io/squash/releases/download/v0.2.1/squash-linux)     
+- [OS X](https://github.com/solo-io/squash/releases/download/v0.2.1/squash-osx)
 
 **For Linux**
 ```
-curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.0/squash-linux
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.1/squash-linux
 ```
 
 **For Mac OS X**
 ```
-curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.0/squash-osx
+curl -o squash -L https://github.com/solo-io/squash/releases/download/v0.2.1/squash-osx
 ```
 
 Then enable execution permission:
