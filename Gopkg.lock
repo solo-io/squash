@@ -587,6 +587,18 @@
   version = "kubernetes-1.10.0"
 
 [[projects]]
+  branch = "master"
+  name = "k8s.io/apiextensions-apiserver"
+  packages = [
+    "pkg/apis/apiextensions",
+    "pkg/apis/apiextensions/v1beta1",
+    "pkg/client/clientset/clientset",
+    "pkg/client/clientset/clientset/scheme",
+    "pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+  ]
+  revision = "3944812f8ec186cf57dbabd6de029c5420e39572"
+
+[[projects]]
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -635,6 +647,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "discovery/fake",
     "kubernetes",
     "kubernetes/scheme",
     "kubernetes/typed/admissionregistration/v1alpha1",
@@ -676,6 +689,7 @@
     "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
+    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -693,7 +707,8 @@
     "util/homedir",
     "util/integer",
     "util/jsonpath",
-    "util/retry"
+    "util/retry",
+    "util/workqueue"
   ]
   revision = "23781f4d6632d88e869066eaebb743857aa1ef9b"
   version = "v7.0.0"
@@ -704,9 +719,15 @@
   revision = "dd5e1a2978fd0b97d9b78e1564398aeea7e7fe92"
   version = "v1.9.7"
 
+[[projects]]
+  branch = "master"
+  name = "k8s.io/sample-controller"
+  packages = ["pkg/signals"]
+  revision = "c0feae0701289645c78718e35822954864e3942e"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2a447e1d4b67d62bb3bbcce6d1715d74f6c49490693d32270377f76e7ec2b24b"
+  inputs-digest = "a021d9ff063b2e6edb4b275ef29544b8b06e2b8eec9d3e7b31ef39ccea315405"
   solver-name = "gps-cdcl"
   solver-version = 1

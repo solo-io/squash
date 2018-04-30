@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes/crd"
 	"github.com/solo-io/squash/pkg/server"

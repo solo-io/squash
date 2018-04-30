@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	v1 "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/apis/squash/v1"
 	clientset "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/client/clientset/versioned"
 	informers "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/client/informers/externalversions"

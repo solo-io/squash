@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"reflect"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/models"
 	v1 "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/apis/squash/v1"
 	clientset "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/client/clientset/versioned"
 	informers "github.com/solo-io/squash/pkg/platforms/kubernetes/crd/client/informers/externalversions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+
 	apiexts "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

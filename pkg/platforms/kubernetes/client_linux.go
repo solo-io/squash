@@ -49,7 +49,7 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 	return c.GetContainerInfoKube(maincontext, ka)
 }
 
-func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, ka *KubeAttachment) (*platforms.ContainerInfo, error) {
+func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, ka *k8models.KubeAttachment) (*platforms.ContainerInfo, error) {
 
 	if maincontext == nil {
 		maincontext = context.Background()
