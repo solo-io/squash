@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 
 	"fmt"

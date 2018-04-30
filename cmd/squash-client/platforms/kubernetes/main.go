@@ -1,7 +1,7 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 	"github.com/solo-io/squash/pkg/debuggers/dlv"
 	"github.com/solo-io/squash/pkg/debuggers/gdb"

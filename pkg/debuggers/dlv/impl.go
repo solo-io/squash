@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/derekparker/delve/service/rpc1"
 	"github.com/solo-io/squash/pkg/debuggers"
 )

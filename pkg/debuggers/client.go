@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/solo-io/squash/pkg/client"
 	"github.com/solo-io/squash/pkg/client/debugattachment"

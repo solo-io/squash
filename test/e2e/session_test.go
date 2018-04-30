@@ -7,7 +7,7 @@ import (
 	"time"
 
 	//	. "github.com/solo-io/squash/test/e2e"
-	//"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

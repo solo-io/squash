@@ -16,7 +16,7 @@ import (
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils/processwatcher"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 	"google.golang.org/grpc"
@@ -28,7 +28,9 @@ const criRuntime = "/var/run/cri.sock"
 type CRIContainerProcess struct {
 }
 
-func NewContainerProcess() platforms.ContainerProcess {
+var _ platforms.ContainerProcess = &CRIContainerProcess{}
+
+func NewContainerProcess() *CRIContainerProcess {
 	return &CRIContainerProcess{}
 }
 
@@ -43,6 +45,14 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 
 	if err != nil {
 		return nil, errors.New("bad attachment format")
+	}
+	return c.GetContainerInfoKube(maincontext, ka)
+}
+
+func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, ka *KubeAttachment) (*platforms.ContainerInfo, error) {
+
+	if maincontext == nil {
+		maincontext = context.Background()
 	}
 
 	// contact the local CRI and get the container
