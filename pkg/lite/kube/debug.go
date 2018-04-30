@@ -3,6 +3,7 @@ package kube
 import (
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -210,8 +211,23 @@ func (dp *DebugPrepare) chooseNamespace() (string, error) {
 	}
 	namespaceNames := make([]string, 0, len(namespaces.Items))
 	for _, ns := range namespaces.Items {
-		namespaceNames = append(namespaceNames, ns.ObjectMeta.Name)
+		nsname := ns.ObjectMeta.Name
+		if nsname == "squash" {
+			continue
+		}
+		if strings.HasPrefix(nsname, "kube-") {
+			continue
+		}
+		namespaceNames = append(namespaceNames, nsname)
 	}
+	if len(namespaceNames) == 0 {
+		return "", errors.New("no namespaces available!")
+	}
+
+	if len(namespaceNames) == 1 {
+		return namespaceNames[0], nil
+	}
+
 	question := &survey.Select{
 		Message: "Select a namespace",
 		Options: namespaceNames,
@@ -274,10 +290,11 @@ metadata:
   generateName: squash-lite-container
 spec:
   hostPID: true
+  restartPolicy: Never
   nodeName: placeholder
   containers:
   - name: squash-lite-container
-    image: soloio/squash-lite-container
+    image: soloio/squash-lite-container:placeholder
     stdin: true
     stdinOnce: true
     tty: true
