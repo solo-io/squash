@@ -1,51 +1,31 @@
 package kube
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
-	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	skaffkubeapi "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
-	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-func Debug() error {
-	cfg := GetConfig()
+var ImageVersion string
 
-	containerProcess := squashkube.NewContainerProcess()
-	info, err := containerProcess.GetContainerInfoKube(nil, &cfg.Attachment)
-	if err != nil {
-		return err
-	}
-
-	pid := info.Pids[0]
-
-	// exec into dlv
-	log.WithField("pid", pid).Info("attaching with dlv")
-	fulldlv, err := exec.LookPath("dlv")
-	if err != nil {
-		return err
-	}
-	err = syscall.Exec(fulldlv, []string{"dlv", "attach", fmt.Sprintf("%d", pid)}, nil)
-	log.WithField("err", err).Info("exec failed!")
-
-	return errors.New("can't start dlv")
-}
+const (
+	ImageContainer = "soloio/squash-lite-container"
+	namespace      = "squash"
+)
 
 func StartDebugContainer() error {
 
@@ -61,7 +41,10 @@ func StartDebugContainer() error {
 	if err != nil {
 		return err
 	}
-	createdPod, err := dp.getClientSet().CoreV1().Pods("squash").Create(dbgpod)
+	// create namespace. ignore errors as it most likely exists and will error
+	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+
+	createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Create(dbgpod)
 	if err != nil {
 		return err
 	}
@@ -71,7 +54,7 @@ func StartDebugContainer() error {
 	for {
 		var options metav1.GetOptions
 
-		createdPod, err := dp.getClientSet().CoreV1().Pods("squash").Get(name, options)
+		createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Get(name, options)
 		if err != nil {
 			return err
 		}
@@ -83,9 +66,15 @@ func StartDebugContainer() error {
 		}
 		time.Sleep(time.Second)
 	}
+	if os.Getenv("NO_CLEAN") != "1" {
+		defer func() {
+			var options metav1.DeleteOptions
+			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
+		}()
+	}
 
 	// attach to the created
-	cmd := exec.Command("kubectl", "attach", "-n", "squash", "-i", "-t", createdPod.ObjectMeta.Name)
+	cmd := exec.Command("kubectl", "attach", "-n", namespace, "-i", "-t", createdPod.ObjectMeta.Name)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -95,6 +84,7 @@ func StartDebugContainer() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -185,6 +175,9 @@ func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, err
 			return nil, errors.Wrap(err, "choosing namespace")
 		}
 	}
+
+	// TODO: if we have a container with no pod,
+	// should only pods that contain it.
 	if podname == "" {
 		var err error
 		debuggee.Pod, err = dp.choosePod(debuggee.Namespace)
@@ -264,6 +257,7 @@ func (dp *DebugPrepare) debugPodFor(in *v1.Pod, containername string) (*v1.Pod, 
 	}
 	templatePod := obj.(*v1.Pod)
 	templatePod.Spec.NodeName = in.Spec.NodeName
+	templatePod.Spec.Containers[0].Image = ImageContainer + ":" + ImageVersion
 	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
 	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
 	templatePod.Spec.Containers[0].Env[2].Value = containername
@@ -283,8 +277,7 @@ spec:
   nodeName: placeholder
   containers:
   - name: squash-lite-container
-    image: soloio/squash-lite-container:v0.2.1-63-gee29fd98
-    imagePullPolicy: Never
+    image: soloio/squash-lite-container
     stdin: true
     stdinOnce: true
     tty: true

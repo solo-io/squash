@@ -26,7 +26,7 @@ target/squash: target $(SRCS)
 	go build -o $@ ./cmd/squash-cli
 
 target/squash-lite: target $(SRCS)
-	go build -o $@ ./cmd/squash-lite
+	go build -ldflags "-X github.com/solo-io/squash/pkg/lite/kube.ImageVersion=$(VERSION)" -o $@ ./cmd/squash-lite
 
 target/squash-linux: target $(SRCS)
 	GOOS=linux go build -o $@ ./cmd/squash-cli
