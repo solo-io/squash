@@ -280,7 +280,6 @@ metadata:
   generateName: squash-lite-container
 spec:
   hostPID: true
-  restartPolicy: Never
   nodeName: placeholder
   containers:
   - name: squash-lite-container
