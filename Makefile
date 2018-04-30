@@ -83,6 +83,9 @@ target/squash-lite-container-container: ./target/squash-lite-container/squash-li
 	docker build -t $(DOCKER_REPO)/squash-lite-container:$(VERSION) ./target/squash-lite-container/
 	touch $@
 
+target/squash-lite-container-pushed: target/squash-lite-container-container
+	docker push $(DOCKER_REPO)/squash-lite-container:$(VERSION)
+	touch $@
 
 
 
