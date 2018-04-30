@@ -22,20 +22,46 @@ import (
 )
 
 var ImageVersion string
+var ImageRepo string
 
 const (
-	ImageContainer = "soloio/squash-lite-container"
+	ImageContainer = "squash-lite-container"
 	namespace      = "squash"
+	skaffoldFile   = "skaffold.yaml"
 )
+
+func (dp *DebugPrepare) trySkaffold() error {
+	image, podname, err := SkaffoldConfigToPod(skaffoldFile)
+
+	if err != nil {
+		return err
+	}
+
+	dp.GetMissing("default", podname, image)
+	panic("TODO")
+}
 
 func StartDebugContainer() error {
 
 	// find the container from skaffold, or ask the user to chose one.
 
 	var dp DebugPrepare
-	dbg, err := dp.GetMissing("", "", "")
+
+	image, podname, _ := SkaffoldConfigToPod(skaffoldFile)
+
+	dbg, err := dp.GetMissing("", podname, image)
 	if err != nil {
 		return err
+	}
+
+	confirmed := false
+	prompt := &survey.Confirm{
+		Message: "Going to attach dlv to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
+		Default: true,
+	}
+	survey.AskOne(prompt, &confirmed, nil)
+	if !confirmed {
+		return errors.New("user aborted")
 	}
 
 	dbgpod, err := dp.debugPodFor(dbg.Pod, dbg.Container.Name)
@@ -122,7 +148,10 @@ func GetSkaffoldConfig(filename string) (*config.SkaffoldConfig, error) {
 
 	// we already ensured that the versions match in the previous block,
 	// so this type assertion is safe.
-	latestConfig := cfg.(*config.SkaffoldConfig)
+	latestConfig, ok := cfg.(*config.SkaffoldConfig)
+	if !ok {
+		return nil, errors.Wrap(err, "can't use skaffold config")
+	}
 	return latestConfig, nil
 }
 
@@ -132,21 +161,12 @@ func SkaffoldConfigToPod(filename string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	image := latestConfig.Build.Artifacts[0].ImageName
-	podname := latestConfig.Deploy.Name
-	return image, podname, nil
-}
-
-func (dp *DebugPrepare) trySkaffold() error {
-	filename := "skaffold.yaml"
-	image, podname, err := SkaffoldConfigToPod(filename)
-
-	if err != nil {
-		return err
+	if len(latestConfig.Build.Artifacts) == 0 {
+		return "", "", errors.New("no artifacts")
 	}
-
-	dp.GetMissing("default", podname, image)
-	panic("TODO")
+	image := latestConfig.Build.Artifacts[0].ImageName
+	podname := "" //latestConfig.Deploy.Name
+	return image, podname, nil
 }
 
 func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
@@ -177,11 +197,9 @@ func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, err
 		}
 	}
 
-	// TODO: if we have a container with no pod,
-	// should only pods that contain it.
 	if podname == "" {
 		var err error
-		debuggee.Pod, err = dp.choosePod(debuggee.Namespace)
+		debuggee.Pod, err = dp.choosePod(debuggee.Namespace, container)
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing pod")
 		}
@@ -198,7 +216,6 @@ func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, err
 			debuggee.Container = &debuggee.Pod.Spec.Containers[0]
 		}
 	}
-
 	return &debuggee, nil
 }
 
@@ -239,7 +256,7 @@ func (dp *DebugPrepare) chooseNamespace() (string, error) {
 	return choice, nil
 }
 
-func (dp *DebugPrepare) choosePod(ns string) (*v1.Pod, error) {
+func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 
 	var options metav1.ListOptions
 	pods, err := dp.getClientSet().CoreV1().Pods(ns).List(options)
@@ -248,21 +265,36 @@ func (dp *DebugPrepare) choosePod(ns string) (*v1.Pod, error) {
 	}
 	podName := make([]string, 0, len(pods.Items))
 	for _, pod := range pods.Items {
-		podName = append(podName, pod.ObjectMeta.Name)
+		if container == "" {
+			podName = append(podName, pod.ObjectMeta.Name)
+		} else {
+			for _, podContainer := range pod.Spec.Containers {
+				if strings.HasPrefix(podContainer.Image, container) {
+					podName = append(podName, pod.ObjectMeta.Name)
+					break
+				}
+			}
+		}
 	}
-	question := &survey.Select{
-		Message: "Select a pod",
-		Options: podName,
-	}
+
 	var choice string
-	if err := survey.AskOne(question, &choice, survey.Required); err != nil {
-		return nil, err
+	if len(podName) == 1 {
+		choice = podName[0]
+	} else {
+		question := &survey.Select{
+			Message: "Select a pod",
+			Options: podName,
+		}
+		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
+			return nil, err
+		}
 	}
 	for _, pod := range pods.Items {
 		if choice == pod.ObjectMeta.Name {
 			return &pod, nil
 		}
 	}
+
 	return nil, errors.New("pod not found")
 }
 
@@ -273,7 +305,7 @@ func (dp *DebugPrepare) debugPodFor(in *v1.Pod, containername string) (*v1.Pod, 
 	}
 	templatePod := obj.(*v1.Pod)
 	templatePod.Spec.NodeName = in.Spec.NodeName
-	templatePod.Spec.Containers[0].Image = ImageContainer + ":" + ImageVersion
+	templatePod.Spec.Containers[0].Image = ImageRepo + "/" + ImageContainer + ":" + ImageVersion
 	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
 	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
 	templatePod.Spec.Containers[0].Env[2].Value = containername
@@ -294,7 +326,7 @@ spec:
   nodeName: placeholder
   containers:
   - name: squash-lite-container
-    image: soloio/squash-lite-container:placeholder
+    image: placeholder/squash-lite-container:placeholder
     stdin: true
     stdinOnce: true
     tty: true
