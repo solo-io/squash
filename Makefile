@@ -2,7 +2,7 @@
 all: binaries deployment
 
 .PHONY: binaries
-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
+binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash target/squash-lite-container/squash-lite-container target/squash-lite
 
 .PHONY: release-binaries
 release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
@@ -24,6 +24,9 @@ target:
 
 target/squash: target $(SRCS)
 	go build -o $@ ./cmd/squash-cli
+
+target/squash-lite: target $(SRCS)
+	go build -o $@ ./cmd/squash-lite
 
 target/squash-linux: target $(SRCS)
 	GOOS=linux go build -o $@ ./cmd/squash-cli
@@ -63,6 +66,25 @@ target/squash-server/Dockerfile: cmd/squash-server/Dockerfile
 target/squash-server-container: ./target/squash-server/squash-server target/squash-server/Dockerfile
 	docker build -t $(DOCKER_REPO)/squash-server:$(VERSION) ./target/squash-server/
 	touch $@
+
+target/squash-lite-container/:
+	[ -d $@ ] || mkdir -p $@
+
+target/squash-lite-container/squash-lite-container: | target/squash-lite-container/
+target/squash-lite-container/Dockerfile:    | target/squash-lite-container/
+
+target/squash-lite-container/squash-lite-container: $(SRCS)
+	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o ./target/squash-lite-container/squash-lite-container ./cmd/squash-lite-container/
+
+target/squash-lite-container/Dockerfile: cmd/squash-lite-container/Dockerfile
+	cp cmd/squash-lite-container/Dockerfile target/squash-lite-container/Dockerfile
+
+target/squash-lite-container-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile
+	docker build -t $(DOCKER_REPO)/squash-lite-container:$(VERSION) ./target/squash-lite-container/
+	touch $@
+
+
+
 
 target/squash-client-container: target/squash-client/squash-client target/squash-client/Dockerfile
 	docker build -t $(DOCKER_REPO)/squash-client:$(VERSION) ./target/squash-client/

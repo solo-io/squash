@@ -19,11 +19,16 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
-	"google.golang.org/grpc"
-	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	criapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
+
+	"k8s.io/kubernetes/pkg/kubelet/remote"
 )
 
-const criRuntime = "/var/run/cri.sock"
+const (
+	criRuntime     = "unix:///var/run/cri.sock"
+	defaultTimeout = 10 * time.Second
+)
 
 type CRIContainerProcess struct {
 }
@@ -56,49 +61,42 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	}
 
 	// contact the local CRI and get the container
-
-	cc, err := grpc.Dial(criRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
-	runtimeService := kubeapi.NewRuntimeServiceClient(cc)
+	runtimeService, err := remote.NewRemoteRuntimeService(criRuntime, defaultTimeout)
+	if err != nil {
+		return nil, err
+	}
 
 	labels := make(map[string]string)
 	labels["io.kubernetes.pod.name"] = ka.Pod
 	labels["io.kubernetes.pod.namespace"] = ka.Namespace
 	st := kubeapi.PodSandboxStateValue{State: kubeapi.PodSandboxState_SANDBOX_READY}
-	inpod := &kubeapi.ListPodSandboxRequest{
-		Filter: &kubeapi.PodSandboxFilter{
-			LabelSelector: labels,
-			State:         &st,
-		},
+	inpod := &kubeapi.PodSandboxFilter{
+		LabelSelector: labels,
+		State:         &st,
 	}
 
 	log.WithField("inpod", spew.Sdump(inpod)).Debug("Cri GetPid ListPodSandbox")
 
-	ctx, cancel := context.WithTimeout(maincontext, time.Second)
-	resp, err := runtimeService.ListPodSandbox(ctx, inpod)
-	cancel()
+	resp, err := runtimeService.ListPodSandbox(inpod)
 	if err != nil {
 		log.WithField("err", err).Warn("ListPodSandbox error")
 		return nil, err
 	}
-	if len(resp.Items) != 1 {
-		log.WithField("items", spew.Sdump(resp.Items)).Warn("Invalid number of pods")
+	if len(resp) != 1 {
+		log.WithField("items", spew.Sdump(resp)).Warn("Invalid number of pods")
 		return nil, errors.New("Invalid number of pods")
 	}
-	pod := resp.Items[0]
+	pod := resp[0]
 
 	labels = make(map[string]string)
 	labels["io.kubernetes.container.name"] = ka.Container
-	incont := &kubeapi.ListContainersRequest{
-		Filter: &kubeapi.ContainerFilter{
-			PodSandboxId:  pod.Id,
-			LabelSelector: labels,
-		},
+	incont := &kubeapi.ContainerFilter{
+		PodSandboxId:  pod.Id,
+		LabelSelector: labels,
 	}
 	log.WithField("incont", spew.Sdump(incont)).Debug("Cri GetPid ListContainers")
 
-	ctx, cancel = context.WithTimeout(maincontext, time.Second)
-	respcont, err := runtimeService.ListContainers(ctx, incont)
-	cancel()
+	respcont, err := runtimeService.ListContainers(incont)
 
 	if err != nil {
 		log.WithField("err", err).Warn("ListContainers error")
@@ -107,7 +105,7 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	log.WithField("respcont", spew.Sdump(respcont)).Debug("Cri GetPid ListContainers - got response")
 
 	var containers []*kubeapi.Container
-	for _, cont := range respcont.Containers {
+	for _, cont := range respcont {
 		if cont.State == kubeapi.ContainerState_CONTAINER_RUNNING {
 			containers = append(containers, cont)
 		}
@@ -167,17 +165,11 @@ func FindPidsInNS(inod uint64, ns string) ([]int, error) {
 	return res, nil
 }
 
-func getNS(origctx context.Context, cli kubeapi.RuntimeServiceClient, ns string, containerid string) (uint64, error) {
+func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, containerid string) (uint64, error) {
 
-	req := &kubeapi.ExecSyncRequest{
-		ContainerId: containerid,
-		Cmd:         []string{"ls", "-l", "/proc/self/ns/"},
-		Timeout:     1,
-	}
+	cmd := []string{"ls", "-l", "/proc/self/ns/"}
 
-	ctx, cancel := context.WithTimeout(origctx, time.Second)
-	result, err := cli.ExecSync(ctx, req)
-	cancel()
+	stdout, _, err := cli.ExecSync(containerid, cmd, time.Second)
 	if err != nil {
 		log.WithField("err", err).Warn("Error exec sync to get pid ns!")
 		return 0, err
@@ -186,7 +178,7 @@ func getNS(origctx context.Context, cli kubeapi.RuntimeServiceClient, ns string,
 	lrwxrwxrwx 1 root root 0 Jul 28 16:39 /proc/1/ns/pid -> pid:[4026532605]
 	...
 	*/
-	output := result.Stdout
+	output := stdout
 	regex := regexp.MustCompile(ns + `:\[(\d+)\]`)
 	matches := regex.FindStringSubmatch(string(output))
 	if len(matches) != 2 {
