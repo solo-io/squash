@@ -82,6 +82,13 @@ func StartDebugContainer() error {
 
 	// wait for runnign state
 	name := createdPod.ObjectMeta.Name
+	if os.Getenv("NO_CLEAN") != "1" {
+		defer func() {
+			var options metav1.DeleteOptions
+			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
+		}()
+	}
+
 	for {
 		var options metav1.GetOptions
 
@@ -93,15 +100,10 @@ func StartDebugContainer() error {
 			break
 		}
 		if createdPod.Status.Phase != v1.PodPending {
+			// TODO: print logs from the pod
 			return errors.New("pod is not running and not pending")
 		}
 		time.Sleep(time.Second)
-	}
-	if os.Getenv("NO_CLEAN") != "1" {
-		defer func() {
-			var options metav1.DeleteOptions
-			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
-		}()
 	}
 
 	// attach to the created
@@ -350,6 +352,7 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
 	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
 	templatePod.Spec.Containers[0].Env[2].Value = containername
+	templatePod.Spec.Containers[0].Env[3].Value = debugger
 
 	return templatePod, nil
 }
@@ -385,6 +388,8 @@ spec:
     - name: SQUASH_POD
       value: placeholder
     - name: SQUASH_CONTAINER
+      value: placeholder
+    - name: DEBUGGER
       value: placeholder
   volumes:
   - name: crisock
