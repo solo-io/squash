@@ -19,7 +19,7 @@ type DebuggerInfo struct {
 var debuggers map[string]*DebuggerInfo
 
 func init() {
-	debuggers := make(map[string]*DebuggerInfo)
+	debuggers = make(map[string]*DebuggerInfo)
 	debuggers["dlv"] = &DebuggerInfo{CmdlineGen: func(pid int) []string {
 		return []string{"attach", fmt.Sprintf("%d", pid)}
 	}}
