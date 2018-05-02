@@ -241,6 +241,9 @@ func (dp *DebugPrepare) chooseContainer(pod *v1.Pod) (*v1.Container, error) {
 
 func (dp *DebugPrepare) detectLang() string {
 	// TODO: find some decent huristics to make this work
+	if os.Getenv("DONT_DETECT_LANG") == "1" {
+		return ""
+	}
 	return "dlv"
 }
 
