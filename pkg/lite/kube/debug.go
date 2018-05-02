@@ -352,7 +352,6 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
 	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
 	templatePod.Spec.Containers[0].Env[2].Value = containername
-	templatePod.Spec.Containers[0].Env[3].Value = debugger
 
 	return templatePod, nil
 }
@@ -388,8 +387,6 @@ spec:
     - name: SQUASH_POD
       value: placeholder
     - name: SQUASH_CONTAINER
-      value: placeholder
-    - name: DEBUGGER
       value: placeholder
   volumes:
   - name: crisock
