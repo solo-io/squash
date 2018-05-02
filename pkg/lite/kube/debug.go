@@ -1,6 +1,8 @@
 package kube
 
 import (
+	"context"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -89,21 +91,11 @@ func StartDebugContainer() error {
 		}()
 	}
 
-	for {
-		var options metav1.GetOptions
-
-		createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Get(name, options)
-		if err != nil {
-			return err
-		}
-		if createdPod.Status.Phase == v1.PodRunning {
-			break
-		}
-		if createdPod.Status.Phase != v1.PodPending {
-			// TODO: print logs from the pod
-			return errors.New("pod is not running and not pending")
-		}
-		time.Sleep(time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	err = <-dp.waitForPod(ctx, createdPod)
+	cancel()
+	if err != nil {
+		return err
 	}
 
 	// attach to the created
@@ -118,6 +110,62 @@ func StartDebugContainer() error {
 		return err
 	}
 
+	return nil
+}
+
+func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan error {
+	errchan := make(chan error, 1)
+	go func() {
+		defer close(errchan)
+		name := createdPod.ObjectMeta.Name
+
+		for {
+			select {
+			case <-ctx.Done():
+				errchan <- ctx.Err()
+				return
+			case <-time.After(time.Second):
+
+				var options metav1.GetOptions
+				options.ResourceVersion = createdPod.ResourceVersion
+				var err error
+				createdPod, err = dp.getClientSet().CoreV1().Pods(namespace).Get(name, options)
+				if err != nil {
+					errchan <- err
+					return
+				}
+				if createdPod.Status.Phase == v1.PodRunning {
+					return
+				}
+				if createdPod.Status.Phase != v1.PodPending {
+					err := dp.printError(createdPod)
+					if err != nil {
+						errchan <- errors.Wrap(err, "pod is not running and not pending")
+					} else {
+						errchan <- errors.New("pod is not running and not pending")
+					}
+					return
+				}
+			}
+		}
+	}()
+	return errchan
+}
+
+func (dp *DebugPrepare) printError(pod *v1.Pod) error {
+	var options v1.PodLogOptions
+	req := dp.getClientSet().Core().Pods(namespace).GetLogs(pod.ObjectMeta.Name, &options)
+
+	readCloser, err := req.Stream()
+	if err != nil {
+		return err
+	}
+	defer readCloser.Close()
+
+	_, err = io.Copy(os.Stderr, readCloser)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
