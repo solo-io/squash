@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Attachment k8models.KubeAttachment
+	Debugger   string
 }
 
 func GetConfig() Config {
@@ -17,5 +18,6 @@ func GetConfig() Config {
 			Pod:       os.Getenv("SQUASH_POD"),
 			Container: os.Getenv("SQUASH_CONTAINER"),
 		},
+		Debugger: os.Getenv("DEBUGGER"),
 	}
 }

@@ -71,20 +71,30 @@ target/squash-lite-container/:
 	[ -d $@ ] || mkdir -p $@
 
 target/squash-lite-container/squash-lite-container: | target/squash-lite-container/
-target/squash-lite-container/Dockerfile:    | target/squash-lite-container/
-
 target/squash-lite-container/squash-lite-container: $(SRCS)
 	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o ./target/squash-lite-container/squash-lite-container ./cmd/squash-lite-container/
 
-target/squash-lite-container/Dockerfile: cmd/squash-lite-container/Dockerfile
-	cp cmd/squash-lite-container/Dockerfile target/squash-lite-container/Dockerfile
 
-target/squash-lite-container-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile
-	docker build -t $(DOCKER_REPO)/squash-lite-container:$(VERSION) ./target/squash-lite-container/
+target/squash-lite-container/Dockerfile.dlv:    | target/squash-lite-container/
+target/squash-lite-container/Dockerfile.dlv: cmd/squash-lite-container/Dockerfile.dlv
+	cp cmd/squash-lite-container/Dockerfile.dlv target/squash-lite-container/Dockerfile.dlv
+target/squash-lite-container-dlv-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile.dlv
+	docker build -f target/squash-lite-container/Dockerfile.dlv -t $(DOCKER_REPO)/squash-lite-container-dlv:$(VERSION) ./target/squash-lite-container/
+	touch $@
+target/squash-lite-container-dlv-pushed: target/squash-lite-container-dlv-container
+	docker push $(DOCKER_REPO)/squash-lite-container-dlv:$(VERSION)
 	touch $@
 
-target/squash-lite-container-pushed: target/squash-lite-container-container
-	docker push $(DOCKER_REPO)/squash-lite-container:$(VERSION)
+
+
+target/squash-lite-container/Dockerfile.gdb:    | target/squash-lite-container/
+target/squash-lite-container/Dockerfile.gdb: cmd/squash-lite-container/Dockerfile.gdb
+	cp cmd/squash-lite-container/Dockerfile.gdb target/squash-lite-container/Dockerfile.gdb
+target/squash-lite-container-gdb-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile.gdb
+	docker build -f target/squash-lite-container/Dockerfile.gdb -t $(DOCKER_REPO)/squash-lite-container-gdb:$(VERSION) ./target/squash-lite-container/
+	touch $@
+target/squash-lite-container-gdb-pushed: target/squash-lite-container-gdb-container
+	docker push $(DOCKER_REPO)/squash-lite-container-gdb:$(VERSION)
 	touch $@
 
 

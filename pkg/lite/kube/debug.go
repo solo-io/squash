@@ -42,10 +42,14 @@ func (dp *DebugPrepare) trySkaffold() error {
 }
 
 func StartDebugContainer() error {
-
 	// find the container from skaffold, or ask the user to chose one.
 
 	var dp DebugPrepare
+
+	debugger, err := dp.chooseDebugger()
+	if err != nil {
+		return err
+	}
 
 	image, podname, _ := SkaffoldConfigToPod(skaffoldFile)
 
@@ -56,7 +60,7 @@ func StartDebugContainer() error {
 
 	confirmed := false
 	prompt := &survey.Confirm{
-		Message: "Going to attach dlv to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
+		Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
 		Default: true,
 	}
 	survey.AskOne(prompt, &confirmed, nil)
@@ -64,7 +68,7 @@ func StartDebugContainer() error {
 		return errors.New("user aborted")
 	}
 
-	dbgpod, err := dp.debugPodFor(dbg.Pod, dbg.Container.Name)
+	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
 		return err
 	}
@@ -212,11 +216,48 @@ func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, err
 	}
 
 	if container == "" {
-		if len(debuggee.Pod.Spec.Containers) == 1 {
-			debuggee.Container = &debuggee.Pod.Spec.Containers[0]
+		var err error
+		debuggee.Container, err = dp.chooseContainer(debuggee.Pod)
+		if err != nil {
+			return nil, errors.Wrap(err, "choosing container")
 		}
 	}
 	return &debuggee, nil
+}
+
+func (dp *DebugPrepare) chooseContainer(pod *v1.Pod) (*v1.Container, error) {
+	if len(pod.Spec.Containers) == 0 {
+		return nil, errors.New("no container to choose from")
+
+	}
+	if len(pod.Spec.Containers) == 1 {
+		return &pod.Spec.Containers[0], nil
+	}
+	// TODO: should we make this a user choice?
+	return &pod.Spec.Containers[0], nil
+}
+
+func (dp *DebugPrepare) detectLang() string {
+	// TODO: find some decent huristics to make this work
+	return "dlv"
+}
+
+func (dp *DebugPrepare) chooseDebugger() (string, error) {
+	availableDebuggers := []string{"dlv", "gdb"}
+	debugger := dp.detectLang()
+
+	if debugger == "" {
+		question := &survey.Select{
+			Message: "Select a debugger",
+			Options: availableDebuggers,
+		}
+		var choice string
+		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
+			return "", err
+		}
+		return choice, nil
+	}
+	return debugger, nil
 }
 
 func (dp *DebugPrepare) chooseNamespace() (string, error) {
@@ -298,14 +339,14 @@ func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 	return nil, errors.New("pod not found")
 }
 
-func (dp *DebugPrepare) debugPodFor(in *v1.Pod, containername string) (*v1.Pod, error) {
+func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
 	obj, _, err := scheme.Codecs.UniversalDecoder(schema.GroupVersion{Version: "v1"}).Decode([]byte(podTemplate), nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	templatePod := obj.(*v1.Pod)
 	templatePod.Spec.NodeName = in.Spec.NodeName
-	templatePod.Spec.Containers[0].Image = ImageRepo + "/" + ImageContainer + ":" + ImageVersion
+	templatePod.Spec.Containers[0].Image = ImageRepo + "/" + ImageContainer + "-" + debugger + ":" + ImageVersion
 	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
 	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
 	templatePod.Spec.Containers[0].Env[2].Value = containername

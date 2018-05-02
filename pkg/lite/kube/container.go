@@ -12,8 +12,29 @@ import (
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
+type DebuggerInfo struct {
+	CmdlineGen func(int) []string
+}
+
+var debuggers map[string]*DebuggerInfo
+
+func init() {
+	debuggers["dlv"] = &DebuggerInfo{CmdlineGen: func(pid int) []string {
+		return []string{"attach", fmt.Sprintf("%d", pid)}
+	}}
+
+	debuggers["gdb"] = &DebuggerInfo{CmdlineGen: func(pid int) []string {
+		return []string{"-p", fmt.Sprintf("%d", pid)}
+	}}
+}
+
 func Debug() error {
 	cfg := GetConfig()
+
+	dbgInfo := debuggers[cfg.Debugger]
+	if dbgInfo == nil {
+		return errors.New("unknown debugger")
+	}
 
 	containerProcess := squashkube.NewContainerProcess()
 	info, err := containerProcess.GetContainerInfoKube(nil, &cfg.Attachment)
@@ -24,13 +45,13 @@ func Debug() error {
 	pid := info.Pids[0]
 
 	// exec into dlv
-	log.WithField("pid", pid).Info("attaching with dlv")
-	fulldlv, err := exec.LookPath("dlv")
+	log.WithField("pid", pid).Info("attaching with " + cfg.Debugger)
+	fullpath, err := exec.LookPath(cfg.Debugger)
 	if err != nil {
 		return err
 	}
-	err = syscall.Exec(fulldlv, []string{fulldlv, "attach", fmt.Sprintf("%d", pid)}, nil)
+	err = syscall.Exec(fullpath, append([]string{fullpath}, dbgInfo.CmdlineGen(pid)...), nil)
 	log.WithField("err", err).Info("exec failed!")
 
-	return errors.New("can't start dlv")
+	return errors.New("can't start " + cfg.Debugger)
 }
