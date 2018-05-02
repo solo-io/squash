@@ -235,8 +235,29 @@ func (dp *DebugPrepare) chooseContainer(pod *v1.Pod) (*v1.Container, error) {
 	if len(pod.Spec.Containers) == 1 {
 		return &pod.Spec.Containers[0], nil
 	}
-	// TODO: should we make this a user choice?
-	return &pod.Spec.Containers[0], nil
+
+	containerNames := make([]string, 0, len(pod.Spec.Containers))
+	for _, container := range pod.Spec.Containers {
+		contname := container.Name
+		containerNames = append(containerNames, contname)
+	}
+
+	question := &survey.Select{
+		Message: "Select a container",
+		Options: containerNames,
+	}
+	var choice string
+	if err := survey.AskOne(question, &choice, survey.Required); err != nil {
+		return nil, err
+	}
+
+	for _, container := range pod.Spec.Containers {
+		if choice == container.Name {
+			return &container, nil
+		}
+	}
+
+	return nil, errors.New("selected container not found")
 }
 
 func (dp *DebugPrepare) detectLang() string {
