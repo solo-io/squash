@@ -99,7 +99,7 @@ func StartDebugContainer() error {
 	}
 
 	// attach to the created
-	cmd := exec.Command("kubectl", "attach", "-n", namespace, "-i", "-t", createdPod.ObjectMeta.Name)
+	cmd := exec.Command("kubectl", "attach", "-n", namespace, "-i", "-t", createdPod.ObjectMeta.Name, "-c", "squash-lite-container")
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
