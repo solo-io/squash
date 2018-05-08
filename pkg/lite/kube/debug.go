@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -31,17 +32,6 @@ const (
 	skaffoldFile   = "skaffold.yaml"
 )
 
-func (dp *DebugPrepare) trySkaffold() error {
-	image, podname, err := SkaffoldConfigToPod(skaffoldFile)
-
-	if err != nil {
-		return err
-	}
-
-	dp.GetMissing("default", podname, image)
-	panic("TODO")
-}
-
 type SquashConfig struct {
 	ChooseDebugger bool
 	NoClean        bool
@@ -65,7 +55,7 @@ func StartDebugContainer(config SquashConfig) error {
 		return err
 	}
 	if minoirver < 10 {
-		return errors.New("squash lite requires kube 1.10 or higher")
+		return fmt.Errorf("squash lite requires kube 1.10 or higher. your version is %s.%s;", si.Major, si.Minor)
 	}
 
 	debugger, err := dp.chooseDebugger()
