@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,13 +15,11 @@ import (
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	skaffkubeapi "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var ImageVersion string
@@ -43,10 +42,31 @@ func (dp *DebugPrepare) trySkaffold() error {
 	panic("TODO")
 }
 
-func StartDebugContainer() error {
+type SquashConfig struct {
+	ChooseDebugger bool
+	NoClean        bool
+	ChoosePod      bool
+	TimeoutSeconds int
+}
+
+func StartDebugContainer(config SquashConfig) error {
 	// find the container from skaffold, or ask the user to chose one.
 
-	var dp DebugPrepare
+	dp := DebugPrepare{
+		config: config,
+	}
+
+	si, err := dp.getClientSet().Discovery().ServerVersion()
+	if err != nil {
+		return err
+	}
+	minoirver, err := strconv.Atoi(si.Minor)
+	if err != nil {
+		return err
+	}
+	if minoirver < 10 {
+		return errors.New("squash lite requires kube 1.10 or higher")
+	}
 
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
@@ -84,14 +104,14 @@ func StartDebugContainer() error {
 
 	// wait for runnign state
 	name := createdPod.ObjectMeta.Name
-	if os.Getenv("NO_CLEAN") != "1" {
+	if config.NoClean {
 		defer func() {
 			var options metav1.DeleteOptions
 			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
 		}()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
 	err = <-dp.waitForPod(ctx, createdPod)
 	cancel()
 	if err != nil {
@@ -177,6 +197,7 @@ type Debugee struct {
 
 type DebugPrepare struct {
 	clientset kubernetes.Interface
+	config    SquashConfig
 }
 
 func GetSkaffoldConfig(filename string) (*config.SkaffoldConfig, error) {
@@ -309,10 +330,11 @@ func (dp *DebugPrepare) chooseContainer(pod *v1.Pod) (*v1.Container, error) {
 }
 
 func (dp *DebugPrepare) detectLang() string {
-	// TODO: find some decent huristics to make this work
-	if os.Getenv("DONT_DETECT_LANG") == "1" {
+	if dp.config.ChooseDebugger {
+		// manual mode
 		return ""
 	}
+	// TODO: find some decent huristics to make this work
 	return "dlv"
 }
 
@@ -380,7 +402,7 @@ func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 	}
 	podName := make([]string, 0, len(pods.Items))
 	for _, pod := range pods.Items {
-		if container == "" {
+		if dp.config.ChoosePod || container == "" {
 			podName = append(podName, pod.ObjectMeta.Name)
 		} else {
 			for _, podContainer := range pod.Spec.Containers {
@@ -414,54 +436,55 @@ func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 }
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
-	obj, _, err := scheme.Codecs.UniversalDecoder(schema.GroupVersion{Version: "v1"}).Decode([]byte(podTemplate), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	templatePod := obj.(*v1.Pod)
-	templatePod.Spec.NodeName = in.Spec.NodeName
-	templatePod.Spec.Containers[0].Image = ImageRepo + "/" + ImageContainer + "-" + debugger + ":" + ImageVersion
-	templatePod.Spec.Containers[0].Env[0].Value = in.ObjectMeta.Namespace
-	templatePod.Spec.Containers[0].Env[1].Value = in.ObjectMeta.Name
-	templatePod.Spec.Containers[0].Env[2].Value = containername
+	trueVar := true
+	const crisockvolume = "crisock"
+	templatePod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "squash-lite-container",
+			Labels:       map[string]string{"squash": "squash-lite-container"},
+		},
+		Spec: v1.PodSpec{
+			HostPID:       true,
+			RestartPolicy: v1.RestartPolicyNever,
+			NodeName:      in.Spec.NodeName,
+			Containers: []v1.Container{{
+				Name:      "squash-lite-container",
+				Image:     ImageRepo + "/" + ImageContainer + "-" + debugger + ":" + ImageVersion,
+				Stdin:     true,
+				StdinOnce: true,
+				TTY:       true,
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      crisockvolume,
+					MountPath: "/var/run/cri.sock",
+				}},
+				SecurityContext: &v1.SecurityContext{
+					Privileged: &trueVar,
+				},
+				Env: []v1.EnvVar{{
+					Name:  "SQUASH_NAMESPACE",
+					Value: in.ObjectMeta.Namespace,
+				}, {
+					Name:  "SQUASH_POD",
+					Value: in.ObjectMeta.Name,
+				}, {
+					Name:  "SQUASH_CONTAINER",
+					Value: containername,
+				},
+				}},
+			},
+			Volumes: []v1.Volume{{
+				Name: crisockvolume,
+				VolumeSource: v1.VolumeSource{
+					HostPath: &v1.HostPathVolumeSource{
+						Path: "/var/run/dockershim.sock",
+					},
+				},
+			}},
+		}}
 
 	return templatePod, nil
 }
-
-var podTemplate = `
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    squash: squash-lite-container
-  generateName: squash-lite-container
-spec:
-  hostPID: true
-  restartPolicy: Never
-  nodeName: placeholder
-  containers:
-  - name: squash-lite-container
-    image: placeholder/squash-lite-container:placeholder
-    stdin: true
-    stdinOnce: true
-    tty: true
-    volumeMounts:
-    - mountPath: /var/run/cri.sock
-      name: crisock
-    securityContext:
-      privileged: true
-    ports:
-    - containerPort: 1234
-      protocol: TCP
-    env:
-    - name: SQUASH_NAMESPACE
-      value: placeholder
-    - name: SQUASH_POD
-      value: placeholder
-    - name: SQUASH_CONTAINER
-      value: placeholder
-  volumes:
-  - name: crisock
-    hostPath:
-      path: /var/run/dockershim.sock
-`
