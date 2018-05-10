@@ -94,7 +94,7 @@ func StartDebugContainer(config SquashConfig) error {
 
 	// wait for runnign state
 	name := createdPod.ObjectMeta.Name
-	if config.NoClean {
+	if !config.NoClean {
 		defer func() {
 			var options metav1.DeleteOptions
 			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
