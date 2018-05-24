@@ -17,7 +17,7 @@ Squash brings the power of modern popular debuggers to developers of microservic
 
 Squash is built to be easily extensible, allowing – and encouraging – adding support for more platforms, debuggers and IDEs.
 
-**Squash integration with [Envoy](https://www.envoyproxy.io) is now live! Read about the Squash HTTP filter, now part of upstream Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html)**
+Squash integration with [Envoy](https://www.envoyproxy.io) is now live! Read about the Squash HTTP filter, now part of upstream Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html)
 
 **If you're using Kubernetes, you should check out [KubeSquash](https://github.com/solo-io/kubesquash)**
 
