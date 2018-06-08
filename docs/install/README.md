@@ -3,7 +3,7 @@
 To install Squash you need to install the Squash server and clients on your container orchestration platform of choice, and to install the CLI on your computer. 
 
 ### Platforms
-Currently Suqash only supports Kubernets. Other platforms coming up... 
+Currently Squash only supports Kubernetes. Other platforms coming up... 
  - [Kubernetes](kubernetes.md)
 
 ### Command Line Interface (CLI)
