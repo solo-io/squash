@@ -55,7 +55,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   - using the [command line interface](docs/cli.md)
   - [Debug your java microservices](docs/debuggers/java.md)
   - [Debug your NodeJS microservices](docs/debuggers/nodejs.md)
-  - [Debug your pyton microservices with VSCode](docs/debuggers/python_vscode.md)
+  - [Debug your python microservices with VSCode](docs/debuggers/python_vscode.md)
   - [Debug application using service mesh](docs/platforms/istio.md)
 
 - **Developer Documentation**
