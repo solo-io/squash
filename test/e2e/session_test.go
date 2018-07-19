@@ -6,9 +6,6 @@ import (
 	"strings"
 	"time"
 
-	//	. "github.com/solo-io/squash/test/e2e"
-	v1 "k8s.io/api/core/v1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/solo-io/squash/test/utils"

@@ -2,7 +2,7 @@
 all: binaries deployment
 
 .PHONY: binaries
-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash target/squash-lite-container/squash-lite-container target/squash-lite
+binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
 
 .PHONY: release-binaries
 release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
@@ -24,9 +24,6 @@ target:
 
 target/squash: target $(SRCS)
 	go build -o $@ ./cmd/squash-cli
-
-target/squash-lite: target $(SRCS)
-	go build -ldflags "-X github.com/solo-io/squash/pkg/lite/kube.ImageVersion=$(VERSION) -X github.com/solo-io/squash/pkg/lite/kube.ImageRepo=$(DOCKER_REPO)" -o $@ ./cmd/squash-lite
 
 target/squash-linux: target $(SRCS)
 	GOOS=linux go build -o $@ ./cmd/squash-cli
@@ -66,38 +63,6 @@ target/squash-server/Dockerfile: cmd/squash-server/Dockerfile
 target/squash-server-container: ./target/squash-server/squash-server target/squash-server/Dockerfile
 	docker build -t $(DOCKER_REPO)/squash-server:$(VERSION) ./target/squash-server/
 	touch $@
-
-target/squash-lite-container/:
-	[ -d $@ ] || mkdir -p $@
-
-target/squash-lite-container/squash-lite-container: | target/squash-lite-container/
-target/squash-lite-container/squash-lite-container: $(SRCS)
-	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o ./target/squash-lite-container/squash-lite-container ./cmd/squash-lite-container/
-
-
-target/squash-lite-container/Dockerfile.dlv:    | target/squash-lite-container/
-target/squash-lite-container/Dockerfile.dlv: cmd/squash-lite-container/Dockerfile.dlv
-	cp cmd/squash-lite-container/Dockerfile.dlv target/squash-lite-container/Dockerfile.dlv
-target/squash-lite-container-dlv-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile.dlv
-	docker build -f target/squash-lite-container/Dockerfile.dlv -t $(DOCKER_REPO)/squash-lite-container-dlv:$(VERSION) ./target/squash-lite-container/
-	touch $@
-target/squash-lite-container-dlv-pushed: target/squash-lite-container-dlv-container
-	docker push $(DOCKER_REPO)/squash-lite-container-dlv:$(VERSION)
-	touch $@
-
-
-
-target/squash-lite-container/Dockerfile.gdb:    | target/squash-lite-container/
-target/squash-lite-container/Dockerfile.gdb: cmd/squash-lite-container/Dockerfile.gdb
-	cp cmd/squash-lite-container/Dockerfile.gdb target/squash-lite-container/Dockerfile.gdb
-target/squash-lite-container-gdb-container: ./target/squash-lite-container/squash-lite-container target/squash-lite-container/Dockerfile.gdb
-	docker build -f target/squash-lite-container/Dockerfile.gdb -t $(DOCKER_REPO)/squash-lite-container-gdb:$(VERSION) ./target/squash-lite-container/
-	touch $@
-target/squash-lite-container-gdb-pushed: target/squash-lite-container-gdb-container
-	docker push $(DOCKER_REPO)/squash-lite-container-gdb:$(VERSION)
-	touch $@
-
-
 
 target/squash-client-container: target/squash-client/squash-client target/squash-client/Dockerfile
 	docker build -t $(DOCKER_REPO)/squash-client:$(VERSION) ./target/squash-client/
