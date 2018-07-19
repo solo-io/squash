@@ -52,7 +52,7 @@ spec:
       serviceAccountName: squash-server
       containers:
       - name: squash-server
-        image: soloio/squash-server:v0.2.1
+        image: soloio/squash-server:v0.3.0
         ports:
         - containerPort: 8080
           protocol: TCP
