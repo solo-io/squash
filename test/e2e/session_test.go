@@ -102,9 +102,23 @@ var _ = Describe("Single debug mode", func() {
 			CurrentMicroservicePod = v
 			break
 		}
+		if CurrentMicroservicePod == nil {
+			Fail("can't find service pod")
+		}
 		for _, v := range Microservice2Pods {
 			Current2MicroservicePod = v
 			break
+		}
+		if CurrentMicroservicePod == nil {
+			Fail("can't find service2 pod")
+		}
+
+		if len(ClientPods) == 0 {
+			Fail("can't find client pods")
+		}
+
+		if ClientPods[CurrentMicroservicePod.Spec.NodeName] == nil {
+			Fail("can't find client pods")
 		}
 
 		// wait for things to settle. may not be needed.
@@ -112,6 +126,8 @@ var _ = Describe("Single debug mode", func() {
 	})
 
 	AfterEach(func() {
+		defer kubectl.StopProxy()
+		defer kubectl.DeleteNS()
 
 		logs, _ := kubectl.Logs(ServerPod.ObjectMeta.Name)
 		fmt.Fprintln(GinkgoWriter, "server logs:")
@@ -122,9 +138,6 @@ var _ = Describe("Single debug mode", func() {
 
 		//		fmt.Println("ZBAM", ClientPods[CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name, len(clogs))
 		//		time.Sleep(2 * time.Minute)
-
-		kubectl.DeleteNS()
-		kubectl.StopProxy()
 	})
 
 	Describe("Single Container mode", func() {
