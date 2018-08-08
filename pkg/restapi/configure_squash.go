@@ -93,10 +93,12 @@ func configureAPI(api *operations.SquashAPI) http.Handler {
 			log.Fatalln(err)
 		}
 		cl = kube
-		dataStore, err = kubernetes.NewCRDDataStore(config, data)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		/*
+			dataStore, err = kubernetes.NewCRDDataStore(config, data)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		*/
 	case "debug":
 		var d debug.DebugPlatform
 		cl = &d
