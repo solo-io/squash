@@ -1,20 +1,32 @@
+DOCKER_REPO ?= soloio
+VERSION ?= $(shell git describe --tags)
+
 .PHONY: all
 all: binaries deployment
 
 .PHONY: binaries
 binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
 
+
+RELEASE_BINARIES := target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
+
 .PHONY: release-binaries
-release-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
+release-binaries: $(RELEASE_BINARIES)
+
+.PHONY: manifests
+manifests: deployment
+	cp -f target/kubernetes/squash-client.yml target/kubernetes/squash-server.yml ./contrib/kubernetes
+
+.PHONY: upload-release
+upload-release: release-binaries manifests dist
+	./contrib/github-release.sh github_api_token=$(GITHUB_TOKEN) owner=solo-io repo=squash tag=$(VERSION)
+	@$(foreach BINARY,$(RELEASE_BINARIES),./contrib/upload-github-release-asset.sh github_api_token=$(GITHUB_TOKEN) owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
 
 .PHONY: containers
 containers: target/squash-server-container target/squash-client-container
 
 .PHONY: prep-containers
 prep-containers: ./target/squash-server/squash-server target/squash-server/Dockerfile target/squash-client/squash-client target/squash-client/Dockerfile
-
-DOCKER_REPO ?= soloio
-VERSION ?= $(shell git describe --tags)
 
 
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
