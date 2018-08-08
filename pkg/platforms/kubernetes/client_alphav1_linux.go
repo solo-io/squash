@@ -18,31 +18,39 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"google.golang.org/grpc"
+
+	kubeapi "github.com/solo-io/squash/pkg/platforms/kubernetes/alphav1"
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
-	criapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
-	kubeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
-
-	"k8s.io/kubernetes/pkg/kubelet/remote"
 )
 
-const (
-	criRuntime     = "unix:///var/run/cri.sock"
-	defaultTimeout = 10 * time.Second
-)
+const criRuntime = "/var/run/cri.sock"
 
-type CRIContainerProcess struct {
-}
+type CRIContainerProcessAlphaV1 struct{}
 
-var _ platforms.ContainerProcess = &CRIContainerProcess{}
+func NewCRIContainerProcessAlphaV1() (*CRIContainerProcessAlphaV1, error) {
+	// test that we have access to the runtime service
+	cc, err := grpc.Dial(criRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
+	if err != nil {
+		return nil, err
+	}
+	runtimeService := kubeapi.NewRuntimeServiceClient(cc)
 
-func NewContainerProcess() *CRIContainerProcess {
-	return &CRIContainerProcess{}
+	in := &kubeapi.StatusRequest{}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	_, err = runtimeService.Status(ctx, in)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+	return &CRIContainerProcessAlphaV1{}, nil
 }
 
 func getDialer(a string, t time.Duration) (net.Conn, error) {
 	return net.DialTimeout("unix", a, t)
 }
-func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
+
+func (c *CRIContainerProcessAlphaV1) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
 
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
@@ -51,52 +59,51 @@ func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, atta
 	if err != nil {
 		return nil, errors.New("bad attachment format")
 	}
-	return c.GetContainerInfoKube(maincontext, ka)
-}
-
-func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, ka *k8models.KubeAttachment) (*platforms.ContainerInfo, error) {
-
-	if maincontext == nil {
-		maincontext = context.Background()
-	}
 
 	// contact the local CRI and get the container
-	runtimeService, err := remote.NewRemoteRuntimeService(criRuntime, defaultTimeout)
-	if err != nil {
-		return nil, err
-	}
+
+	cc, err := grpc.Dial(criRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
+	runtimeService := kubeapi.NewRuntimeServiceClient(cc)
 
 	labels := make(map[string]string)
 	labels["io.kubernetes.pod.name"] = ka.Pod
 	labels["io.kubernetes.pod.namespace"] = ka.Namespace
 	st := kubeapi.PodSandboxStateValue{State: kubeapi.PodSandboxState_SANDBOX_READY}
-	inpod := &kubeapi.PodSandboxFilter{
-		LabelSelector: labels,
-		State:         &st,
+	inpod := &kubeapi.ListPodSandboxRequest{
+		Filter: &kubeapi.PodSandboxFilter{
+			LabelSelector: labels,
+			State:         &st,
+		},
 	}
 
 	log.WithField("inpod", spew.Sdump(inpod)).Debug("Cri GetPid ListPodSandbox")
 
-	resp, err := runtimeService.ListPodSandbox(inpod)
+	ctx, cancel := context.WithTimeout(maincontext, time.Second)
+	resp, err := runtimeService.ListPodSandbox(ctx, inpod)
+	cancel()
 	if err != nil {
 		log.WithField("err", err).Warn("ListPodSandbox error")
 		return nil, err
 	}
-	if len(resp) != 1 {
-		log.WithField("items", spew.Sdump(resp)).Warn("Invalid number of pods")
+	if len(resp.Items) != 1 {
+		log.WithField("items", spew.Sdump(resp.Items)).Warn("Invalid number of pods")
 		return nil, errors.New("Invalid number of pods")
 	}
-	pod := resp[0]
+	pod := resp.Items[0]
 
 	labels = make(map[string]string)
 	labels["io.kubernetes.container.name"] = ka.Container
-	incont := &kubeapi.ContainerFilter{
-		PodSandboxId:  pod.Id,
-		LabelSelector: labels,
+	incont := &kubeapi.ListContainersRequest{
+		Filter: &kubeapi.ContainerFilter{
+			PodSandboxId:  pod.Id,
+			LabelSelector: labels,
+		},
 	}
 	log.WithField("incont", spew.Sdump(incont)).Debug("Cri GetPid ListContainers")
 
-	respcont, err := runtimeService.ListContainers(incont)
+	ctx, cancel = context.WithTimeout(maincontext, time.Second)
+	respcont, err := runtimeService.ListContainers(ctx, incont)
+	cancel()
 
 	if err != nil {
 		log.WithField("err", err).Warn("ListContainers error")
@@ -105,7 +112,7 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	log.WithField("respcont", spew.Sdump(respcont)).Debug("Cri GetPid ListContainers - got response")
 
 	var containers []*kubeapi.Container
-	for _, cont := range respcont {
+	for _, cont := range respcont.Containers {
 		if cont.State == kubeapi.ContainerState_CONTAINER_RUNNING {
 			containers = append(containers, cont)
 		}
@@ -122,9 +129,9 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	// we check the mnt namespace cause this is the one that cannot be shared with the host...
 	nstocheck := "mnt"
 	// get pids
-	nsinod, err := getNS(maincontext, runtimeService, nstocheck, containerid)
+	nsinod, err := getNSAlphav1(maincontext, runtimeService, nstocheck, containerid)
 	if err != nil {
-		log.WithField("err", err).Warn("getNS error")
+		log.WithField("err", err).Warn("getNSAlphav1 error")
 		return nil, err
 	}
 
@@ -165,11 +172,17 @@ func FindPidsInNS(inod uint64, ns string) ([]int, error) {
 	return res, nil
 }
 
-func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, containerid string) (uint64, error) {
+func getNSAlphav1(origctx context.Context, cli kubeapi.RuntimeServiceClient, ns string, containerid string) (uint64, error) {
 
-	cmd := []string{"ls", "-l", "/proc/self/ns/"}
+	req := &kubeapi.ExecSyncRequest{
+		ContainerId: containerid,
+		Cmd:         []string{"ls", "-l", "/proc/self/ns/"},
+		Timeout:     1,
+	}
 
-	stdout, _, err := cli.ExecSync(containerid, cmd, time.Second)
+	ctx, cancel := context.WithTimeout(origctx, time.Second)
+	result, err := cli.ExecSync(ctx, req)
+	cancel()
 	if err != nil {
 		log.WithField("err", err).Warn("Error exec sync to get pid ns!")
 		return 0, err
@@ -178,7 +191,7 @@ func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, contai
 	lrwxrwxrwx 1 root root 0 Jul 28 16:39 /proc/1/ns/pid -> pid:[4026532605]
 	...
 	*/
-	output := stdout
+	output := result.Stdout
 	regex := regexp.MustCompile(ns + `:\[(\d+)\]`)
 	matches := regex.FindStringSubmatch(string(output))
 	if len(matches) != 2 {

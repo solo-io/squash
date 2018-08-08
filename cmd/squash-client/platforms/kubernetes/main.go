@@ -9,6 +9,7 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers/nodejs"
 	"github.com/solo-io/squash/pkg/debuggers/python"
 
+	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
@@ -20,7 +21,18 @@ func main() {
 
 	log.Info("bridge started")
 
-	err := debuggers.RunSquashClient(getDebugger, kubernetes.NewContainerProcess())
+	var err error
+	var cp platforms.ContainerProcess
+
+	cp, err = kubernetes.NewContainerProcess()
+	if err != nil {
+		cp, err = kubernetes.NewCRIContainerProcessAlphaV1()
+		if err != nil {
+			log.WithError(err).Fatal("Cannot get contrainer process locator")
+		}
+	}
+
+	err = debuggers.RunSquashClient(getDebugger, cp)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }
