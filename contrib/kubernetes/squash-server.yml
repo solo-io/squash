@@ -32,6 +32,29 @@ roleRef:
   name: squash-pod-reader
   apiGroup: rbac.authorization.k8s.io
 ---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: squash-crds
+rules:
+- apiGroups: ["squash.solo.io"] # full control to squash crds
+  resources: ["*"]
+  verbs: ["*"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: squash-full-control-crds
+subjects:
+- kind: ServiceAccount
+  name: squash-server
+- kind: ServiceAccount
+  name: default
+roleRef:
+  kind: ClusterRole
+  name: squash-crds
+  apiGroup: rbac.authorization.k8s.io
+---
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
@@ -52,7 +75,7 @@ spec:
       serviceAccountName: squash-server
       containers:
       - name: squash-server
-        image: soloio/squash-server:v0.3.0
+        image: soloio/squash-server:v0.3.1
         ports:
         - containerPort: 8080
           protocol: TCP
