@@ -24,13 +24,13 @@ import (
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 )
 
-const criRuntime = "/var/run/cri.sock"
+const CriRuntime = "/var/run/cri.sock"
 
 type CRIContainerProcessAlphaV1 struct{}
 
 func NewCRIContainerProcessAlphaV1() (*CRIContainerProcessAlphaV1, error) {
 	// test that we have access to the runtime service
-	cc, err := grpc.Dial(criRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
+	cc, err := grpc.Dial(CriRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *CRIContainerProcessAlphaV1) GetContainerInfo(maincontext context.Contex
 
 	// contact the local CRI and get the container
 
-	cc, err := grpc.Dial(criRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
+	cc, err := grpc.Dial(CriRuntime, grpc.WithInsecure(), grpc.WithDialer(getDialer))
 	runtimeService := kubeapi.NewRuntimeServiceClient(cc)
 
 	labels := make(map[string]string)

@@ -31,7 +31,7 @@ var _ platforms.ContainerProcess = &CRIContainerProcess{}
 
 func NewContainerProcess() (*CRIContainerProcess, error) {
 	// test that we have access to the runtime service
-	r, err := remote.NewRemoteRuntimeService(criRuntime, defaultTimeout)
+	r, err := remote.NewRemoteRuntimeService(CriRuntime, defaultTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	}
 
 	// contact the local CRI and get the container
-	runtimeService, err := remote.NewRemoteRuntimeService("unix://"+criRuntime, defaultTimeout)
+	runtimeService, err := remote.NewRemoteRuntimeService("unix://"+CriRuntime, defaultTimeout)
 	if err != nil {
 		return nil, err
 	}
