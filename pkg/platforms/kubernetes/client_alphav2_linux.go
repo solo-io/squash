@@ -63,7 +63,7 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	}
 
 	// contact the local CRI and get the container
-	runtimeService, err := remote.NewRemoteRuntimeService(criRuntime, defaultTimeout)
+	runtimeService, err := remote.NewRemoteRuntimeService("unix://"+criRuntime, defaultTimeout)
 	if err != nil {
 		return nil, err
 	}
