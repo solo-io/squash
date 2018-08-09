@@ -24,8 +24,6 @@ import (
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 )
 
-const CriRuntime = "/var/run/cri.sock"
-
 type CRIContainerProcessAlphaV1 struct{}
 
 func NewCRIContainerProcessAlphaV1() (*CRIContainerProcessAlphaV1, error) {
