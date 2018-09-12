@@ -47,8 +47,10 @@ metadata:
   name: squash-full-control-crds
 subjects:
 - kind: ServiceAccount
+  namespace: squash
   name: squash-server
 - kind: ServiceAccount
+  namespace: squash
   name: default
 roleRef:
   kind: ClusterRole
