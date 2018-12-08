@@ -2,11 +2,11 @@
 # How to use Squash with istio
 
 ## Why?
-Using Squash with istio enables you to debug the service mesh in a different way. Instead of attaching to a specific container you wish to debug, you (or the IDE for that matter) create a debug request that species which container image you want to debug. Then when a request is sent to the mesh with the "x-squash-debug" header, the mesh and Squash together will match the debug request to the specific container.
+Using Squash with istio enables you to debug the service mesh in a different way. Instead of attaching to a specific container you wish to debug, you (or the IDE for that matter) create a debug request that specifies which container image you want to debug. Then when a request is sent to the mesh with the "x-squash-debug" header, the mesh and Squash together will match the debug request to the specific container.
 
 # Create environment
 
-Note: To use Squash with istio we need Squash aware envoy and pilot. To make it easy, we have created an istio version with the Squash components baked inside. See istio.yaml in this folder. We will install it shown in the following steps.
+Note: To use Squash with istio we need Squash-aware envoy and pilot. To make it easy, we have created an istio version with the Squash components baked inside. See istio.yaml in this folder. We will install it as shown in the following steps.
 
 ## Kubernetes
 
@@ -22,7 +22,7 @@ Note: on Linux, if you don't have VirtualBox installed, you can try the `--vm-dr
 
 ## Squash enabled Istio
 
-Once the cluster is ready, install Squash aware Istio:
+Once the cluster is ready, install Squash-aware Istio:
 
 ```
 kubectl apply -f contrib/istio-example/istio.yaml
