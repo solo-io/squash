@@ -84,7 +84,7 @@ var _ = Describe("Single debug mode", func() {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server"):
 				pathToServerBinary := "../../target/squash-server/squash-server"
 				if _, err := os.Stat(pathToServerBinary); os.IsNotExist(err) {
-					panic("You must generate the squash-server binary before running this e2e test.")
+					Fail("You must generate the squash-server binary before running this e2e test.")
 				}
 				// replace squash server and client binaries with local binaries for easy debuggings
 				Must(kubectl.Cp(pathToServerBinary, "/tmp/", pod.ObjectMeta.Name, "squash-server"))
@@ -93,7 +93,7 @@ var _ = Describe("Single debug mode", func() {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-client"):
 				pathToClientBinary := "../../target/squash-client/squash-client"
 				if _, err := os.Stat(pathToClientBinary); os.IsNotExist(err) {
-					panic("You must generate the squash-client binary before running this e2e test.")
+					Fail("You must generate the squash-client binary before running this e2e test.")
 				}
 				// replace squash server and client binaries with local binaries for easy debuggings
 				Must(kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-client"))
