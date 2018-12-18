@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -81,13 +82,21 @@ var _ = Describe("Single debug mode", func() {
 			case strings.HasPrefix(pod.ObjectMeta.Name, "example-service2"):
 				Microservice2Pods[pod.Spec.NodeName] = &newpod
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server"):
+				pathToServerBinary := "../../target/squash-server/squash-server"
+				if _, err := os.Stat(pathToServerBinary); os.IsNotExist(err) {
+					panic("You must generate the squash-server binary before running this e2e test.")
+				}
 				// replace squash server and client binaries with local binaries for easy debuggings
-				Must(kubectl.Cp("../../target/squash-server/squash-server", "/tmp/", pod.ObjectMeta.Name, "squash-server"))
+				Must(kubectl.Cp(pathToServerBinary, "/tmp/", pod.ObjectMeta.Name, "squash-server"))
 				Must(kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-server", "sh", "-c", "/tmp/squash-server --cluster=kube --host=0.0.0.0 --port=8080 > /proc/1/fd/1 2> /proc/1/fd/2"))
 				ServerPod = &newpod
 			case strings.HasPrefix(pod.ObjectMeta.Name, "squash-client"):
+				pathToClientBinary := "../../target/squash-client/squash-client"
+				if _, err := os.Stat(pathToClientBinary); os.IsNotExist(err) {
+					panic("You must generate the squash-client binary before running this e2e test.")
+				}
 				// replace squash server and client binaries with local binaries for easy debuggings
-				Must(kubectl.Cp("../../target/squash-client/squash-client", "/tmp/", pod.ObjectMeta.Name, "squash-client"))
+				Must(kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-client"))
 
 				// client is in host pid namespace, so can't write logs to pid 1. use the fact that the client has the pod name in the env.
 				clientscript := "SLEEPPID=$(for pid in $(pgrep sleep); do if grep --silent " + pod.ObjectMeta.Name + " /proc/$pid/environ; then echo $pid;fi; done) && "
