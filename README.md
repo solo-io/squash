@@ -21,7 +21,7 @@ Squash integration with [Envoy](https://www.envoyproxy.io) is now live! Read abo
 
 **If you're using Kubernetes, you should check out [KubeSquash](https://github.com/solo-io/kubesquash)**
 
-To learn more about the motivation behind project squash, read our blog [post](https://www.solo.io/single-post/2017/05/14/Squash-Microservices-Debugger) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://www.solo.io/single-post/2017/08/22/Technical-introduction-to-Squash).
+To learn more about the motivation behind project squash, read our blog [post](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://medium.com/solo-io/technical-introduction-to-squash-399e0c0c54b).
 
 To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSoloIO) and join us on our [slack channel](http://slack.solo.io).
 
