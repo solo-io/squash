@@ -38,6 +38,10 @@ func NewKubectl(kubectlctx string) *Kubectl {
 	}
 }
 
+func (k *Kubectl) String() string {
+	return fmt.Sprintf("context: %v, namespace: %v, proxyProcess: %v, proxyAddress: %v", k.Context, k.Namespace, *k.proxyProcess, *k.proxyAddress)
+}
+
 func (k *Kubectl) CreateNS() error {
 	args := []string{"create", "namespace", k.Namespace}
 	return k.innerprepare(args).Run()
@@ -303,7 +307,7 @@ func (k *Kubectl) innerprepare(args []string) *exec.Cmd {
 		newargs = []string{"--context=" + k.Context}
 	}
 	newargs = append(newargs, args...)
-	fmt.Fprintln(GinkgoWriter, "kubectl", newargs)
+	fmt.Fprintln(GinkgoWriter, "kubectl", strings.Join(newargs, " "))
 	cmd := exec.Command("kubectl", newargs...)
 	return cmd
 }
