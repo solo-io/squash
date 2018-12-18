@@ -58,5 +58,11 @@ The squash client uses the CRI interface to understand what is the process-id of
 
 # Contact
 ## What information should I include in an issue?
+- squash version
+- kubectl version
+- kubernetes/minikube version
+- versions of any relevant debuggers or languages you are using
 ## How to submit patches?
 Please use github's pull requests
+## Community discussion
+Please feel free to join the Squash chat in our [Slack channel](https://solo-io.slack.com/channels/squash)

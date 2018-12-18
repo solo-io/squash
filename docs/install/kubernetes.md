@@ -1,6 +1,7 @@
 # Kubernetes
 
-Squash requires kubernetes version 1.7 and up. <BR>
+Squash requires kubernetes version 1.7 and up.
+
 Squash also works with [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/).
 
 ## Prerequisites:

@@ -2,10 +2,6 @@
 
 To install Squash you need to install the Squash server and clients on your container orchestration platform of choice, and to install the CLI on your computer. 
 
-### Platforms
-Currently Squash only supports Kubernetes. Other platforms coming up... 
- - [Kubernetes](kubernetes.md)
-
 ### Command Line Interface (CLI)
 Download the CLI binary:
 - [Linux](https://github.com/solo-io/squash/releases/download/v0.2.1/squash-linux)     
@@ -27,6 +23,17 @@ chmod +x squash
 ```
 The easiest way is to place it somewhere in your path, but it is not a must.
 
+
+### Deploy squash server and clients to Kubernetes
+Execute in order:
+```
+$ kubectl create -f https://raw.githubusercontent.com/solo-io/squash/master/contrib/kubernetes/squash-server.yml
+$ kubectl create -f https://raw.githubusercontent.com/solo-io/squash/master/contrib/kubernetes/squash-client.yml
+```
+[Kubernetes preparation notes](kubernetes.md)
+
+
+### Verify installation
 To make sure everything is deployed correctly, you can use `kubectl proxy` to access the Squash server pod and invoke a sample CLI command. 
 
 1. Get the Squash server pod name by running ```kubectl --namespace=squash get pods```. You should see something similar to this:
@@ -56,5 +63,10 @@ The output should be like this:
 ```
 State |ID |tDebugger |Image |Debugger Address
 ```
+
+### Platforms
+Currently Squash only supports Kubernetes. Other platforms will be added in the future.
+ - [Kubernetes](kubernetes.md)
+
 
 If you have an issue with either, see the [FAQ](../faq.md) for help.
