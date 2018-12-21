@@ -112,3 +112,11 @@ pkg/restapi: api.yaml
 dist: target/squash-server-container target/squash-client-container
 	docker push $(DOCKER_REPO)/squash-client:$(VERSION)
 	docker push $(DOCKER_REPO)/squash-server:$(VERSION)
+
+# make the solo-kit-provided resources
+# do this on initialization and whenever the apichanges
+.PHONY: generate-sk
+generate-sk: docs-and-code/v1
+
+docs-and-code/v1:
+	go run cmd/generate-code/main.go

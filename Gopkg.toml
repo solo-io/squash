@@ -100,3 +100,7 @@
 [[override]]
   name = "github.com/Azure/go-autorest"
   version = "v9.10.0"
+
+[[constraint]]
+  name = "github.com/solo-io/solo-kit"
+  revision = "580fbcac3e993d52a2e8737bd23ab1dc867ae272"
