@@ -37,11 +37,16 @@ message DebugAttachment {
 
   bool match_request = 8;
 
-
   // From github.com/solo-io/squash/pkg/models.DebugAttachmentStatus
 
   string debug_server_address = 9;
 
   string state = 10;
   
+
+  // From cli debug-container (possibly redundant)
+
+  string pod = 11;
+
+  string container = 12;
 }
