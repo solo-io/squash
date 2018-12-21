@@ -41,59 +41,59 @@ func init() {
 
 type ApiEmitter interface {
 	Register() error
-	Attachment() AttachmentClient
+	DebugAttachment() DebugAttachmentClient
 	Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *ApiSnapshot, <-chan error, error)
 }
 
-func NewApiEmitter(attachmentClient AttachmentClient) ApiEmitter {
-	return NewApiEmitterWithEmit(attachmentClient, make(chan struct{}))
+func NewApiEmitter(debugAttachmentClient DebugAttachmentClient) ApiEmitter {
+	return NewApiEmitterWithEmit(debugAttachmentClient, make(chan struct{}))
 }
 
-func NewApiEmitterWithEmit(attachmentClient AttachmentClient, emit <-chan struct{}) ApiEmitter {
+func NewApiEmitterWithEmit(debugAttachmentClient DebugAttachmentClient, emit <-chan struct{}) ApiEmitter {
 	return &apiEmitter{
-		attachment: attachmentClient,
-		forceEmit:  emit,
+		debugAttachment: debugAttachmentClient,
+		forceEmit:       emit,
 	}
 }
 
 type apiEmitter struct {
-	forceEmit  <-chan struct{}
-	attachment AttachmentClient
+	forceEmit       <-chan struct{}
+	debugAttachment DebugAttachmentClient
 }
 
 func (c *apiEmitter) Register() error {
-	if err := c.attachment.Register(); err != nil {
+	if err := c.debugAttachment.Register(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *apiEmitter) Attachment() AttachmentClient {
-	return c.attachment
+func (c *apiEmitter) DebugAttachment() DebugAttachmentClient {
+	return c.debugAttachment
 }
 
 func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts) (<-chan *ApiSnapshot, <-chan error, error) {
 	errs := make(chan error)
 	var done sync.WaitGroup
 	ctx := opts.Ctx
-	/* Create channel for Attachment */
-	type attachmentListWithNamespace struct {
-		list      AttachmentList
+	/* Create channel for DebugAttachment */
+	type debugAttachmentListWithNamespace struct {
+		list      DebugAttachmentList
 		namespace string
 	}
-	attachmentChan := make(chan attachmentListWithNamespace)
+	debugAttachmentChan := make(chan debugAttachmentListWithNamespace)
 
 	for _, namespace := range watchNamespaces {
-		/* Setup watch for Attachment */
-		attachmentNamespacesChan, attachmentErrs, err := c.attachment.Watch(namespace, opts)
+		/* Setup watch for DebugAttachment */
+		debugAttachmentNamespacesChan, debugAttachmentErrs, err := c.debugAttachment.Watch(namespace, opts)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "starting Attachment watch")
+			return nil, nil, errors.Wrapf(err, "starting DebugAttachment watch")
 		}
 
 		done.Add(1)
 		go func(namespace string) {
 			defer done.Done()
-			errutils.AggregateErrs(ctx, errs, attachmentErrs, namespace+"-attachments")
+			errutils.AggregateErrs(ctx, errs, debugAttachmentErrs, namespace+"-debugattachments")
 		}(namespace)
 
 		/* Watch for changes and update snapshot */
@@ -102,11 +102,11 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 				select {
 				case <-ctx.Done():
 					return
-				case attachmentList := <-attachmentNamespacesChan:
+				case debugAttachmentList := <-debugAttachmentNamespacesChan:
 					select {
 					case <-ctx.Done():
 						return
-					case attachmentChan <- attachmentListWithNamespace{list: attachmentList, namespace: namespace}:
+					case debugAttachmentChan <- debugAttachmentListWithNamespace{list: debugAttachmentList, namespace: namespace}:
 					}
 				}
 			}
@@ -133,10 +133,10 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 		   		// construct the first snapshot from all the configs that are currently there
 		   		// that guarantees that the first snapshot contains all the data.
 		   		for range watchNamespaces {
-		      attachmentNamespacedList := <- attachmentChan
-		      currentSnapshot.Attachments.Clear(attachmentNamespacedList.namespace)
-		      attachmentList := attachmentNamespacedList.list
-		   	currentSnapshot.Attachments.Add(attachmentList...)
+		      debugAttachmentNamespacedList := <- debugAttachmentChan
+		      currentSnapshot.Debugattachments.Clear(debugAttachmentNamespacedList.namespace)
+		      debugAttachmentList := debugAttachmentNamespacedList.list
+		   	currentSnapshot.Debugattachments.Add(debugAttachmentList...)
 		   		}
 		*/
 
@@ -154,14 +154,14 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			case <-c.forceEmit:
 				sentSnapshot := currentSnapshot.Clone()
 				snapshots <- &sentSnapshot
-			case attachmentNamespacedList := <-attachmentChan:
+			case debugAttachmentNamespacedList := <-debugAttachmentChan:
 				record()
 
-				namespace := attachmentNamespacedList.namespace
-				attachmentList := attachmentNamespacedList.list
+				namespace := debugAttachmentNamespacedList.namespace
+				debugAttachmentList := debugAttachmentNamespacedList.list
 
-				currentSnapshot.Attachments.Clear(namespace)
-				currentSnapshot.Attachments.Add(attachmentList...)
+				currentSnapshot.Debugattachments.Clear(namespace)
+				currentSnapshot.Debugattachments.Add(debugAttachmentList...)
 			}
 		}
 	}()

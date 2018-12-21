@@ -24,13 +24,13 @@ func main() {
 }
 
 func run() error {
-	attClient, err := getAttachmentClient()
+	attClient, err := getDebugAttachmentClient()
 	if err != nil {
 		return err
 	}
-	initialAtt := &v1.Attachment{
+	initialAtt := &v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      "my-debug",
+			Name:      "my-debug2",
 			Namespace: "squash",
 		},
 		Debugger: "dlv",
@@ -44,7 +44,7 @@ func run() error {
 	return nil
 }
 
-func getAttachmentClient() (v1.AttachmentClient, error) {
+func getDebugAttachmentClient() (v1.DebugAttachmentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
 		return nil, err
@@ -52,12 +52,12 @@ func getAttachmentClient() (v1.AttachmentClient, error) {
 
 	cache := kube.NewKubeCache()
 	kubeRC := &factory.KubeResourceClientFactory{
-		Crd:         v1.AttachmentCrd,
+		Crd:         v1.DebugAttachmentCrd,
 		Cfg:         cfg,
 		SharedCache: cache,
 	}
 
-	attClient, err := v1.NewAttachmentClient(kubeRC)
+	attClient, err := v1.NewDebugAttachmentClient(kubeRC)
 	if err != nil {
 		return nil, err
 	}

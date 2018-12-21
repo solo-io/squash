@@ -23,16 +23,16 @@ var _ = Describe("ApiEventLoop", func() {
 
 	BeforeEach(func() {
 
-		attachmentClientFactory := &factory.MemoryResourceClientFactory{
+		debugAttachmentClientFactory := &factory.MemoryResourceClientFactory{
 			Cache: memory.NewInMemoryResourceCache(),
 		}
-		attachmentClient, err := NewAttachmentClient(attachmentClientFactory)
+		debugAttachmentClient, err := NewDebugAttachmentClient(debugAttachmentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
 
-		emitter = NewApiEmitter(attachmentClient)
+		emitter = NewApiEmitter(debugAttachmentClient)
 	})
 	It("runs sync function on a new snapshot", func() {
-		_, err = emitter.Attachment().Write(NewAttachment(namespace, "jerry"), clients.WriteOpts{})
+		_, err = emitter.DebugAttachment().Write(NewDebugAttachment(namespace, "jerry"), clients.WriteOpts{})
 		Expect(err).NotTo(HaveOccurred())
 		sync := &mockApiSyncer{}
 		el := NewApiEventLoop(emitter, sync)

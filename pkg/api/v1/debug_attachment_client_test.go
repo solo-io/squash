@@ -15,12 +15,12 @@ import (
 	"github.com/solo-io/solo-kit/test/tests/typed"
 )
 
-var _ = Describe("AttachmentClient", func() {
+var _ = Describe("DebugAttachmentClient", func() {
 	var (
 		namespace string
 	)
 	for _, test := range []typed.ResourceClientTester{
-		&typed.KubeRcTester{Crd: AttachmentCrd},
+		&typed.KubeRcTester{Crd: DebugAttachmentCrd},
 		&typed.ConsulRcTester{},
 		&typed.FileRcTester{},
 		&typed.MemoryRcTester{},
@@ -30,31 +30,31 @@ var _ = Describe("AttachmentClient", func() {
 	} {
 		Context("resource client backed by "+test.Description(), func() {
 			var (
-				client AttachmentClient
+				client DebugAttachmentClient
 				err    error
 			)
 			BeforeEach(func() {
 				namespace = helpers.RandString(6)
 				factory := test.Setup(namespace)
-				client, err = NewAttachmentClient(factory)
+				client, err = NewDebugAttachmentClient(factory)
 				Expect(err).NotTo(HaveOccurred())
 			})
 			AfterEach(func() {
 				test.Teardown(namespace)
 			})
-			It("CRUDs Attachments", func() {
-				AttachmentClientTest(namespace, client)
+			It("CRUDs DebugAttachments", func() {
+				DebugAttachmentClientTest(namespace, client)
 			})
 		})
 	}
 })
 
-func AttachmentClientTest(namespace string, client AttachmentClient) {
+func DebugAttachmentClientTest(namespace string, client DebugAttachmentClient) {
 	err := client.Register()
 	Expect(err).NotTo(HaveOccurred())
 
 	name := "foo"
-	input := NewAttachment(namespace, name)
+	input := NewDebugAttachment(namespace, name)
 	input.Metadata.Namespace = namespace
 	r1, err := client.Write(input, clients.WriteOpts{})
 	Expect(err).NotTo(HaveOccurred())
@@ -63,17 +63,20 @@ func AttachmentClientTest(namespace string, client AttachmentClient) {
 	Expect(err).To(HaveOccurred())
 	Expect(errors.IsExist(err)).To(BeTrue())
 
-	Expect(r1).To(BeAssignableToTypeOf(&Attachment{}))
+	Expect(r1).To(BeAssignableToTypeOf(&DebugAttachment{}))
 	Expect(r1.GetMetadata().Name).To(Equal(name))
 	Expect(r1.GetMetadata().Namespace).To(Equal(namespace))
 	Expect(r1.Metadata.ResourceVersion).NotTo(Equal(input.Metadata.ResourceVersion))
 	Expect(r1.Metadata.Ref()).To(Equal(input.Metadata.Ref()))
+	Expect(r1.Status).To(Equal(input.Status))
+	Expect(r1.Attachment).To(Equal(input.Attachment))
 	Expect(r1.Debugger).To(Equal(input.Debugger))
 	Expect(r1.Image).To(Equal(input.Image))
 	Expect(r1.ProcessName).To(Equal(input.ProcessName))
 	Expect(r1.Node).To(Equal(input.Node))
 	Expect(r1.MatchRequest).To(Equal(input.MatchRequest))
-	Expect(r1.Status).To(Equal(input.Status))
+	Expect(r1.DebugServerAddress).To(Equal(input.DebugServerAddress))
+	Expect(r1.State).To(Equal(input.State))
 
 	_, err = client.Write(input, clients.WriteOpts{
 		OverwriteExisting: true,
@@ -95,7 +98,7 @@ func AttachmentClientTest(namespace string, client AttachmentClient) {
 	Expect(errors.IsNotExist(err)).To(BeTrue())
 
 	name = "boo"
-	input = &Attachment{}
+	input = &DebugAttachment{}
 
 	input.Metadata = core.Metadata{
 		Name:      name,
@@ -144,7 +147,7 @@ func AttachmentClientTest(namespace string, client AttachmentClient) {
 		Expect(err).NotTo(HaveOccurred())
 
 		name = "goo"
-		input = &Attachment{}
+		input = &DebugAttachment{}
 		Expect(err).NotTo(HaveOccurred())
 		input.Metadata = core.Metadata{
 			Name:      name,

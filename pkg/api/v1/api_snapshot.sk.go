@@ -10,22 +10,22 @@ import (
 )
 
 type ApiSnapshot struct {
-	Attachments AttachmentsByNamespace
+	Debugattachments DebugattachmentsByNamespace
 }
 
 func (s ApiSnapshot) Clone() ApiSnapshot {
 	return ApiSnapshot{
-		Attachments: s.Attachments.Clone(),
+		Debugattachments: s.Debugattachments.Clone(),
 	}
 }
 
 func (s ApiSnapshot) snapshotToHash() ApiSnapshot {
 	snapshotForHashing := s.Clone()
-	for _, attachment := range snapshotForHashing.Attachments.List() {
-		resources.UpdateMetadata(attachment, func(meta *core.Metadata) {
+	for _, debugAttachment := range snapshotForHashing.Debugattachments.List() {
+		resources.UpdateMetadata(debugAttachment, func(meta *core.Metadata) {
 			meta.ResourceVersion = ""
 		})
-		attachment.SetStatus(core.Status{})
+		debugAttachment.SetStatus(core.Status{})
 	}
 
 	return snapshotForHashing
@@ -38,8 +38,8 @@ func (s ApiSnapshot) Hash() uint64 {
 func (s ApiSnapshot) HashFields() []zap.Field {
 	snapshotForHashing := s.snapshotToHash()
 	var fields []zap.Field
-	attachments := s.hashStruct(snapshotForHashing.Attachments.List())
-	fields = append(fields, zap.Uint64("attachments", attachments))
+	debugattachments := s.hashStruct(snapshotForHashing.Debugattachments.List())
+	fields = append(fields, zap.Uint64("debugattachments", debugattachments))
 
 	return append(fields, zap.Uint64("snapshotHash", s.hashStruct(snapshotForHashing)))
 }
