@@ -105,10 +105,6 @@ deployment: target/kubernetes/squash-client.yml target/kubernetes/squash-server.
 clean:
 	rm -rf target
 
-pkg/restapi: api.yaml
-	swagger generate server --name=Squash --exclude-main --target=./pkg/  --spec=./api.yaml
-	swagger generate client --name=Squash --target=./pkg/  --spec=./api.yaml
-
 dist: target/squash-server-container target/squash-client-container
 	docker push $(DOCKER_REPO)/squash-client:$(VERSION)
 	docker push $(DOCKER_REPO)/squash-server:$(VERSION)
