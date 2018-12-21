@@ -24,6 +24,10 @@ func NewAttachment(namespace, name string) *Attachment {
 	}
 }
 
+func (r *Attachment) SetStatus(status core.Status) {
+	r.Status = status
+}
+
 func (r *Attachment) SetMetadata(meta core.Metadata) {
 	r.Metadata = meta
 }
@@ -45,6 +49,14 @@ func (list AttachmentList) Find(namespace, name string) (*Attachment, error) {
 
 func (list AttachmentList) AsResources() resources.ResourceList {
 	var ress resources.ResourceList
+	for _, attachment := range list {
+		ress = append(ress, attachment)
+	}
+	return ress
+}
+
+func (list AttachmentList) AsInputResources() resources.InputResourceList {
+	var ress resources.InputResourceList
 	for _, attachment := range list {
 		ress = append(ress, attachment)
 	}

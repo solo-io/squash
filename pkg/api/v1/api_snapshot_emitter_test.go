@@ -16,7 +16,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/utils/log"
 	"github.com/solo-io/solo-kit/test/helpers"
 	"github.com/solo-io/solo-kit/test/setup"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -45,13 +44,11 @@ var _ = Describe("V1Emitter", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		cache := kuberc.NewKubeCache()
-		var kube kubernetes.Interface
 		// Attachment Constructor
-		kube, err = kubernetes.NewForConfig(cfg)
-		Expect(err).NotTo(HaveOccurred())
-
-		attachmentClientFactory := &factory.KubeConfigMapClientFactory{
-			Clientset: kube,
+		attachmentClientFactory := &factory.KubeResourceClientFactory{
+			Crd:         AttachmentCrd,
+			Cfg:         cfg,
+			SharedCache: cache,
 		}
 		attachmentClient, err = NewAttachmentClient(attachmentClientFactory)
 		Expect(err).NotTo(HaveOccurred())

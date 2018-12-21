@@ -6,6 +6,7 @@ import "gogoproto/gogo.proto";
 option (gogoproto.equal_all) = true;
 
 import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
+import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/solo-kit/api/v1/ref.proto";
 
 /*
@@ -27,4 +28,6 @@ message Attachment {
   bool match_request = 5;
 
   core.solo.io.Metadata metadata = 6 [(gogoproto.nullable) = false];
+
+  core.solo.io.Status status = 7 [(gogoproto.nullable) = false, (gogoproto.moretags) = "testdiff:\"ignore\""];
 }

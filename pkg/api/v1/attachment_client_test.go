@@ -73,6 +73,7 @@ func AttachmentClientTest(namespace string, client AttachmentClient) {
 	Expect(r1.ProcessName).To(Equal(input.ProcessName))
 	Expect(r1.Node).To(Equal(input.Node))
 	Expect(r1.MatchRequest).To(Equal(input.MatchRequest))
+	Expect(r1.Status).To(Equal(input.Status))
 
 	_, err = client.Write(input, clients.WriteOpts{
 		OverwriteExisting: true,

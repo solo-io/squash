@@ -25,6 +25,7 @@ func (s ApiSnapshot) snapshotToHash() ApiSnapshot {
 		resources.UpdateMetadata(attachment, func(meta *core.Metadata) {
 			meta.ResourceVersion = ""
 		})
+		attachment.SetStatus(core.Status{})
 	}
 
 	return snapshotForHashing
