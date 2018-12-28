@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "solo-corp"
+  },
+  "targets": {
+    "solo-corp": {
+      "hosting": {
+        "squash-site": [
+          "squash-docs"
+        ]
+      }
+    }
+  }
+}
