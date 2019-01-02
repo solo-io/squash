@@ -7,10 +7,10 @@ import (
 
 	"fmt"
 
-	"github.com/solo-io/squash/pkg/client/debugattachment"
-	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	"github.com/solo-io/squash/pkg/cmd/cli"
 
-	"github.com/solo-io/squash/pkg/models"
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -44,22 +44,25 @@ func init() {
 				return err
 			}
 
-			dbgattchment := models.DebugAttachment{
-				Spec: &models.DebugAttachmentSpec{
-					Attachment: &k8models.KubeAttachment{
-						Namespace: namespace,
-						Pod:       pod,
-						Container: container,
-					},
-					ProcessName: processName,
-					Image:       image,
-					Debugger:    debuggertype,
+			dbgattchment := v1.DebugAttachment{
+				core.Metadata{
+					Name:      "tmpname111", // TODO(mitchdraft) - implement a naming scheme
+					Namespace: namespace,
 				},
+				Pod:         pod,
+				Container:   container,
+				ProcessName: processName,
+				Image:       image,
+				Debugger:    debuggertype,
+			}
+			dbgattchment, err := cli.DebugContainerCmd(dbgattchment)
+			if err != nil {
+				return err
 			}
 
-			params := debugattachment.NewAddDebugAttachmentParams()
-			params.Body = &dbgattchment
-			res, err := c.Debugattachment.AddDebugAttachment(params)
+			// params := debugattachment.NewAddDebugAttachmentParams()
+			// params.Body = &dbgattchment
+			// res, err := c.Debugattachment.AddDebugAttachment(params)
 
 			if err != nil {
 				if !jsonoutput {
@@ -70,7 +73,7 @@ func init() {
 				os.Exit(1)
 			}
 
-			dbgattchment = *res.Payload
+			// dbgattchment = *res.Payload
 
 			if !jsonoutput {
 				fmt.Println("Debug config id:", dbgattchment.Metadata.Name)
