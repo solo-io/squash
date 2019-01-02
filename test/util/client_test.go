@@ -9,6 +9,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/util"
 )
 
@@ -45,7 +46,7 @@ var _ = Describe("utils", func() {
 		Expect(err).To(BeNil())
 
 		name := "aname2"
-		namespace := "squash"
+		namespace := options.SquashNamespace
 		da := generateDebugAttachmentDlv1(name, namespace)
 		writeOpts := clients.WriteOpts{
 			Ctx:               ctx,
