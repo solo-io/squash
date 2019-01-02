@@ -15,7 +15,13 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/solo-io/squash/pkg/models"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	models "github.com/solo-io/squash/pkg/api/v1" // todo - rename this squash v1 after swagger extraction
+	"github.com/solo-io/squash/pkg/options"
+	"github.com/solo-io/squash/pkg/utils"
+
+	// "github.com/solo-io/squash/pkg/models"
 
 	v1 "k8s.io/api/core/v1"
 )
@@ -329,27 +335,41 @@ type Squash struct {
 	kubeAddr string
 }
 
+// Attach creates an attachment
 func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*models.DebugAttachment, error) {
-	args := []string{"debug-container", "--namespace=" + s.Namespace, image, pod, container, dbgger}
+
+	ctx := context.TODO() // TODO
+	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id := "name123"
+	da := models.DebugAttachment{
+		Metadata: core.Metadata{
+			Name:      id,
+			Namespace: options.SquashNamespace,
+		},
+		Debugger:  dbgger,
+		Image:     image,
+		Pod:       pod,
+		Container: container,
+		// DebugServerAddress: 	fmt.Sprintf("--url=http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
+		DebugServerAddress: fmt.Sprintf("http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace),
+	}
+	// args := []string{"debug-container", "--namespace=" + s.Namespace, image, pod, container, dbgger}
 	if processName != "" {
-		args = append(args, "--processName="+processName)
+		// args = append(args, "--processName="+processName)
+		da.ProcessName = processName
 	}
-
-	cmd := s.run(args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		GinkgoWriter.Write(out)
-		return nil, err
+	writeOpts := clients.WriteOpts{
+		Ctx:               ctx,
+		OverwriteExisting: false,
 	}
+	res, err := (*daClient).Write(&da, writeOpts)
 
-	var dbgattachment models.DebugAttachment
-	err = json.Unmarshal(out, &dbgattachment)
-	if err != nil {
-		return nil, err
-	}
-
-	return &dbgattachment, nil
+	return res, err
 }
+
 func (s *Squash) Delete(da *models.DebugAttachment) error {
 	args := []string{"delete", da.Metadata.Name}
 
@@ -384,6 +404,10 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 }
 
 func (s *Squash) run(args ...string) *exec.Cmd {
+
+	panic(strings.Join(args, ","))
+	fmt.Println(args)
+	panic("don't use this, use the real function")
 	url := fmt.Sprintf("--url=http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
 	newargs := []string{url, "--json"}
 	newargs = append(newargs, args...)

@@ -1,11 +1,11 @@
-package util_test
+package testutils
 
 import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 )
 
-func generateDebugAttachment(name, namespace, dbgger, image, pod, container, processName string) v1.DebugAttachment {
+func GenerateDebugAttachment(name, namespace, dbgger, image, pod, container, processName string) v1.DebugAttachment {
 
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
@@ -22,11 +22,11 @@ func generateDebugAttachment(name, namespace, dbgger, image, pod, container, pro
 	}
 	return da
 }
-func generateDebugAttachmentDlv1(name, namespace string) v1.DebugAttachment {
+func GenerateDebugAttachmentDlv1(name, namespace string) v1.DebugAttachment {
 	dbgger := "dlv"
 	image := "mk"
 	pod := "somepod"
 	container := "somecontainer"
 	processName := "pcsnm"
-	return generateDebugAttachment(name, namespace, dbgger, image, pod, container, processName)
+	return GenerateDebugAttachment(name, namespace, dbgger, image, pod, container, processName)
 }

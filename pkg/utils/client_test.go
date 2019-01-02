@@ -1,4 +1,4 @@
-package util_test
+package utils_test
 
 import (
 	"context"
@@ -7,18 +7,19 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/options"
-	"github.com/solo-io/squash/test/util"
+	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/test/testutils"
 )
 
 var _ = Describe("utils", func() {
 	It("should generate debug attachment", func() {
 		ctx := context.TODO()
-		daClient, err := util.GetDebugAttachmentClient(ctx)
+		daClient, err := utils.GetDebugAttachmentClient(ctx)
 		Expect(err).To(BeNil())
 
 		name := "aname2"
 		namespace := options.SquashNamespace
-		da := generateDebugAttachmentDlv1(name, namespace)
+		da := testutils.GenerateDebugAttachmentDlv1(name, namespace)
 		writeOpts := clients.WriteOpts{
 			Ctx:               ctx,
 			OverwriteExisting: true,

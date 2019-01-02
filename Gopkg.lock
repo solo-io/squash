@@ -113,14 +113,6 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:582d54fcb7233da8dde1dfd2210a5b9675d0685f84246a8d317b07d680c18b1b"
-  name = "github.com/docker/go-units"
-  packages = ["."]
-  pruneopts = ""
-  revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
-  version = "v0.3.3"
-
-[[projects]]
   digest = "1:b2ac39cf926d768133bdd17e53333235a3e1d6154ed806777f0ba5f43819fa2e"
   name = "github.com/fgrosse/zaptest"
   packages = ["."]
@@ -182,8 +174,6 @@
   name = "github.com/go-openapi/runtime"
   packages = [
     ".",
-    "client",
-    "flagext",
     "logger",
     "middleware",
     "middleware/denco",
@@ -467,14 +457,6 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:ca5c90960520407749b98c49650f54f5f90a667796e85c5ee1597478f702fb91"
-  name = "github.com/jessevdk/go-flags"
-  packages = ["."]
-  pruneopts = ""
-  revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
-  version = "v1.4.0"
-
-[[projects]]
   digest = "1:9eab2325abbed0ebcee9d44bb3660a69d5d10e42d5ac4a0e77f7a6ea22bfce88"
   name = "github.com/json-iterator/go"
   packages = ["."]
@@ -753,14 +735,6 @@
   pruneopts = ""
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
-
-[[projects]]
-  digest = "1:8143ea52154df4cf52589d780ad447f625978a4c29713200842ccaa7c532350a"
-  name = "github.com/tylerb/graceful"
-  packages = ["."]
-  pruneopts = ""
-  revision = "4654dfbb6ad53cb5e27f37d99b02e16c1872fbbb"
-  version = "v1.2.15"
 
 [[projects]]
   branch = "master"
@@ -1138,7 +1112,6 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
-    "discovery/fake",
     "kubernetes",
     "kubernetes/scheme",
     "kubernetes/typed/admissionregistration/v1alpha1",
@@ -1180,7 +1153,6 @@
     "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
-    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -1229,14 +1201,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a65602ce01f38b2204b947b317c4683403d81b539c18ef7b6cf658898cce26a3"
-  name = "k8s.io/sample-controller"
-  packages = ["pkg/signals"]
-  pruneopts = ""
-  revision = "c0feae0701289645c78718e35822954864e3942e"
-
-[[projects]]
-  branch = "master"
   digest = "1:aafef15e54c1eb0bc8c470488d2015232fc0f8652d64ea5e1d397eb9a5fd146a"
   name = "k8s.io/utils"
   packages = ["exec"]
@@ -1252,23 +1216,11 @@
     "github.com/GoogleContainerTools/skaffold/pkg/skaffold/util",
     "github.com/davecgh/go-spew/spew",
     "github.com/derekparker/delve/service/rpc1",
-    "github.com/go-openapi/errors",
-    "github.com/go-openapi/loads",
-    "github.com/go-openapi/runtime",
-    "github.com/go-openapi/runtime/client",
-    "github.com/go-openapi/runtime/flagext",
     "github.com/go-openapi/runtime/middleware",
-    "github.com/go-openapi/runtime/security",
-    "github.com/go-openapi/spec",
-    "github.com/go-openapi/strfmt",
-    "github.com/go-openapi/swag",
-    "github.com/go-openapi/validate",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/sortkeys",
-    "github.com/golang/glog",
     "github.com/hashicorp/go-multierror",
-    "github.com/jessevdk/go-flags",
     "github.com/mitchellh/hashstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
@@ -1276,6 +1228,7 @@
     "github.com/sirupsen/logrus",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/factory",
+    "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/memory",
     "github.com/solo-io/solo-kit/pkg/api/v1/reconcile",
@@ -1285,12 +1238,12 @@
     "github.com/solo-io/solo-kit/pkg/errors",
     "github.com/solo-io/solo-kit/pkg/utils/contextutils",
     "github.com/solo-io/solo-kit/pkg/utils/errutils",
+    "github.com/solo-io/solo-kit/pkg/utils/kubeutils",
     "github.com/solo-io/solo-kit/pkg/utils/log",
     "github.com/solo-io/solo-kit/test/helpers",
     "github.com/solo-io/solo-kit/test/setup",
     "github.com/solo-io/solo-kit/test/tests/typed",
     "github.com/spf13/cobra",
-    "github.com/tylerb/graceful",
     "github.com/vishvananda/netlink/nl",
     "go.opencensus.io/stats",
     "go.opencensus.io/stats/view",
@@ -1302,32 +1255,15 @@
     "gopkg.in/AlecAivazis/survey.v1",
     "gopkg.in/yaml.v2",
     "k8s.io/api/core/v1",
-    "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
-    "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset",
-    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
-    "k8s.io/apimachinery/pkg/runtime/serializer",
-    "k8s.io/apimachinery/pkg/types",
-    "k8s.io/apimachinery/pkg/util/runtime",
-    "k8s.io/apimachinery/pkg/util/wait",
-    "k8s.io/apimachinery/pkg/watch",
-    "k8s.io/client-go/discovery",
-    "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/rest",
-    "k8s.io/client-go/testing",
-    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
-    "k8s.io/client-go/tools/clientcmd/api",
-    "k8s.io/client-go/util/flowcontrol",
-    "k8s.io/client-go/util/workqueue",
     "k8s.io/kubernetes/pkg/kubelet/apis/cri",
     "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2",
     "k8s.io/kubernetes/pkg/kubelet/remote",
-    "k8s.io/sample-controller/pkg/signals",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

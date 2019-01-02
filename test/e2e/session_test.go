@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
 	. "github.com/solo-io/squash/test/utils"
 	"k8s.io/api/core/v1"
 )
@@ -158,22 +159,24 @@ var _ = Describe("Single debug mode", func() {
 
 			time.Sleep(time.Second)
 
-			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			// updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 		})
 
-		It("should get a debug server endpoint, specific process", func() {
+		FIt("should get a debug server endpoint, specific process", func() {
 			container := CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := squash.Attach(container.Image, CurrentMicroservicePod.ObjectMeta.Name, container.Name, "service1", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
 
-			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 		})
 
 		It("should get a debug server endpoint, specific process that doesn't exist", func() {
@@ -184,7 +187,8 @@ var _ = Describe("Single debug mode", func() {
 
 			time.Sleep(time.Second)
 
-			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).To(Equal("error"))
@@ -195,7 +199,8 @@ var _ = Describe("Single debug mode", func() {
 			dbgattachment, err := squash.Attach(container.Image, CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
-			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).To(Equal("attached"))
 
@@ -203,7 +208,8 @@ var _ = Describe("Single debug mode", func() {
 			dbgattachment, err = squash.Attach(container.Image, Current2MicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
-			updatedattachment, err = squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err = squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).To(Equal("attached"))
 		})
@@ -213,10 +219,11 @@ var _ = Describe("Single debug mode", func() {
 
 			dbgattachment, err := squash.Attach(container.Image, CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
-			updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err := squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 
 			// Ok; now delete the attachment
 			err = squash.Delete(dbgattachment)
@@ -227,10 +234,11 @@ var _ = Describe("Single debug mode", func() {
 			// try again!
 			dbgattachment, err = squash.Attach(container.Image, CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
-			updatedattachment, err = squash.Wait(dbgattachment.Metadata.Name)
+			// updatedattachment, err = squash.Wait(dbgattachment.Metadata.Name)
+			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.Status.DebugServerAddress).ToNot(BeEmpty())
+			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 		})
 	})
 
