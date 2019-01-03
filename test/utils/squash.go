@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	models "github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -33,7 +33,7 @@ type Squash struct {
 }
 
 // Attach creates an attachment
-func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*models.DebugAttachment, error) {
+func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
 
 	ctx := context.TODO() // TODO
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
@@ -41,7 +41,7 @@ func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*mod
 		return nil, err
 	}
 	id := "name123"
-	da := models.DebugAttachment{
+	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      id,
 			Namespace: options.SquashNamespace,
@@ -67,7 +67,7 @@ func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*mod
 	return res, err
 }
 
-func (s *Squash) Delete(da *models.DebugAttachment) error {
+func (s *Squash) Delete(da *v1.DebugAttachment) error {
 	args := []string{"delete", da.Metadata.Name}
 
 	cmd := s.run(args...)
@@ -80,7 +80,7 @@ func (s *Squash) Delete(da *models.DebugAttachment) error {
 	return nil
 }
 
-func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
+func (s *Squash) Wait(id string) (*v1.DebugAttachment, error) {
 
 	cmd := s.run("wait", id, "--timeout", "90")
 
@@ -90,7 +90,7 @@ func (s *Squash) Wait(id string) (*models.DebugAttachment, error) {
 		return nil, err
 	}
 
-	var dbgattachment models.DebugAttachment
+	var dbgattachment v1.DebugAttachment
 	err = json.Unmarshal(out, &dbgattachment)
 	if err != nil {
 		fmt.Fprintln(GinkgoWriter, "Failed to parse response for service wait:", string(out))
