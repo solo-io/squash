@@ -11,6 +11,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/cmd/cli/options"
+	defaults "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -45,13 +46,14 @@ func DebugContainerCmd(opts *options.Options) *cobra.Command {
 			da := v1.DebugAttachment{
 				Metadata: core.Metadata{
 					Name:      "tmpname111", // TODO(mitchdraft) - implement a naming scheme
-					Namespace: opts.Namespace,
+					Namespace: defaults.SquashNamespace,
 				},
-				Pod:         pod,
-				Container:   container,
-				ProcessName: opts.ProcessName,
-				Image:       image,
-				Debugger:    debuggertype,
+				Pod:            pod,
+				Container:      container,
+				ProcessName:    opts.ProcessName,
+				Image:          image,
+				Debugger:       debuggertype,
+				DebugNamespace: opts.Namespace,
 			}
 			fmt.Println("about to trigger")
 			dbgattchment, err := debugContainer(da)

@@ -49,4 +49,6 @@ message DebugAttachment {
   string pod = 11;
 
   string container = 12;
+
+  string debug_namespace = 13;
 }
