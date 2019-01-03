@@ -324,12 +324,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   digest = "1:05334858a0cfb538622a066e065287f63f42bee26a7fda93a789674225057201"
   name = "github.com/hashicorp/go-cleanhttp"
   packages = ["."]
   pruneopts = ""
   revision = "e8ab9daed8d1ddd2d3c4efba338fe2eeae2e4f18"
-  version = "v0.5.0"
 
 [[projects]]
   digest = "1:72308fdd6d5ef61106a95be7ca72349a5565809042b6426a3cfb61d99483b824"
@@ -362,6 +362,14 @@
   packages = ["."]
   pruneopts = ""
   revision = "6d291a969b86c4b633730bfc6b8b9d64c3aafed9"
+
+[[projects]]
+  branch = "master"
+  digest = "1:0038a7f43b51c8b2a8cd03b5372e73f8eadfe156484c2ae8185ae836f8ebc2cd"
+  name = "github.com/hashicorp/go-uuid"
+  packages = ["."]
+  pruneopts = ""
+  revision = "4f571afc59f3043a65f8fe6bf46d887b10a01d43"
 
 [[projects]]
   branch = "master"
@@ -654,6 +662,22 @@
   pruneopts = ""
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
   version = "v1.0.5"
+
+[[projects]]
+  digest = "1:b0a5012b843bcca5063b5a2db2886f97214f537a7125e1dd2c4a6a203f33825b"
+  name = "github.com/solo-io/go-checkpoint"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b798a7563f831f081f2a73ca889888f1ceec06b3"
+  version = "0.0.4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:81c779c87ea04c1a871820c04baebce4b4a50cdff1598d2cebc25a33dd34e91c"
+  name = "github.com/solo-io/go-utils"
+  packages = ["v1/common"]
+  pruneopts = ""
+  revision = "30fcdd8c416992b2a42e577171280c2f106b2991"
 
 [[projects]]
   branch = "master"
@@ -1226,6 +1250,8 @@
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
+    "github.com/solo-io/go-checkpoint",
+    "github.com/solo-io/go-utils/v1/common",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/factory",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
