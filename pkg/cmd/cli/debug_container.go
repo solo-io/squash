@@ -79,7 +79,7 @@ func ensureDebugContainerOpts(dcOpts *options.DebugContainer, args []string) err
 	if err != nil {
 		return err
 	}
-	dcOpts.Name = soloutils.RandStringBytes(6)
+	dcOpts.Name = soloutils.RandKubeNameBytes(6)
 	return nil
 }
 

@@ -673,11 +673,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:81c779c87ea04c1a871820c04baebce4b4a50cdff1598d2cebc25a33dd34e91c"
+  digest = "1:8af91949e739ad3184d48888d37ba09e3149cdbc877f1dfa2a8cdb6778a7d04b"
   name = "github.com/solo-io/go-utils"
   packages = ["v1/common"]
   pruneopts = ""
-  revision = "30fcdd8c416992b2a42e577171280c2f106b2991"
+  revision = "a8a19ba71cc30bbcf3dd7d6f634946d61f5affa8"
 
 [[projects]]
   branch = "master"
