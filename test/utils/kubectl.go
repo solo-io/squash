@@ -48,6 +48,14 @@ func (k *Kubectl) CreateNS() error {
 	return k.innerprepare(args).Run()
 }
 
+func (k *Kubectl) DeleteDebugAttachment(name string) error {
+	if k.Namespace != "" {
+		args := []string{"delete", "debugattachment", name}
+		return k.innerpreparens(args).Run()
+	}
+	return nil
+}
+
 func (k *Kubectl) DeleteNS() error {
 	if k.Namespace != "" {
 		args := []string{"delete", "namespace", k.Namespace}

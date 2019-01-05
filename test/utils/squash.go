@@ -33,38 +33,32 @@ type Squash struct {
 }
 
 // Attach creates an attachment
-func (s *Squash) Attach(image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+func (s *Squash) Attach(name, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
 
 	ctx := context.TODO() // TODO
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	id := "name123"
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      id,
+			Name:      name,
 			Namespace: options.SquashNamespace,
 		},
-		Debugger:  dbgger,
-		Image:     image,
-		Pod:       pod,
-		Container: container,
-		// DebugServerAddress: 	fmt.Sprintf("--url=http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace)
+		Debugger:           dbgger,
+		Image:              image,
+		Pod:                pod,
+		Container:          container,
 		DebugServerAddress: fmt.Sprintf("http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace),
 	}
-	// args := []string{"debug-container", "--namespace=" + s.Namespace, image, pod, container, dbgger}
 	if processName != "" {
-		// args = append(args, "--processName="+processName)
 		da.ProcessName = processName
 	}
 	writeOpts := clients.WriteOpts{
 		Ctx:               ctx,
 		OverwriteExisting: false,
 	}
-	res, err := (*daClient).Write(&da, writeOpts)
-
-	return res, err
+	return (*daClient).Write(&da, writeOpts)
 }
 
 func (s *Squash) Delete(da *v1.DebugAttachment) error {

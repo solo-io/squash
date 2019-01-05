@@ -65,6 +65,7 @@ func DebugContainerCmd(opts *options.Options) *cobra.Command {
 
 func ensureDebugContainerOpts(dcOpts *options.DebugContainer, args []string) error {
 	var err error
+	dcOpts.DebuggerType = "gdb"
 	switch len(args) {
 	case 4:
 		dcOpts.DebuggerType = args[3]
