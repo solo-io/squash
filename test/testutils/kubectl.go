@@ -42,8 +42,17 @@ func (k *Kubectl) String() string {
 	return fmt.Sprintf("context: %v, namespace: %v, proxyProcess: %v, proxyAddress: %v", k.Context, k.Namespace, *k.proxyProcess, *k.proxyAddress)
 }
 
-func (k *Kubectl) GrantClusterAdminPermissions() error {
-	args := []string{"create", "clusterrolebinding", "root-cluster-admin-binding2", "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%v:default", k.Namespace)}
+func (k *Kubectl) GrantClusterAdminPermissions(clusterRoleBindingName string) error {
+	args := []string{"create", "clusterrolebinding", clusterRoleBindingName, "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%v:default", k.Namespace)}
+
+	cmd := k.innerprepare(args)
+	cmd.Stderr = GinkgoWriter
+	cmd.Stdout = GinkgoWriter
+	return cmd.Run()
+}
+
+func (k *Kubectl) RemoveClusterAdminPermissions(clusterRoleBindingName string) error {
+	args := []string{"delete", "clusterrolebinding", clusterRoleBindingName}
 
 	cmd := k.innerprepare(args)
 	cmd.Stderr = GinkgoWriter

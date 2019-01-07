@@ -25,6 +25,8 @@ type E2eParams struct {
 	Microservice2Pods       map[string]*v1.Pod
 	CurrentMicroservicePod  *v1.Pod
 	Current2MicroservicePod *v1.Pod
+
+	crbAdminName string
 }
 
 func NewE2eParams(daName string) E2eParams {
@@ -39,6 +41,8 @@ func NewE2eParams(daName string) E2eParams {
 		ClientPods:        make(map[string]*v1.Pod),
 		Microservice1Pods: make(map[string]*v1.Pod),
 		Microservice2Pods: make(map[string]*v1.Pod),
+
+		crbAdminName: "serviceaccount-cluster-admin-level",
 	}
 }
 
@@ -123,7 +127,7 @@ func (p *E2eParams) SetupE2e() {
 		Fail("can't find client pods")
 	}
 
-	if err := p.kubectl.GrantClusterAdminPermissions(); err != nil {
+	if err := p.kubectl.GrantClusterAdminPermissions(p.crbAdminName); err != nil {
 		Fail(fmt.Sprintf("Failed to create permissions: %v", err))
 	}
 
@@ -136,6 +140,10 @@ func (p *E2eParams) SetupE2e() {
 func (p *E2eParams) Cleanup() {
 	defer p.kubectl.StopProxy()
 	defer p.kubectl.DeleteNS()
+
+	if err := p.kubectl.RemoveClusterAdminPermissions(p.crbAdminName); err != nil {
+		Fail(fmt.Sprintf("Failed to delete permissions: %v", err))
+	}
 
 	clogs, _ := p.kubectl.Logs(p.ClientPods[p.CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name)
 	fmt.Fprintln(GinkgoWriter, "client logs:")
