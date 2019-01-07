@@ -32,13 +32,23 @@ type Kubectl struct {
 
 func NewKubectl(kubectlctx string) *Kubectl {
 	return &Kubectl{
-		Context:   kubectlctx,
-		Namespace: fmt.Sprintf("test-%d", rand.Uint64()),
+		Context: kubectlctx,
+		// Namespace: fmt.Sprintf("test-%d", rand.Uint64()),
+		Namespace: "squash", // TODO FOR NOW
 	}
 }
 
 func (k *Kubectl) String() string {
 	return fmt.Sprintf("context: %v, namespace: %v, proxyProcess: %v, proxyAddress: %v", k.Context, k.Namespace, *k.proxyProcess, *k.proxyAddress)
+}
+
+func (k *Kubectl) GrantClusterAdminPermissions() error {
+	args := []string{"create", "clusterrolebinding", "root-cluster-admin-binding2", "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%v:default", k.Namespace)}
+
+	cmd := k.innerprepare(args)
+	cmd.Stderr = GinkgoWriter
+	cmd.Stdout = GinkgoWriter
+	return cmd.Run()
 }
 
 func (k *Kubectl) CreateNS() error {
@@ -302,6 +312,7 @@ func (k *Kubectl) Prepare(args ...string) *exec.Cmd {
 func (k *Kubectl) innerunns(args []string) error {
 	return k.innerpreparens(args).Run()
 }
+
 func (k *Kubectl) innerpreparens(args []string) *exec.Cmd {
 	newargs := []string{"--namespace=" + k.Namespace}
 	newargs = append(newargs, args...)

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/models"
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -19,7 +19,7 @@ import (
 type DebugController struct {
 	debugger         func(string) Debugger
 	conttopid        platforms.ContainerProcess
-	udpateAttachment func(*models.DebugAttachment) error
+	udpateAttachment func(*v1.DebugAttachment) error
 
 	pidLock sync.Mutex
 	pidMap  map[int]bool
@@ -34,7 +34,7 @@ type debugAttachmentData struct {
 }
 
 func NewDebugController(debugger func(string) Debugger,
-	udpateAttachment func(*models.DebugAttachment) error,
+	udpateAttachment func(*v1.DebugAttachment) error,
 	conttopid platforms.ContainerProcess) *DebugController {
 	return &DebugController{
 		debugger:         debugger,
@@ -61,7 +61,7 @@ func (d *DebugController) unlockProcess(pid int) {
 	delete(d.pidMap, pid)
 }
 
-func (d *DebugController) addActiveAttachment(attachment *models.DebugAttachment, pid int, debugger DebugServer) {
+func (d *DebugController) addActiveAttachment(attachment *v1.DebugAttachment, pid int, debugger DebugServer) {
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
 	d.debugattachments[attachment.Metadata.Name] = debugAttachmentData{debugger, pid}
@@ -83,7 +83,7 @@ func (d *DebugController) removeAttachment(name string) {
 	}
 }
 
-func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtachment []*models.DebugAttachment) error {
+func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtachment []*v1.DebugAttachment) error {
 
 	for _, attachment := range removedAtachment {
 		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Removing attachment")
@@ -92,23 +92,26 @@ func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtac
 
 	for _, attachment := range attachments {
 		// notify the server that we are attaching, so we won't get the same attachment object next time.
-		if err := d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching); err != nil {
-			log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name, "err": err}).Debug("Failed set state to attaching in squash server. aborting.")
+		// TODO(mitchdraft) - this should set a flag on the debug attachment object
+		// if err := d.notifyState(attachment, v1.DebugAttachmentStatusStateAttaching); err != nil {
+		// 	log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name, "err": err}).Debug("Failed set state to attaching in squash server. aborting.")
 
-			d.notifyError(attachment)
-		}
+		// 	d.notifyError(attachment)
+		// }
 		go d.handleSingleAttachment(attachment)
 	}
 	return nil
 }
 
-func (d *DebugController) handleSingleAttachment(attachment *models.DebugAttachment) {
+func (d *DebugController) handleSingleAttachment(attachment *v1.DebugAttachment) {
 
 	err := retry(func() error { return d.tryToAttach(attachment) })
 
 	if err != nil {
 		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
-		d.notifyError(attachment)
+		// TODO replace swagger functionality
+		fmt.Println("swagger functionality update")
+		// d.notifyError(attachment)
 	}
 }
 
@@ -161,16 +164,16 @@ func FindFirstProcess(pids []int, processName string) (int, error) {
 	return minpid, nil
 }
 
-func (d *DebugController) tryToAttach(attachment *models.DebugAttachment) error {
+func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
 
 	// make sure this is not a duplicate
-	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Spec.Attachment)
+	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Attachment)
 	if err != nil {
 		log.WithField("err", err).Warn("GetContainerInfo error")
 		return err
 	}
 
-	pid, err := FindFirstProcess(ci.Pids, attachment.Spec.ProcessName)
+	pid, err := FindFirstProcess(ci.Pids, attachment.ProcessName)
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
 		return err
@@ -187,39 +190,43 @@ func (d *DebugController) tryToAttach(attachment *models.DebugAttachment) error 
 		log.WithField("pid", pid).Info("starting to debug")
 		debugger, err := d.startDebug(attachment, p, ci.Name)
 		if err != nil {
-			d.notifyError(attachment)
+			// TODO - replace swagger functionality
+			fmt.Println("swagger functionality update")
+			// d.notifyError(attachment)
 			return nil // no retry
 		}
 		d.addActiveAttachment(attachment, pid, debugger)
 
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
-		d.notifyError(attachment)
+		// TODO
+		fmt.Println("swagger functionality update")
+		// d.notifyError(attachment)
 	}
 	return nil
 }
 
-func (d *DebugController) notifyError(attachment *models.DebugAttachment) {
-	d.notifyState(attachment, models.DebugAttachmentStatusStateError)
-}
+// func (d *DebugController) notifyError(attachment *v1.DebugAttachment) {
+// 	d.notifyState(attachment, v1.DebugAttachmentStatusStateError)
+// }
 
-func (d *DebugController) notifyState(attachment *models.DebugAttachment, newstate string) error {
+// func (d *DebugController) notifyState(attachment *v1.DebugAttachment, newstate string) error {
 
-	attachmentCopy := *attachment
-	attachmentCopy.Status.State = newstate
-	return d.udpateAttachment(&attachmentCopy)
-}
+// 	attachmentCopy := *attachment
+// 	attachmentCopy.Status.State = newstate
+// 	return d.udpateAttachment(&attachmentCopy)
+// }
 
-func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
+func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
 	log.Info("start debug called")
 
-	curdebugger := d.debugger(attachment.Spec.Debugger)
+	curdebugger := d.debugger(attachment.Debugger)
 
 	if curdebugger == nil {
 		return nil, errors.New("debugger doesn't exist")
 	}
 
-	log.WithFields(log.Fields{"curdebugger": attachment.Spec.Debugger}).Info("start debug params")
+	log.WithFields(log.Fields{"curdebugger": attachment.Debugger}).Info("start debug params")
 
 	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
 	var err error
@@ -232,9 +239,10 @@ func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.P
 
 	log.WithField("pid", p.Pid).Info("StartDebugServer - posting debug session")
 
-	attachmentPatch := &models.DebugAttachment{
-		Metadata: attachment.Metadata,
-		Spec:     attachment.Spec,
+	attachmentPatch := &v1.DebugAttachment{
+		Metadata:   attachment.Metadata,
+		Attachment: attachment.Attachment,
+		Debugger:   attachment.Debugger,
 	}
 
 	hostName := ""
@@ -251,10 +259,8 @@ func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.P
 		return nil, err
 	}
 
-	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", hostName, debugServer.Port()),
-		State:              models.DebugAttachmentStatusStateAttached,
-	}
+	attachmentPatch.DebugServerAddress = fmt.Sprintf("%s:%d", hostName, debugServer.Port())
+	attachmentPatch.State = "attached" // TODO(mitchdraft) make this an enum in the api
 
 	log.WithFields(log.Fields{"newattachment": attachmentPatch}).Debug("Notifying server of attachment to debug config object")
 	err = d.udpateAttachment(attachmentPatch)

@@ -43,7 +43,7 @@ func ServerCmd() error {
 			ctx, cancel = context.WithCancel(ctx)
 
 			fmt.Printf("found %v das\n", len(daList))
-			err := sync(daList)
+			// err := sync(daList)
 			if err != nil {
 				// TODO(mitchdraft) move this into an event loop
 				fmt.Println(err)
@@ -56,19 +56,20 @@ func ServerCmd() error {
 	}
 }
 
-func sync(daList v1.DebugAttachmentList) error {
-	fmt.Println("running sync")
-	for _, d := range daList {
-		fmt.Println(d)
-		fmt.Println(d.Status.State)
-		if d.Status.State == core.Status_Pending {
-			if err := handlePendingDebugAttachment(d); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
+// func sync(daList v1.DebugAttachmentList) error {
+// 	fmt.Println("running sync")
+// 	debuggers.HandleAddedRemovedAttachments(daList, []*v1.DebugAttachmentList{})
+// 	// for _, d := range daList {
+// 	// 	fmt.Println(d)
+// 	// 	fmt.Println(d.Status.State)
+// 	// 	if d.Status.State == core.Status_Pending {
+// 	// 		if err := handlePendingDebugAttachment(d); err != nil {
+// 	// 			return err
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	return nil
+// }
 
 func handlePendingDebugAttachment(d *v1.DebugAttachment) error {
 	// try to connect to the debugger

@@ -41,7 +41,7 @@ var _ = Describe("Single debug mode", func() {
 		It("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
-			dbgattachment, err := params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			dbgattachment, err := params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(time.Second)
@@ -54,7 +54,7 @@ var _ = Describe("Single debug mode", func() {
 		It("should get a debug server endpoint, specific process", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
-			dbgattachment, err := params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "service1", "dlv")
+			dbgattachment, err := params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "service1", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
 
@@ -67,7 +67,7 @@ var _ = Describe("Single debug mode", func() {
 		It("should get a debug server endpoint, specific process that doesn't exist", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
-			dbgattachment, err := params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "processNameDoesntExist", "dlv")
+			dbgattachment, err := params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "processNameDoesntExist", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(time.Second)
@@ -80,7 +80,7 @@ var _ = Describe("Single debug mode", func() {
 		FIt("should attach to two micro services", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
-			dbgattachment, err := params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			dbgattachment, err := params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
@@ -88,7 +88,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment.Status.State).To(Equal(core.Status_Accepted))
 
 			container = params.Current2MicroservicePod.Spec.Containers[0]
-			dbgattachment, err = params.Squash.Attach(daName2, container.Image, params.Current2MicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			dbgattachment, err = params.Squash.Attach(daName2, params.Namespace, container.Image, params.Current2MicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(time.Second)
 			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
@@ -99,7 +99,7 @@ var _ = Describe("Single debug mode", func() {
 		It("Be able to re-attach once session exited", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
-			dbgattachment, err := params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			dbgattachment, err := params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
@@ -113,7 +113,7 @@ var _ = Describe("Single debug mode", func() {
 			time.Sleep(5 * time.Second)
 
 			// try again!
-			dbgattachment, err = params.Squash.Attach(daName, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			dbgattachment, err = params.Squash.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 

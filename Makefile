@@ -97,3 +97,7 @@ generate-sk: docs-and-code/v1
 
 docs-and-code/v1:
 	go run cmd/generate-code/main.go
+
+.PHONY: tmpclient
+tmpclient:
+	GOOS=linux go build -o target/squash-client/squash-client cmd/squash-client/platforms/kubernetes/main.go

@@ -11,7 +11,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 )
 
@@ -33,7 +32,7 @@ type Squash struct {
 }
 
 // Attach creates an attachment
-func (s *Squash) Attach(name, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+func (s *Squash) Attach(name, namespace, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
 
 	ctx := context.TODO() // TODO
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
@@ -43,7 +42,7 @@ func (s *Squash) Attach(name, image, pod, container, processName, dbgger string)
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      name,
-			Namespace: options.SquashNamespace,
+			Namespace: namespace,
 		},
 		Debugger:  dbgger,
 		Image:     image,
