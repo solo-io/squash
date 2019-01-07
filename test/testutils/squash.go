@@ -39,15 +39,18 @@ func (s *Squash) Attach(name, namespace, image, pod, container, processName, dbg
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("attaching...................")
+	fmt.Println(pod, container, image, processName, dbgger)
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Debugger:  dbgger,
-		Image:     image,
-		Pod:       pod,
-		Container: container,
+		Debugger:       dbgger,
+		Image:          image,
+		Pod:            pod,
+		Container:      container,
+		DebugNamespace: namespace,
 		// DebugServerAddress: fmt.Sprintf("http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace),
 	}
 	if processName != "" {

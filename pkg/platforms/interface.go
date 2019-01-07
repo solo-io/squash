@@ -1,6 +1,10 @@
 package platforms
 
-import "context"
+import (
+	"context"
+
+	"github.com/solo-io/squash/pkg/api/v1"
+)
 
 /// Minimal represntation of a container, containing only the data squash cares about -
 /// The container's name, image and the node it runs on.
@@ -28,5 +32,5 @@ type ContainerInfo struct {
 /// not in the container's namespace.
 type ContainerProcess interface {
 	/// Take a platform specific attachment object and return the pid the host pid namespace of the process we want to debug.
-	GetContainerInfo(context context.Context, attachment interface{}) (*ContainerInfo, error)
+	GetContainerInfo(context context.Context, attachment *v1.DebugAttachment) (*ContainerInfo, error)
 }

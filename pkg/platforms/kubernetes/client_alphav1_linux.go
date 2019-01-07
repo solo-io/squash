@@ -13,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils/processwatcher"
 
@@ -48,11 +49,13 @@ func getDialer(a string, t time.Duration) (net.Conn, error) {
 	return net.DialTimeout("unix", a, t)
 }
 
-func (c *CRIContainerProcessAlphaV1) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
+func (c *CRIContainerProcessAlphaV1) GetContainerInfo(maincontext context.Context, attachment *squashv1.DebugAttachment) (*platforms.ContainerInfo, error) {
 
+	fmt.Println("v1")
+	fmt.Println(attachment)
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
-	ka, err := k8models.GenericToKubeAttachment(attachment)
+	ka, err := k8models.DebugAttachmentToKubeAttachment(attachment)
 
 	if err != nil {
 		return nil, errors.New("bad attachment format")

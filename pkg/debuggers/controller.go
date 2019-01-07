@@ -98,6 +98,8 @@ func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtac
 
 		// 	d.notifyError(attachment)
 		// }
+		fmt.Println("att:")
+		fmt.Println(attachment)
 		go d.handleSingleAttachment(attachment)
 	}
 	return nil
@@ -105,6 +107,8 @@ func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtac
 
 func (d *DebugController) handleSingleAttachment(attachment *v1.DebugAttachment) {
 
+	fmt.Println("att2:")
+	fmt.Println(attachment)
 	err := retry(func() error { return d.tryToAttach(attachment) })
 
 	if err != nil {
@@ -166,8 +170,12 @@ func FindFirstProcess(pids []int, processName string) (int, error) {
 
 func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
 
+	fmt.Println("att3:")
+	fmt.Println(attachment)
 	// make sure this is not a duplicate
-	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Attachment)
+	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment)
+	fmt.Println("ci")
+	fmt.Println(ci)
 	if err != nil {
 		log.WithField("err", err).Warn("GetContainerInfo error")
 		return err
@@ -218,6 +226,8 @@ func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
 // }
 
 func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
+	fmt.Println("att4:")
+	fmt.Println(attachment)
 	log.Info("start debug called")
 
 	curdebugger := d.debugger(attachment.Debugger)

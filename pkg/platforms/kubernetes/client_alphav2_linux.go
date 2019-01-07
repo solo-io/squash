@@ -10,6 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 
 	log "github.com/sirupsen/logrus"
@@ -44,11 +45,13 @@ func NewContainerProcess() (*CRIContainerProcess, error) {
 	return &CRIContainerProcess{}, nil
 }
 
-func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
+func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment *v1.DebugAttachment) (*platforms.ContainerInfo, error) {
 
+	fmt.Println("v2")
+	fmt.Println(attachment)
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
-	ka, err := k8models.GenericToKubeAttachment(attachment)
+	ka, err := k8models.DebugAttachmentToKubeAttachment(attachment)
 
 	if err != nil {
 		return nil, errors.New("bad attachment format")
@@ -68,6 +71,8 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 		return nil, err
 	}
 
+	fmt.Println("ka")
+	fmt.Println(ka)
 	labels := make(map[string]string)
 	labels["io.kubernetes.pod.name"] = ka.Pod
 	labels["io.kubernetes.pod.namespace"] = ka.Namespace
@@ -84,6 +89,8 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 		log.WithField("err", err).Warn("ListPodSandbox error")
 		return nil, err
 	}
+	fmt.Println("resp")
+	fmt.Println(resp)
 	if len(resp) != 1 {
 		log.WithField("items", spew.Sdump(resp)).Warn("Invalid number of pods")
 		return nil, errors.New("Invalid number of pods")
