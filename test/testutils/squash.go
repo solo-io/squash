@@ -1,4 +1,4 @@
-package e2e_test
+package testutils
 
 import (
 	"context"
@@ -45,11 +45,11 @@ func (s *Squash) Attach(name, image, pod, container, processName, dbgger string)
 			Name:      name,
 			Namespace: options.SquashNamespace,
 		},
-		Debugger:           dbgger,
-		Image:              image,
-		Pod:                pod,
-		Container:          container,
-		DebugServerAddress: fmt.Sprintf("http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace),
+		Debugger:  dbgger,
+		Image:     image,
+		Pod:       pod,
+		Container: container,
+		// DebugServerAddress: fmt.Sprintf("http://"+s.kubeAddr+"/api/v1/namespaces/%s/services/squash-server:http-squash-api/proxy/api/v2", s.Namespace),
 	}
 	if processName != "" {
 		da.ProcessName = processName

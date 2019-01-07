@@ -1,4 +1,4 @@
-package e2e_test
+package testutils
 
 import (
 	"bytes"
@@ -15,8 +15,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	// todo - rename this squash v1 after swagger extraction
-	// "github.com/solo-io/squash/pkg/models"
 
 	v1 "k8s.io/api/core/v1"
 )
