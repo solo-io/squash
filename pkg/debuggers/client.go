@@ -7,9 +7,9 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -64,75 +64,33 @@ func getNodeName() string {
 }
 
 func (d *DebugHandler) handleAttachments() error {
-	// for {
-	// 	err := d.handleAttachment()
-	// 	if err != nil {
-	// 		log.WithField("err", err).Warn("error watching for attached container")
-	// 	}
-	// }
-
-	wOpts := clients.WatchOpts{
-		Ctx: d.ctx,
-	}
-	das, dErrs, err := (*d.daClient).Watch(options.SquashNamespace, wOpts)
+	// setup event loop
+	emitter := v1.NewApiEmitter(*d.daClient)
+	syncer := d
+	el := v1.NewApiEventLoop(emitter, syncer)
+	// run event loop
+	// TODO(mitchdraft) - use real values
+	namespaces := []string{"squash"}
+	wOpts := clients.WatchOpts{}
+	errs, err := el.Run(namespaces, wOpts)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-
-	var cancel context.CancelFunc = func() {}
-	defer func() { cancel() }()
-	for {
-		select {
-		case err, ok := <-dErrs:
-			if !ok {
-				return err
-			}
-		case daList, ok := <-das:
-			if !ok {
-				return err
-			}
-			cancel()
-			d.ctx, cancel = context.WithCancel(d.ctx)
-
-			fmt.Printf("found %v das\n", len(daList))
-			err := d.sync(daList)
-			if err != nil {
-				// TODO(mitchdraft) move this into an event loop
-				fmt.Println(err)
-			}
-			// if len(daList) == 0 {
-			// 	continue
-			// }
-			// fmt.Printf("found %v das\n", len(daList))
-		}
+	for err := range errs {
+		contextutils.LoggerFrom(d.ctx).Errorf("error in setup: %v", err)
 	}
-}
-
-func (d *DebugHandler) sync(daList v1.DebugAttachmentList) error {
-	fmt.Println("running sync")
-	d.debugController.HandleAddedRemovedAttachments(daList, v1.DebugAttachmentList{})
-	// for _, d := range daList {
-	// 	fmt.Println(d)
-	// 	fmt.Println(d.Status.State)
-	// 	if d.Status.State == core.Status_Pending {
-	// 		if err := handlePendingDebugAttachment(d); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
 	return nil
 }
 
-// func (d *DebugHandler) handleAttachment() error {
-// 	attachments, removedAtachment, err := d.watchForAttached()
-
-// 	if err != nil {
-// 		log.WithField("err", err).Warn("error watching for attached container")
-// 		return err
-// 	}
-// 	return d.debugController.HandleAddedRemovedAttachments(attachments, removedAtachment)
-// }
+// This implements the syncer interface
+func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
+	fmt.Println("running sync")
+	daMap := snapshot.Debugattachments
+	for _, daList := range daMap {
+		d.debugController.HandleAddedRemovedAttachments(daList, v1.DebugAttachmentList{})
+	}
+	return nil
+}
 
 func (d *DebugHandler) notifyState(attachment *v1.DebugAttachment) error {
 
