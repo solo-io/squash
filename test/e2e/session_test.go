@@ -89,8 +89,8 @@ var _ = Describe("Single debug mode", func() {
 
 			container = params.Current2MicroservicePod.Spec.Containers[0]
 			dbgattachment, err = params.Squash.Attach(daName2, params.Namespace, container.Image, params.Current2MicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			time.Sleep(4 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(time.Second)
 			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).To(Equal(core.Status_Accepted))
