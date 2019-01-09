@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/solo-io/squash/pkg/actions"
 
 	"k8s.io/api/core/v1"
 )
@@ -16,9 +17,10 @@ import (
 type E2eParams struct {
 	DebugAttachmetName string
 
-	Namespace string
-	kubectl   *Kubectl
-	Squash    *Squash
+	Namespace      string
+	kubectl        *Kubectl
+	Squash         *Squash
+	UserController actions.UserController
 
 	ClientPods              map[string]*v1.Pod
 	Microservice1Pods       map[string]*v1.Pod
@@ -31,12 +33,16 @@ type E2eParams struct {
 
 func NewE2eParams(daName string) E2eParams {
 	k := NewKubectl("")
+	uc, err := actions.NewUserController()
+	Expect(err).NotTo(HaveOccurred())
+
 	return E2eParams{
 		DebugAttachmetName: daName,
 
-		Namespace: k.Namespace,
-		kubectl:   k,
-		Squash:    NewSquash(k),
+		Namespace:      k.Namespace,
+		kubectl:        k,
+		Squash:         NewSquash(k),
+		UserController: uc,
 
 		ClientPods:        make(map[string]*v1.Pod),
 		Microservice1Pods: make(map[string]*v1.Pod),

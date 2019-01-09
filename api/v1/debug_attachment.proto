@@ -41,8 +41,20 @@ message DebugAttachment {
 
   string debug_server_address = 9;
 
-  string state = 10;
-  
+  enum State {
+
+    // Newly created DebugAttachments have state PendingAttachment
+    PendingAttachment = 0;
+
+    // When squash client successfully attaches, it sets state to Attached
+    Attached = 1;
+
+    // User may trigger delete on any DebugAttachments that are in state PendingAttachment or Attached
+    // Squash client will remove the DebugAttachment when it has state PendingDelete
+    PendingDelete = 2;
+  }
+
+  State state = 10;
 
   // From cli debug-container (possibly redundant)
 

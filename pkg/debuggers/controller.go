@@ -12,7 +12,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
@@ -67,7 +66,7 @@ func (d *DebugController) unlockProcess(pid int) {
 func (d *DebugController) addActiveAttachment(attachment *v1.DebugAttachment, pid int, debugger DebugServer) error {
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
-	attachment.Status.State = core.Status_Accepted
+	attachment.State = v1.DebugAttachment_Attached
 	res, err := (*d.daClient).Write(attachment, clients.WriteOpts{OverwriteExisting: true})
 	fmt.Println("pres")
 	if err != nil {
@@ -126,7 +125,7 @@ func (d *DebugController) handleSingleAttachment(attachment *v1.DebugAttachment)
 	if err != nil {
 		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
 		// TODO replace swagger functionality
-		fmt.Println("swagger functionality update")
+		fmt.Println("swagger functionality update MK")
 		// d.notifyError(attachment)
 	}
 }
@@ -278,7 +277,7 @@ func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Proce
 	}
 
 	attachmentPatch.DebugServerAddress = fmt.Sprintf("%s:%d", hostName, debugServer.Port())
-	attachmentPatch.State = "attached" // TODO(mitchdraft) make this an enum in the api
+	attachmentPatch.State = v1.DebugAttachment_Attached
 
 	if err != nil {
 		log.WithField("err", err).Warn("Error adding debug session - detaching!")

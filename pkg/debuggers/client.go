@@ -87,7 +87,29 @@ func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error
 	fmt.Println("running sync")
 	daMap := snapshot.Debugattachments
 	for _, daList := range daMap {
-		d.debugController.HandleAddedRemovedAttachments(daList, v1.DebugAttachmentList{})
+		for _, da := range daList {
+			if err := d.syncOne(da); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
+	switch da.State {
+	case v1.DebugAttachment_PendingAttachment:
+		log.Debug("handling pending attachment")
+		go d.debugController.handleSingleAttachment(da)
+		return nil
+	case v1.DebugAttachment_Attached:
+		log.Debug("handling attached")
+		return nil
+	case v1.DebugAttachment_PendingDelete:
+		log.Debug("handling pending delete")
+		panic("TODO")
+	default:
+		return fmt.Errorf("DebugAttachment state not recognized: %v", da.State)
 	}
 	return nil
 }
