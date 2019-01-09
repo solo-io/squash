@@ -78,7 +78,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
 		})
-		FIt("should attach to two micro services", func() {
+		It("should attach to two micro services", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
@@ -95,6 +95,37 @@ var _ = Describe("Single debug mode", func() {
 			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.State).To(Equal(v1.DebugAttachment_Attached))
+		})
+
+		FIt("should attach and detatch", func() {
+			container := params.CurrentMicroservicePod.Spec.Containers[0]
+
+			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			Expect(err).NotTo(HaveOccurred())
+			testutils.ExpectCounts(params, daName).
+				PendingAttachments(1).
+				Attachments(0).
+				PendingDeletes(0)
+
+			time.Sleep(4 * time.Second)
+
+			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updatedattachment.State).To(Equal(v1.DebugAttachment_Attached))
+
+			testutils.ExpectCounts(params, daName).
+				PendingAttachments(0).
+				Attachments(1).
+				PendingDeletes(0)
+
+			dbgattachment, err = params.UserController.Delete(params.Namespace, daName)
+			Expect(err).NotTo(HaveOccurred())
+			testutils.ExpectCounts(params, daName).
+				PendingAttachments(0).
+				Attachments(0).
+				PendingDeletes(1)
+
+			time.Sleep(2 * time.Second)
 		})
 
 		It("Be able to re-attach once session exited", func() {

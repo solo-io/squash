@@ -107,7 +107,7 @@ func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")
-		panic("TODO")
+		return nil
 	default:
 		return fmt.Errorf("DebugAttachment state not recognized: %v", da.State)
 	}
