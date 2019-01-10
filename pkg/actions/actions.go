@@ -35,7 +35,7 @@ func (uc *UserController) Attach(name, namespace, image, pod, container, process
 }
 
 // Remove sets the DebugAttachment state to PendingDelete
-func (uc *UserController) Delete(namespace, name string) (*v1.DebugAttachment, error) {
+func (uc *UserController) RequestDelete(namespace, name string) (*v1.DebugAttachment, error) {
 	fmt.Println("removing...................")
 	fmt.Println(name, namespace)
 
@@ -43,7 +43,7 @@ func (uc *UserController) Delete(namespace, name string) (*v1.DebugAttachment, e
 	if err != nil {
 		return &v1.DebugAttachment{}, err
 	}
-	da.State = v1.DebugAttachment_PendingDelete
+	da.State = v1.DebugAttachment_RequestingDelete
 
 	writeOpts := clients.WriteOpts{
 		Ctx:               uc.ctx,

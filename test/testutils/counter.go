@@ -27,12 +27,12 @@ func (c *Counter) Attachments(val int) *Counter {
 	Expect(c.counts[v1.DebugAttachment_Attached]).To(Equal(val))
 	return c
 }
-func (c *Counter) PendingDeletes(val int) *Counter {
-	Expect(c.counts[v1.DebugAttachment_PendingDelete]).To(Equal(val))
-	return c
-}
 func (c *Counter) RequestingDeletes(val int) *Counter {
 	Expect(c.counts[v1.DebugAttachment_RequestingDelete]).To(Equal(val))
+	return c
+}
+func (c *Counter) PendingDeletes(val int) *Counter {
+	Expect(c.counts[v1.DebugAttachment_PendingDelete]).To(Equal(val))
 	return c
 }
 
@@ -46,5 +46,14 @@ func (c *Counter) SumPostAttachments(val int) *Counter {
 	postAttCount := c.counts[v1.DebugAttachment_PendingDelete] +
 		c.counts[v1.DebugAttachment_RequestingDelete]
 	Expect(postAttCount).To(Equal(val))
+	return c
+}
+
+func (c *Counter) Total(val int) *Counter {
+	sum := 0
+	for _, v := range c.counts {
+		sum += v
+	}
+	Expect(sum).To(Equal(val))
 	return c
 }

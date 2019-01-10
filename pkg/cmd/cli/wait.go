@@ -11,6 +11,7 @@ import (
 )
 
 // WaitCmd
+// TODO - make this more useful, read until you find one in the Attached state
 func WaitCmd(id string, timeout float64) (v1.DebugAttachment, error) {
 	ctx := context.Background()
 	daClient, err := utils.GetDebugAttachmentClient(ctx)

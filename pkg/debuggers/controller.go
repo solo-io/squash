@@ -104,8 +104,9 @@ func (d *DebugController) addActiveAttachment(attachment *v1.DebugAttachment, pi
 	return nil
 }
 
-func (d *DebugController) removeAttachment(name string) {
+func (d *DebugController) removeAttachment(namespace, name string) {
 	d.debugattachmentsLock.Lock()
+	d.markForDeletion(namespace, name)
 	data, ok := d.debugattachments[name]
 	delete(d.debugattachments, name)
 	d.debugattachmentsLock.Unlock()
@@ -140,6 +141,7 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 }
 
 func (d *DebugController) markForDeletion(namespace, name string) {
+	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		// should not happen, but if it does, the CRD was probably already deleted
@@ -154,6 +156,13 @@ func (d *DebugController) markForDeletion(namespace, name string) {
 	})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to mark attachment for deletion.")
+	}
+}
+
+func (d *DebugController) deleteResource(namespace, name string) {
+	err := (*d.daClient).Delete(namespace, name, clients.DeleteOpts{Ctx: d.ctx, IgnoreNotExist: true})
+	if err != nil {
+		log.WithFields(log.Fields{"name": name, "namespace": namespace, "error": err}).Warn("Failed to delete resource.")
 	}
 }
 

@@ -84,7 +84,7 @@ func (d *DebugHandler) handleAttachments() error {
 
 // This implements the syncer interface
 func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
-	fmt.Println("running sync")
+	log.Debug("running sync")
 	daMap := snapshot.Debugattachments
 	for _, daList := range daMap {
 		for _, da := range daList {
@@ -113,10 +113,11 @@ func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 	case v1.DebugAttachment_RequestingDelete:
 		log.Debug("handling requesting delete")
 		log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
-		d.debugController.removeAttachment(da.Metadata.Name)
+		d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name)
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")
+		d.debugController.deleteResource(da.Metadata.Namespace, da.Metadata.Name)
 		// do nothing, will transition out of this state according to the result of the RequestingDelete handler
 		return nil
 	default:

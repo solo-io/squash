@@ -78,7 +78,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
 		})
-		FIt("should attach to two micro services", func() {
+		It("should attach to two micro services", func() {
 			container1 := params.CurrentMicroservicePod.Spec.Containers[0]
 			dbgattachment1, err := params.UserController.Attach(daName,
 				params.Namespace,
@@ -108,15 +108,15 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment2.State).To(Equal(v1.DebugAttachment_Attached))
 		})
 
-		It("should attach and detatch", func() {
+		FIt("should attach and detatch", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 			testutils.ExpectCounts(params, daName).
-				PendingAttachments(1).
+				SumPreAttachments(1).
 				Attachments(0).
-				PendingDeletes(0)
+				SumPostAttachments(0)
 
 			time.Sleep(4 * time.Second)
 
@@ -125,18 +125,20 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment.State).To(Equal(v1.DebugAttachment_Attached))
 
 			testutils.ExpectCounts(params, daName).
-				PendingAttachments(0).
+				SumPreAttachments(0).
 				Attachments(1).
-				PendingDeletes(0)
+				SumPostAttachments(0)
 
-			dbgattachment, err = params.UserController.Delete(params.Namespace, daName)
+			dbgattachment, err = params.UserController.RequestDelete(params.Namespace, daName)
 			Expect(err).NotTo(HaveOccurred())
 			testutils.ExpectCounts(params, daName).
-				PendingAttachments(0).
+				SumPreAttachments(0).
 				Attachments(0).
-				PendingDeletes(1)
+				SumPostAttachments(1)
 
 			time.Sleep(2 * time.Second)
+			testutils.ExpectCounts(params, daName).
+				Total(0)
 		})
 
 		It("Be able to re-attach once session exited", func() {
