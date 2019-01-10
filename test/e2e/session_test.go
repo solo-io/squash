@@ -118,7 +118,7 @@ var _ = Describe("Single debug mode", func() {
 				Attachments(0).
 				SumPostAttachments(0)
 
-			time.Sleep(4 * time.Second)
+			time.Sleep(5 * time.Second)
 
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())

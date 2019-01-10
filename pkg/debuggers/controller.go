@@ -93,13 +93,10 @@ func (d *DebugController) addActiveAttachment(attachment *v1.DebugAttachment, pi
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
 	attachment.State = v1.DebugAttachment_Attached
-	res, err := (*d.daClient).Write(attachment, clients.WriteOpts{OverwriteExisting: true})
-	fmt.Println("pres")
+	_, err := (*d.daClient).Write(attachment, clients.WriteOpts{OverwriteExisting: true})
 	if err != nil {
 		return err
 	}
-	fmt.Println("res")
-	fmt.Println(res)
 	d.debugattachments[attachment.Metadata.Name] = debugAttachmentData{debugger, pid}
 	return nil
 }
@@ -123,8 +120,6 @@ func (d *DebugController) removeAttachment(namespace, name string) {
 
 func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 
-	fmt.Println("att2:")
-	fmt.Println(da)
 	// Mark attachment as in progress
 	da.State = v1.DebugAttachment_PendingAttachment
 	_, err := (*d.daClient).Write(da, clients.WriteOpts{OverwriteExisting: true})
@@ -167,7 +162,7 @@ func (d *DebugController) deleteResource(namespace, name string) {
 }
 
 func (d *DebugController) markAsAttached(namespace, name string) {
-	log.Warn("Marking as attached.....")
+	log.Debug("Marking as attached.....")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
@@ -235,26 +230,23 @@ func FindFirstProcess(pids []int, processName string) (int, error) {
 	return minpid, nil
 }
 
-func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
+func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 
-	fmt.Println("att3:")
-	fmt.Println(attachment)
 	// make sure this is not a duplicate
-	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment)
-	fmt.Println("ci")
-	fmt.Println(ci)
+	ci, err := d.conttopid.GetContainerInfo(context.Background(), da)
+	log.WithField("ContainerInfo", ci).Debug("GetContainerInfo output")
 	if err != nil {
 		log.WithField("err", err).Warn("GetContainerInfo error")
 		return err
 	}
 
-	pid, err := FindFirstProcess(ci.Pids, attachment.ProcessName)
+	pid, err := FindFirstProcess(ci.Pids, da.ProcessName)
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
 		return err
 	}
 
-	log.WithField("app", attachment).Info("Attaching to live session")
+	log.WithField("app", da).Info("Attaching to live session")
 
 	p, err := os.FindProcess(pid)
 	if err != nil {
@@ -263,15 +255,17 @@ func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
 	}
 	if d.lockProcess(pid) {
 		log.WithField("pid", pid).Info("starting to debug")
-		debugger, err := d.startDebug(attachment, p, ci.Name)
+		debugger, err := d.startDebug(da, p, ci.Name)
 		if err != nil {
+			log.WithFields(log.Fields{"namespace": da.Metadata.Namespace, "name": da.Metadata.Name, "error": err}).Warn("Error on startDebug")
+			d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 			// TODO - replace swagger functionality
 			fmt.Printf("swagger functionality update:\n%v\nok....\n", err)
-			// d.notifyError(attachment)
+			// d.notifyError(da)
 			return nil // no retry
 		}
 		fmt.Println("preactive")
-		if err := d.addActiveAttachment(attachment, pid, debugger); err != nil {
+		if err := d.addActiveAttachment(da, pid, debugger); err != nil {
 			return err
 		}
 
@@ -279,14 +273,12 @@ func (d *DebugController) tryToAttach(attachment *v1.DebugAttachment) error {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
 		// TODO
 		fmt.Println("swagger functionality update")
-		// d.notifyError(attachment)
+		// d.notifyError(da)
 	}
 	return nil
 }
 
 func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
-	log.Info("some info")
-	fmt.Println("att4:")
 	log.Info("start debug called")
 
 	curdebugger := d.debugger(attachment.Debugger)
@@ -295,15 +287,11 @@ func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Proce
 		return nil, errors.New("debugger doesn't exist")
 	}
 
-	// panic("hey")
 	log.WithFields(log.Fields{"curdebugger": attachment.Debugger}).Info("start debug params")
 
 	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
 	var err error
 	debugServer, err := curdebugger.Attach(p.Pid)
-	fmt.Println("Test")
-	log.Info("Test")
-	// panic("hey")
 
 	if err != nil {
 		log.WithField("err", err).Error("Starting debug server error")
@@ -343,9 +331,3 @@ func (d *DebugController) startDebug(attachment *v1.DebugAttachment, p *os.Proce
 	}
 	return debugServer, nil
 }
-
-// func (d *DebugController) deleteAttachment(attachment *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
-// 	// detatch the debug server (if any)
-// 	// delete the crd
-// 	return DebugServer{}, nil
-// }
