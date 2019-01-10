@@ -48,6 +48,9 @@ func ServerCmd() error {
 			for _, da := range daList {
 				strs = append(strs, fmt.Sprintf("name: %v, stat: %v", da.Metadata.Name, da.State))
 			}
+			for _, da := range daList {
+				strs = append(strs, fmt.Sprintf("name: %v, durl: %v", da.Metadata.Name, da.DebugServerAddress))
+			}
 			fmt.Printf(strings.Join(strs, "\n"))
 			// err := sync(daList)
 			if err != nil {
@@ -58,6 +61,8 @@ func ServerCmd() error {
 			// 	continue
 			// }
 			// fmt.Printf("found %v das\n", len(daList))
+			fmt.Println("")
+			fmt.Println("=====")
 		}
 	}
 }

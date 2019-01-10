@@ -78,7 +78,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
 		})
-		It("should attach to two micro services", func() {
+		FIt("should attach to two micro services", func() {
 			container1 := params.CurrentMicroservicePod.Spec.Containers[0]
 			dbgattachment1, err := params.UserController.Attach(daName,
 				params.Namespace,
@@ -108,7 +108,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment2.State).To(Equal(v1.DebugAttachment_Attached))
 		})
 
-		FIt("should attach and detatch", func() {
+		It("should attach and detatch", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
