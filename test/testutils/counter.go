@@ -15,6 +15,10 @@ func ExpectCounts(params E2eParams, name string) *Counter {
 	Expect(err).NotTo(HaveOccurred())
 	return &Counter{counts: counts}
 }
+func (c *Counter) RequestingAttachments(val int) *Counter {
+	Expect(c.counts[v1.DebugAttachment_RequestingAttachment]).To(Equal(val))
+	return c
+}
 func (c *Counter) PendingAttachments(val int) *Counter {
 	Expect(c.counts[v1.DebugAttachment_PendingAttachment]).To(Equal(val))
 	return c
@@ -25,5 +29,22 @@ func (c *Counter) Attachments(val int) *Counter {
 }
 func (c *Counter) PendingDeletes(val int) *Counter {
 	Expect(c.counts[v1.DebugAttachment_PendingDelete]).To(Equal(val))
+	return c
+}
+func (c *Counter) RequestingDeletes(val int) *Counter {
+	Expect(c.counts[v1.DebugAttachment_RequestingDelete]).To(Equal(val))
+	return c
+}
+
+func (c *Counter) SumPreAttachments(val int) *Counter {
+	preAttCount := c.counts[v1.DebugAttachment_RequestingAttachment] +
+		c.counts[v1.DebugAttachment_PendingAttachment]
+	Expect(preAttCount).To(Equal(val))
+	return c
+}
+func (c *Counter) SumPostAttachments(val int) *Counter {
+	postAttCount := c.counts[v1.DebugAttachment_PendingDelete] +
+		c.counts[v1.DebugAttachment_RequestingDelete]
+	Expect(postAttCount).To(Equal(val))
 	return c
 }

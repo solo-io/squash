@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -42,7 +43,12 @@ func ServerCmd() error {
 			cancel()
 			ctx, cancel = context.WithCancel(ctx)
 
-			fmt.Printf("found %v das\n", len(daList))
+			fmt.Println("-----")
+			strs := []string{fmt.Sprintf("found %v das", len(daList))}
+			for _, da := range daList {
+				strs = append(strs, fmt.Sprintf("name: %v, stat: %v", da.Metadata.Name, da.State))
+			}
+			fmt.Printf(strings.Join(strs, "\n"))
 			// err := sync(daList)
 			if err != nil {
 				// TODO(mitchdraft) move this into an event loop

@@ -22,7 +22,7 @@ func (uc *UserController) Attach(name, namespace, image, pod, container, process
 		Pod:            pod,
 		Container:      container,
 		DebugNamespace: namespace,
-		State:          v1.DebugAttachment_PendingAttachment,
+		State:          v1.DebugAttachment_RequestingAttachment,
 	}
 	if processName != "" {
 		da.ProcessName = processName

@@ -55,7 +55,7 @@ func NewDebugHandler(ctx context.Context, daClient *v1.DebugAttachmentClient, de
 		conttopid: conttopid,
 	}
 
-	dbghandler.debugController = NewDebugController(debugger, daClient, conttopid)
+	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid)
 	return dbghandler
 }
 
@@ -98,15 +98,26 @@ func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error
 
 func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 	switch da.State {
+	case v1.DebugAttachment_RequestingAttachment:
+		log.Debug("handling requesting attachment")
+		go d.debugController.handleAttachmentRequest(da)
+		return nil
 	case v1.DebugAttachment_PendingAttachment:
 		log.Debug("handling pending attachment")
-		go d.debugController.handleSingleAttachment(da)
+		// do nothing, will transition out of this state according to the result of the RequestingAttachment handler
 		return nil
 	case v1.DebugAttachment_Attached:
 		log.Debug("handling attached")
+		// do nothing, this is "steady state"
+		return nil
+	case v1.DebugAttachment_RequestingDelete:
+		log.Debug("handling requesting delete")
+		log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
+		d.debugController.removeAttachment(da.Metadata.Name)
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")
+		// do nothing, will transition out of this state according to the result of the RequestingDelete handler
 		return nil
 	default:
 		return fmt.Errorf("DebugAttachment state not recognized: %v", da.State)
