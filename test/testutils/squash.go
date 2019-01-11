@@ -8,12 +8,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/test/testutils/kubecdl"
 )
 
-func NewSquash(k *Kubectl) *Squash {
+func NewSquash(k *kubecdl.Kubecdl) *Squash {
 	kubeaddr := "localhost:8001"
-	if k.proxyAddress != nil {
-		kubeaddr = *k.proxyAddress
+	if k.ProxyAddress != nil {
+		kubeaddr = *k.ProxyAddress
 	}
 	return &Squash{
 		Namespace: k.Namespace,

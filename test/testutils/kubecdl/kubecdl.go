@@ -1,4 +1,6 @@
-package testutils
+package kubecdl
+
+// When you wrap kubectl, it's pronounced "kube cuddle"
 
 import (
 	"bytes"
@@ -6,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -14,8 +17,6 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -23,49 +24,52 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-type Kubectl struct {
+type Kubecdl struct {
 	Context, Namespace string
 
 	proxyProcess *os.Process
-	proxyAddress *string
+	ProxyAddress *string
+
+	OutputWriter io.Writer
 }
 
-func NewKubectl(kubectlctx string) *Kubectl {
-	return &Kubectl{
+func NewKubecdl(kubectlctx string, w io.Writer) *Kubecdl {
+	return &Kubecdl{
 		Context: kubectlctx,
 		// Namespace: fmt.Sprintf("test-%d", rand.Uint64()),
-		Namespace: "squash", // TODO FOR NOW
+		Namespace:    "squash", // TODO FOR NOW
+		OutputWriter: w,
 	}
 }
 
-func (k *Kubectl) String() string {
-	return fmt.Sprintf("context: %v, namespace: %v, proxyProcess: %v, proxyAddress: %v", k.Context, k.Namespace, *k.proxyProcess, *k.proxyAddress)
+func (k *Kubecdl) String() string {
+	return fmt.Sprintf("context: %v, namespace: %v, proxyProcess: %v, ProxyAddress: %v", k.Context, k.Namespace, *k.proxyProcess, *k.ProxyAddress)
 }
 
-func (k *Kubectl) GrantClusterAdminPermissions(clusterRoleBindingName string) error {
+func (k *Kubecdl) GrantClusterAdminPermissions(clusterRoleBindingName string) error {
 	args := []string{"create", "clusterrolebinding", clusterRoleBindingName, "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%v:default", k.Namespace)}
 
 	cmd := k.innerprepare(args)
-	cmd.Stderr = GinkgoWriter
-	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = k.OutputWriter
+	cmd.Stdout = k.OutputWriter
 	return cmd.Run()
 }
 
-func (k *Kubectl) RemoveClusterAdminPermissions(clusterRoleBindingName string) error {
+func (k *Kubecdl) RemoveClusterAdminPermissions(clusterRoleBindingName string) error {
 	args := []string{"delete", "clusterrolebinding", clusterRoleBindingName}
 
 	cmd := k.innerprepare(args)
-	cmd.Stderr = GinkgoWriter
-	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = k.OutputWriter
+	cmd.Stdout = k.OutputWriter
 	return cmd.Run()
 }
 
-func (k *Kubectl) CreateNS() error {
+func (k *Kubecdl) CreateNS() error {
 	args := []string{"create", "namespace", k.Namespace}
 	return k.innerprepare(args).Run()
 }
 
-func (k *Kubectl) DeleteDebugAttachment(name string) error {
+func (k *Kubecdl) DeleteDebugAttachment(name string) error {
 	if k.Namespace != "" {
 		args := []string{"delete", "debugattachment", name}
 		return k.innerpreparens(args).Run()
@@ -73,7 +77,7 @@ func (k *Kubectl) DeleteDebugAttachment(name string) error {
 	return nil
 }
 
-func (k *Kubectl) DeleteNS() error {
+func (k *Kubecdl) DeleteNS() error {
 	if k.Namespace != "" {
 		args := []string{"delete", "namespace", k.Namespace}
 		return k.innerprepare(args).Run()
@@ -81,27 +85,27 @@ func (k *Kubectl) DeleteNS() error {
 	return nil
 }
 
-func (k *Kubectl) CreateLocalRolesAndSleep(yamlfile string) error {
+func (k *Kubecdl) CreateLocalRolesAndSleep(yamlfile string) error {
 	return k.Apply(yamlfile, k.changedlocalrole, k.changenamespace, k.addsleep)
 }
 
-func (k *Kubectl) Create(yamlfile string) error {
+func (k *Kubecdl) Create(yamlfile string) error {
 	return k.Apply(yamlfile, k.changenamespace)
 }
 
-func (k *Kubectl) CreateSleep(yamlfile string) error {
+func (k *Kubecdl) CreateSleep(yamlfile string) error {
 	return k.Apply(yamlfile, k.changenamespace, k.addsleep)
 }
 
-func (k *Kubectl) changedlocalrole(yamlfile string) string {
+func (k *Kubecdl) changedlocalrole(yamlfile string) string {
 	return strings.Replace(yamlfile, "ClusterRole", "Role", -1)
 }
 
-func (k *Kubectl) changenamespace(yamlfile string) string {
+func (k *Kubecdl) changenamespace(yamlfile string) string {
 	return strings.Replace(yamlfile, "namespace: squash", "namespace: "+k.Namespace, -1)
 }
 
-func (k *Kubectl) addsleep(yamlfile string) string {
+func (k *Kubecdl) addsleep(yamlfile string) string {
 	// find image: soloio/squash-server
 	// and add cmd and args
 	regex := regexp.MustCompilePOSIX("^([[:space:]-]*)image: .*$")
@@ -123,7 +127,7 @@ func (k *Kubectl) addsleep(yamlfile string) string {
 
 }
 
-func (k *Kubectl) Apply(yamlfile string, modifier ...func(string) string) error {
+func (k *Kubecdl) Apply(yamlfile string, modifier ...func(string) string) error {
 
 	b, err := ioutil.ReadFile(yamlfile)
 	if err != nil {
@@ -144,7 +148,7 @@ func (k *Kubectl) Apply(yamlfile string, modifier ...func(string) string) error 
 
 }
 
-func (k *Kubectl) Pods() (*v1.PodList, error) {
+func (k *Kubecdl) Pods() (*v1.PodList, error) {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	out, err := k.Prepare("get", "pods", "--output=json").Output()
 	if err != nil {
@@ -159,14 +163,14 @@ func (k *Kubectl) Pods() (*v1.PodList, error) {
 	return &pods, nil
 }
 
-func (k *Kubectl) Exec(pod, container, cmd string, args ...string) error {
+func (k *Kubecdl) Exec(pod, container, cmd string, args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
 	return k.Prepare(prepareargs...).Run()
 }
 
-func (k *Kubectl) ExecAsync(pod, container, cmd string, args ...string) error {
+func (k *Kubecdl) ExecAsync(pod, container, cmd string, args ...string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
@@ -181,12 +185,12 @@ func (k *Kubectl) ExecAsync(pod, container, cmd string, args ...string) error {
 	return err
 }
 
-func (k *Kubectl) Cp(local, remote, pod, container string) error {
+func (k *Kubecdl) Cp(local, remote, pod, container string) error {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.Prepare("cp", local, k.Namespace+"/"+pod+":"+remote, "-c", container).Run()
 }
 
-func (k *Kubectl) WaitPods(ctx context.Context) error {
+func (k *Kubecdl) WaitPods(ctx context.Context) error {
 OuterLoop:
 	for {
 		time.Sleep(5 * time.Second)
@@ -210,7 +214,7 @@ OuterLoop:
 
 var proxyregex = regexp.MustCompile(`Starting to serve on\s+(\S+:\d+)`)
 
-func (k *Kubectl) Proxy() error {
+func (k *Kubecdl) Proxy() error {
 	cmd := exec.Command("kubectl", "proxy", "--port=0")
 
 	portchan, err := runandreturn(cmd, proxyregex)
@@ -222,7 +226,7 @@ func (k *Kubectl) Proxy() error {
 	case port, ok := <-portchan:
 		if ok {
 			k.proxyProcess = cmd.Process
-			k.proxyAddress = &port[1]
+			k.ProxyAddress = &port[1]
 			return nil
 		}
 		cmd.Process.Kill()
@@ -232,7 +236,7 @@ func (k *Kubectl) Proxy() error {
 		return errors.New("timeout")
 	}
 }
-func (k *Kubectl) StopProxy() {
+func (k *Kubecdl) StopProxy() {
 	if k.proxyProcess != nil {
 		k.proxyProcess.Kill()
 	}
@@ -240,7 +244,7 @@ func (k *Kubectl) StopProxy() {
 
 var portregex = regexp.MustCompile(`from\s+\S+:(\d+)\s+->`)
 
-func (k *Kubectl) PortForward(name string) (*os.Process, string, error) {
+func (k *Kubecdl) PortForward(name string) (*os.Process, string, error) {
 	// name is pod.namespace:port
 
 	remoteparts := strings.Split(name, ":")
@@ -308,33 +312,33 @@ func runandreturn(cmd *exec.Cmd, reg *regexp.Regexp) (<-chan []string, error) {
 	return retchan, nil
 }
 
-func (k *Kubectl) Logs(name string) ([]byte, error) {
+func (k *Kubecdl) Logs(name string) ([]byte, error) {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.Prepare("logs", name).CombinedOutput()
 }
 
-func (k *Kubectl) Prepare(args ...string) *exec.Cmd {
+func (k *Kubecdl) Prepare(args ...string) *exec.Cmd {
 	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.innerpreparens(args)
 }
 
-func (k *Kubectl) innerunns(args []string) error {
+func (k *Kubecdl) innerunns(args []string) error {
 	return k.innerpreparens(args).Run()
 }
 
-func (k *Kubectl) innerpreparens(args []string) *exec.Cmd {
+func (k *Kubecdl) innerpreparens(args []string) *exec.Cmd {
 	newargs := []string{"--namespace=" + k.Namespace}
 	newargs = append(newargs, args...)
 	return k.innerprepare(newargs)
 }
 
-func (k *Kubectl) innerprepare(args []string) *exec.Cmd {
+func (k *Kubecdl) innerprepare(args []string) *exec.Cmd {
 	var newargs []string
 	if k.Context != "" {
 		newargs = []string{"--context=" + k.Context}
 	}
 	newargs = append(newargs, args...)
-	fmt.Fprintln(GinkgoWriter, "kubectl", strings.Join(newargs, " "))
+	fmt.Fprintln(k.OutputWriter, "kubectl", strings.Join(newargs, " "))
 	cmd := exec.Command("kubectl", newargs...)
 	return cmd
 }

@@ -32,14 +32,14 @@ var _ = Describe("Single debug mode", func() {
 
 	*/
 	BeforeEach(func() {
-		params = testutils.NewE2eParams(daName)
+		params = testutils.NewE2eParams(daName, GinkgoWriter)
 		params.SetupE2e()
 	})
 
-	AfterEach(params.Cleanup)
+	AfterEach(params.CleanupE2e)
 
 	Describe("Single Container mode", func() {
-		It("should get a debug server endpoint", func() {
+		FIt("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")

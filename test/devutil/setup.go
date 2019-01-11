@@ -1,4 +1,4 @@
-package testutils
+package devutil
 
 import (
 	"context"
@@ -8,11 +8,9 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/solo-io/squash/pkg/actions"
+	"github.com/solo-io/squash/test/testutils"
 	"github.com/solo-io/squash/test/testutils/kubecdl"
-
 	"k8s.io/api/core/v1"
 )
 
@@ -21,7 +19,7 @@ type E2eParams struct {
 
 	Namespace      string
 	kubectl        *kubecdl.Kubecdl
-	Squash         *Squash
+	Squash         *testutils.Squash
 	UserController actions.UserController
 
 	ClientPods              map[string]*v1.Pod
@@ -33,17 +31,19 @@ type E2eParams struct {
 	crbAdminName string
 }
 
-func NewE2eParams(daName string, w io.Writer) E2eParams {
+func NewE2eParams(daName string, w io.Writer) (E2eParams, error) {
 	k := kubecdl.NewKubecdl("", w)
 	uc, err := actions.NewUserController()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return E2eParams{}, err
+	}
 
 	return E2eParams{
 		DebugAttachmetName: daName,
 
 		Namespace:      k.Namespace,
 		kubectl:        k,
-		Squash:         NewSquash(k),
+		Squash:         testutils.NewSquash(k),
 		UserController: uc,
 
 		ClientPods:        make(map[string]*v1.Pod),
@@ -51,39 +51,42 @@ func NewE2eParams(daName string, w io.Writer) E2eParams {
 		Microservice2Pods: make(map[string]*v1.Pod),
 
 		crbAdminName: "serviceaccount-cluster-admin-level",
-	}
+	}, nil
 }
-
-func (p *E2eParams) SetupE2e() {
+func (p *E2eParams) SetupDev() error {
 
 	if err := p.kubectl.Proxy(); err != nil {
-		fmt.Fprintln(GinkgoWriter, "error creating ns", err)
-		panic(err)
+		fmt.Println("error creating ns", err)
+		return err
 	}
 
 	if err := p.kubectl.CreateNS(); err != nil {
-		fmt.Fprintln(GinkgoWriter, "error creating ns", err)
-		panic(err)
+		fmt.Println("error creating ns", err)
+		return err
 	}
-	fmt.Fprintf(GinkgoWriter, "creating environment %v \n", p.kubectl)
+	fmt.Printf("creating environment %v \n", p.kubectl)
 
 	if err := p.kubectl.CreateSleep("../../contrib/kubernetes/squash-client.yml"); err != nil {
-		panic(err)
+		return err
 	}
 	if err := p.kubectl.Create("../../contrib/example/service1/service1.yml"); err != nil {
-		panic(err)
+		return err
 	}
 	if err := p.kubectl.Create("../../contrib/example/service2/service2.yml"); err != nil {
-		panic(err)
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	err := p.kubectl.WaitPods(ctx)
 	cancel()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	pods, err := p.kubectl.Pods()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	for _, pod := range pods.Items {
 		// make a copy
@@ -94,19 +97,25 @@ func (p *E2eParams) SetupE2e() {
 		case strings.HasPrefix(pod.ObjectMeta.Name, "example-service2"):
 			p.Microservice2Pods[pod.Spec.NodeName] = &newpod
 		case strings.HasPrefix(pod.ObjectMeta.Name, "squash-server"):
-			panic(pod)
+			return err
 		case strings.HasPrefix(pod.ObjectMeta.Name, "squash-client"):
 			pathToClientBinary := "../../target/squash-client/squash-client"
 			if _, err := os.Stat(pathToClientBinary); os.IsNotExist(err) {
-				Fail("You must generate the squash-client binary before running this e2e test.")
+				return fmt.Errorf("You must generate the squash-client binary before running this e2e test.")
 			}
 			// replace squash server and client binaries with local binaries for easy debuggings
-			Must(p.kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-client"))
+			err := p.kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-client")
+			if err != nil {
+				return err
+			}
 
 			// client is in host pid namespace, so can't write logs to pid 1. use the fact that the client has the pod name in the env.
 			clientscript := "SLEEPPID=$(for pid in $(pgrep sleep); do if grep --silent " + pod.ObjectMeta.Name + " /proc/$pid/environ; then echo $pid;fi; done) && "
 			clientscript += " /tmp/squash-client  > /proc/$SLEEPPID/fd/1 2> /proc/$SLEEPPID/fd/2"
-			Must(p.kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-client", "sh", "-c", clientscript))
+			err = p.kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-client", "sh", "-c", clientscript)
+			if err != nil {
+				return err
+			}
 			p.ClientPods[pod.Spec.NodeName] = &newpod
 		}
 	}
@@ -117,47 +126,53 @@ func (p *E2eParams) SetupE2e() {
 		break
 	}
 	if p.CurrentMicroservicePod == nil {
-		Fail("can't find service pod")
+		return fmt.Errorf("can't find service pod")
 	}
 	for _, v := range p.Microservice2Pods {
 		p.Current2MicroservicePod = v
 		break
 	}
 	if p.CurrentMicroservicePod == nil {
-		Fail("can't find service2 pod")
+		return fmt.Errorf("can't find service2 pod")
 	}
 
 	if len(p.ClientPods) == 0 {
-		Fail("can't find client pods")
+		return fmt.Errorf("can't find client pods")
 	}
 
 	if p.ClientPods[p.CurrentMicroservicePod.Spec.NodeName] == nil {
-		Fail("can't find client pods")
+		return fmt.Errorf("can't find client pods")
 	}
 
 	if err := p.kubectl.GrantClusterAdminPermissions(p.crbAdminName); err != nil {
-		Fail(fmt.Sprintf("Failed to create permissions: %v", err))
+		return fmt.Errorf(fmt.Sprintf("Failed to create permissions: %v", err))
 	}
 
 	p.kubectl.DeleteDebugAttachment(p.DebugAttachmetName)
 
 	// wait for things to settle. may not be needed.
 	time.Sleep(10 * time.Second)
+	p.PrintLogs()
+	return nil
 }
 
-func (p *E2eParams) CleanupE2e() {
+func (p *E2eParams) Cleanup() error {
 	defer p.kubectl.StopProxy()
 	defer p.kubectl.DeleteNS()
 
 	if err := p.kubectl.RemoveClusterAdminPermissions(p.crbAdminName); err != nil {
-		Fail(fmt.Sprintf("Failed to delete permissions: %v", err))
+		return fmt.Errorf("Failed to delete permissions: %v", err)
 	}
 
-	clogs, _ := p.kubectl.Logs(p.ClientPods[p.CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name)
-	fmt.Fprintln(GinkgoWriter, "client logs:")
-	fmt.Fprintln(GinkgoWriter, string(clogs))
+	return nil
 }
 
-func Must(err error) {
-	Expect(err).NotTo(HaveOccurred())
+func (p *E2eParams) PrintLogs() error {
+	clogs, err := p.kubectl.Logs(p.ClientPods[p.CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name)
+	if err != nil {
+		return err
+	}
+	fmt.Println("client logs:")
+	fmt.Println(string(clogs))
+	return nil
 }
