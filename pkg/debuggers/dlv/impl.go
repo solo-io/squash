@@ -61,9 +61,8 @@ func startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.WithField("pid", pid).Debug("StartDebugServer called")
 	cmd := exec.Command("dlv", "attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:0", "--accept-multiclient=true", "--headless", "--log")
-	// TODO(mitchdraft) - see if this is obscuring ginkgo writing
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	log.WithFields(log.Fields{"cmd": cmd, "args": cmd.Args}).Debug("dlv command")
 
 	err := cmd.Start()
