@@ -45,7 +45,7 @@ var _ = Describe("Single debug mode", func() {
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
-			time.Sleep(time.Second)
+			time.Sleep(5 * time.Second)
 
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
@@ -57,7 +57,7 @@ var _ = Describe("Single debug mode", func() {
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "service1", "dlv")
 			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(time.Second)
+			time.Sleep(5 * time.Second)
 
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
@@ -78,7 +78,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
 		})
-		FIt("should attach to two micro services", func() {
+		It("should attach to two micro services", func() {
 			container1 := params.CurrentMicroservicePod.Spec.Containers[0]
 			dbgattachment1, err := params.UserController.Attach(daName,
 				params.Namespace,
@@ -145,6 +145,7 @@ var _ = Describe("Single debug mode", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
+			time.Sleep(5 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
@@ -152,7 +153,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 
 			// Ok; now delete the attachment
-			err = params.Squash.Delete(dbgattachment)
+			dbgattachment, err = params.UserController.RequestDelete(dbgattachment.Metadata.Namespace, dbgattachment.Metadata.Name)
 			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
@@ -160,6 +161,8 @@ var _ = Describe("Single debug mode", func() {
 			// try again!
 			dbgattachment, err = params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(5 * time.Second)
 			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
