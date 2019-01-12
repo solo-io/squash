@@ -12,7 +12,7 @@ import (
 
 // WaitCmd
 // TODO - make this more useful, read until you find one in the Attached state
-func WaitCmd(id string, timeout float64) (v1.DebugAttachment, error) {
+func WaitCmd(namespace string, name string, timeout float64) (v1.DebugAttachment, error) {
 	ctx := context.Background()
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
 	if err != nil {
@@ -21,11 +21,11 @@ func WaitCmd(id string, timeout float64) (v1.DebugAttachment, error) {
 	reOptions := clients.ReadOpts{
 		Ctx: ctx,
 	}
-	da, err := (*daClient).Read(options.SquashNamespace, id, reOptions)
+	da, err := (*daClient).Read(namespace, name, reOptions)
 	if err != nil {
 		// TODO(mitchdraft) implement a periodic check instead of waiting the full timeout duration
 		time.Sleep(time.Duration(int32(timeout)) * time.Second)
-		da, err = (*daClient).Read(options.SquashNamespace, id, reOptions)
+		da, err = (*daClient).Read(options.SquashClientNamespace, name, reOptions)
 		if err != nil {
 			return v1.DebugAttachment{}, err
 		}

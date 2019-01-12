@@ -9,6 +9,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
 )
 
@@ -18,8 +19,11 @@ func Must(err error) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-var daName = "mitch"
-var daName2 = "mitch2"
+var (
+	daName        = "debug-attachment-1"
+	daName2       = "debug-attachment-2"
+	testNamespace = options.SquashClientNamespace
+)
 
 var _ = Describe("Single debug mode", func() {
 
@@ -27,27 +31,25 @@ var _ = Describe("Single debug mode", func() {
 		params testutils.E2eParams
 	)
 
-	/*
-		Deploy the services that you will debug
-
-	*/
+	// Deploy the services that you will debug
 	BeforeEach(func() {
-		params = testutils.NewE2eParams(daName, GinkgoWriter)
+		params = testutils.NewE2eParams(testNamespace, daName, GinkgoWriter)
 		params.SetupE2e()
 	})
 
+	// Delete the resources you created
 	AfterEach(params.CleanupE2e)
 
 	Describe("Single Container mode", func() {
-		FIt("should get a debug server endpoint", func() {
+		It("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(9 * time.Second)
 
-			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 		})
@@ -59,7 +61,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 			time.Sleep(5 * time.Second)
 
-			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
@@ -73,7 +75,7 @@ var _ = Describe("Single debug mode", func() {
 
 			time.Sleep(time.Second)
 
-			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
@@ -89,7 +91,7 @@ var _ = Describe("Single debug mode", func() {
 				"dlv")
 			time.Sleep(5 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			updatedattachment1, err := squashcli.WaitCmd(dbgattachment1.Metadata.Name, 1.0)
+			updatedattachment1, err := squashcli.WaitCmd(testNamespace, dbgattachment1.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment1.State).To(Equal(v1.DebugAttachment_Attached))
 
@@ -103,7 +105,7 @@ var _ = Describe("Single debug mode", func() {
 				"dlv")
 			time.Sleep(5 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			updatedattachment2, err := squashcli.WaitCmd(dbgattachment2.Metadata.Name, 1.0)
+			updatedattachment2, err := squashcli.WaitCmd(testNamespace, dbgattachment2.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment2.State).To(Equal(v1.DebugAttachment_Attached))
 		})
@@ -120,7 +122,7 @@ var _ = Describe("Single debug mode", func() {
 
 			time.Sleep(5 * time.Second)
 
-			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.State).To(Equal(v1.DebugAttachment_Attached))
 
@@ -147,7 +149,7 @@ var _ = Describe("Single debug mode", func() {
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			time.Sleep(5 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			updatedattachment, err := squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
@@ -163,7 +165,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			time.Sleep(5 * time.Second)
-			updatedattachment, err = squashcli.WaitCmd(dbgattachment.Metadata.Name, 1.0)
+			updatedattachment, err = squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())

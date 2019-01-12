@@ -10,6 +10,7 @@ import (
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -31,7 +32,10 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 		return err
 	}
 
-	return NewDebugHandler(ctx, daClient, debugger, conttopid).handleAttachments()
+	// TODO(mitchdraft) - the debug handler will need to be spawned/removed when a new debugging session is opened/closed
+	// The debug initialization request will include the watchNamespace. For now, use a known placeholder
+	watchNamespace := options.SquashClientNamespace
+	return NewDebugHandler(ctx, watchNamespace, daClient, debugger, conttopid).handleAttachments()
 }
 
 type DebugHandler struct {
@@ -42,17 +46,20 @@ type DebugHandler struct {
 	debugController *DebugController
 	daClient        *v1.DebugAttachmentClient
 
+	watchNamespace string
+
 	etag        *string
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
+func NewDebugHandler(ctx context.Context, watchNamespace string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
 	conttopid platforms.ContainerProcess) *DebugHandler {
 	dbghandler := &DebugHandler{
-		ctx:       ctx,
-		daClient:  daClient,
-		debugger:  debugger,
-		conttopid: conttopid,
+		ctx:            ctx,
+		daClient:       daClient,
+		debugger:       debugger,
+		conttopid:      conttopid,
+		watchNamespace: watchNamespace,
 	}
 
 	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid)
@@ -70,7 +77,8 @@ func (d *DebugHandler) handleAttachments() error {
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
 	// TODO(mitchdraft) - use real values
-	namespaces := []string{"squash"}
+	//TODO(MITCH) - fix
+	namespaces := []string{d.watchNamespace}
 	wOpts := clients.WatchOpts{}
 	errs, err := el.Run(namespaces, wOpts)
 	if err != nil {

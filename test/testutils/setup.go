@@ -33,8 +33,8 @@ type E2eParams struct {
 	crbAdminName string
 }
 
-func NewE2eParams(daName string, w io.Writer) E2eParams {
-	k := kubecdl.NewKubecdl("", w)
+func NewE2eParams(namespace, daName string, w io.Writer) E2eParams {
+	k := kubecdl.NewKubecdl(namespace, "", w)
 	uc, err := actions.NewUserController()
 	Expect(err).NotTo(HaveOccurred())
 

@@ -12,7 +12,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/cmd/cli/options"
-	defaults "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -88,7 +87,7 @@ func debugAttachmentFromOpts(o options.DebugContainer) v1.DebugAttachment {
 	return v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      o.Name,
-			Namespace: defaults.SquashNamespace,
+			Namespace: o.Namespace,
 		},
 		Pod:            o.Pod,
 		Container:      o.Container,

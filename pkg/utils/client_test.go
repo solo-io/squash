@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/test/testutils"
 )
@@ -18,7 +17,7 @@ var _ = Describe("utils", func() {
 		Expect(err).To(BeNil())
 
 		name := "aname2"
-		namespace := options.SquashNamespace
+		namespace := "default"
 		da := testutils.GenerateDebugAttachmentDlv1(name, namespace)
 		writeOpts := clients.WriteOpts{
 			Ctx:               ctx,

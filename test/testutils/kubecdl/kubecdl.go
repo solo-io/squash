@@ -33,11 +33,10 @@ type Kubecdl struct {
 	OutputWriter io.Writer
 }
 
-func NewKubecdl(kubectlctx string, w io.Writer) *Kubecdl {
+func NewKubecdl(namespace string, kubectlctx string, w io.Writer) *Kubecdl {
 	return &Kubecdl{
-		Context: kubectlctx,
-		// Namespace: fmt.Sprintf("test-%d", rand.Uint64()),
-		Namespace:    "squash", // TODO FOR NOW
+		Context:      kubectlctx,
+		Namespace:    namespace,
 		OutputWriter: w,
 	}
 }

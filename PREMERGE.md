@@ -11,3 +11,8 @@
 - update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
 ## Other
 - delete this file
+
+# After merging
+## Future work
+- store DebugAttachment CRDs in the same namespace as the pods they are targeting
+-- implement a CRD that lives in a known namespace that will point to all the debugging namespaces
