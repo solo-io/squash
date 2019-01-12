@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/devutil"
 	"github.com/solo-io/squash/test/devutil/writer"
 )
@@ -32,7 +33,7 @@ func main() {
 
 func run(cfg Cfg) error {
 	kWriter := writer.New(os.Stdout)
-	params, err := devutil.NewE2eParams(cfg.name, kWriter)
+	params, err := devutil.NewE2eParams(options.SquashClientNamespace, cfg.name, kWriter)
 	if err != nil {
 		return err
 		// return params.Cleanup()
