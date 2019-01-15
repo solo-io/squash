@@ -86,47 +86,6 @@ func (o *Options) listattachments(name string) error {
 	return nil
 }
 
-// func listrequests(c *client.Squash, name string) error {
-// 	return fmt.Errorf("TODO")
-
-// 	if name == "" {
-
-// 		params := debugrequest.NewGetDebugRequestsParams()
-// 		res, err := c.Debugrequest.GetDebugRequests(params)
-
-// 		if err != nil {
-// 			panic(err)
-// 		}
-
-// 		dbgrequests := res.Payload
-
-// 		if !jsonoutput {
-// 			printDebugRequests(dbgrequests)
-// 		} else {
-// 			json.NewEncoder(os.Stdout).Encode(dbgrequests)
-// 		}
-
-// 	} else {
-
-// 		params := debugrequest.NewGetDebugRequestParams()
-// 		params.DebugRequestID = name
-// 		res, err := c.Debugrequest.GetDebugRequest(params)
-
-// 		if err != nil {
-// 			panic(err)
-// 		}
-
-// 		dbgrequest := res.Payload
-
-// 		if !jsonoutput {
-// 			printDebugRequests([]*models.DebugRequest{dbgrequest})
-// 		} else {
-// 			json.NewEncoder(os.Stdout).Encode(dbgrequest)
-// 		}
-
-// 	}
-// }
-
 func printDebugAttachments(das []*v1.DebugAttachment) {
 	table := []string{"State\tID\tDebugger\tImage\tDebugger Address\n"}
 	for _, da := range das {
@@ -141,19 +100,6 @@ func printDebugAttachments(das []*v1.DebugAttachment) {
 
 }
 
-// func printDebugRequests(debugconfigs []*models.DebugRequest) {
-// 	table := []string{"ID\tDebugger\tImage\tBound Attachment name\n"}
-// 	for _, rqst := range debugconfigs {
-// 		table = append(table, fmt.Sprintf("%s\t%s\t%s\t%s\n", rqst.Metadata.Name, nilToEmpty(rqst.Spec.Debugger), nilToEmpty(rqst.Spec.Image), rqst.Status.DebugAttachmentRef))
-// 	}
-
-// 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-// 	for _, r := range table {
-// 		w.Write([]byte(r))
-// 	}
-// 	w.Flush()
-
-// }
 func nilToEmpty(s *string) string {
 	if s == nil {
 		return ""

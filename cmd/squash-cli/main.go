@@ -10,11 +10,6 @@ import (
 	"github.com/solo-io/squash/pkg/version"
 )
 
-// var RootCmd = &cobra.Command{
-// 	Use:   "squash",
-// 	Short: "squash",
-// }
-
 var serverurl string
 var jsonoutput bool
 
@@ -38,11 +33,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// RootCmd.PersistentFlags().StringVar(&serverurl, "url", os.Getenv("SQUASH_SERVER_URL"), "url for app server. probably a kubernetes service url. Default is the env variable SQUASH_SERVER_URL")
-	// RootCmd.PersistentFlags().BoolVar(&jsonoutput, "json", false, "output json format")
-	// if err := RootCmd.Execute(); err != nil {
-	// 	log.Fatal(err)
-	// }
 }
 
 func toptr(s string) *string {

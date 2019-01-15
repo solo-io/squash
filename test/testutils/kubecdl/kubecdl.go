@@ -148,7 +148,6 @@ func (k *Kubecdl) Apply(yamlfile string, modifier ...func(string) string) error 
 }
 
 func (k *Kubecdl) Pods() (*v1.PodList, error) {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	out, err := k.Prepare("get", "pods", "--output=json").Output()
 	if err != nil {
 		return nil, err
@@ -163,14 +162,12 @@ func (k *Kubecdl) Pods() (*v1.PodList, error) {
 }
 
 func (k *Kubecdl) Exec(pod, container, cmd string, args ...string) error {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
 	return k.Prepare(prepareargs...).Run()
 }
 
 func (k *Kubecdl) ExecAsync(pod, container, cmd string, args ...string) error {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	prepareargs := []string{"exec", pod, "-c", container, "--", cmd}
 	prepareargs = append(prepareargs, args...)
 	cmdtorun := k.Prepare(prepareargs...)
@@ -185,7 +182,6 @@ func (k *Kubecdl) ExecAsync(pod, container, cmd string, args ...string) error {
 }
 
 func (k *Kubecdl) Cp(local, remote, pod, container string) error {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.Prepare("cp", local, k.Namespace+"/"+pod+":"+remote, "-c", container).Run()
 }
 
@@ -312,12 +308,10 @@ func runandreturn(cmd *exec.Cmd, reg *regexp.Regexp) (<-chan []string, error) {
 }
 
 func (k *Kubecdl) Logs(name string) ([]byte, error) {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.Prepare("logs", name).CombinedOutput()
 }
 
 func (k *Kubecdl) Prepare(args ...string) *exec.Cmd {
-	//	args := []string{"--namespace="+k.Namespace, "--context="k.Context}
 	return k.innerpreparens(args)
 }
 

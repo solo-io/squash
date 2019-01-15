@@ -17,29 +17,6 @@ import (
 	"github.com/solo-io/squash/pkg/utils"
 )
 
-// var (
-// 	mApiserverGetToken = stats.Int64("apiserver.solo.io/auth/GetToken", "The number of calls to GetToken", "1")
-// 	apiserverGetToken  = &view.View{
-// 		Name:        "apiserver.solo.io/auth/GetToken",
-// 		Measure:     mApiserverGetToken,
-// 		Description: "The number of calls to GetToken",
-// 		Aggregation: view.Count(),
-// 		TagKeys:     []tag.Key{},
-// 	}
-// 	mApiserverAuthFail = stats.Int64("apiserver.solo.io/auth/AuthFail", "The number of AuthFails", "1")
-// 	apiserverAuthFail  = &view.View{
-// 		Name:        "apiserver.solo.io/auth/AuthFail",
-// 		Measure:     mApiserverAuthFail,
-// 		Description: "The number of calls to AuthFail",
-// 		Aggregation: view.Count(),
-// 		TagKeys:     []tag.Key{},
-// 	}
-// )
-
-// func init() {
-// 	view.Register(apiserverGetToken, apiserverAuthFail)
-// }
-
 type DebugController struct {
 	debugger  func(string) Debugger
 	conttopid platforms.ContainerProcess
@@ -157,7 +134,6 @@ func (d *DebugController) deleteResource(namespace, name string) {
 }
 
 func (d *DebugController) markAsAttached(namespace, name string) {
-	log.Debug("Marking as attached.....")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
@@ -254,9 +230,6 @@ func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 		if err != nil {
 			log.WithFields(log.Fields{"namespace": da.Metadata.Namespace, "name": da.Metadata.Name, "error": err}).Warn("Error on startDebug")
 			d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
-			// TODO - replace swagger functionality
-			fmt.Printf("swagger functionality update:\n%v\nok....\n", err)
-			// d.notifyError(da)
 			return nil // no retry
 		}
 		fmt.Println("preactive")
@@ -266,9 +239,6 @@ func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
-		// TODO
-		fmt.Println("swagger functionality update")
-		// d.notifyError(da)
 	}
 	return nil
 }

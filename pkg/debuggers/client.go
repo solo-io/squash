@@ -76,8 +76,6 @@ func (d *DebugHandler) handleAttachments() error {
 	syncer := d // DebugHandler implements Sync
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
-	// TODO(mitchdraft) - use real values
-	//TODO(MITCH) - fix
 	namespaces := []string{d.watchNamespace}
 	wOpts := clients.WatchOpts{}
 	errs, err := el.Run(namespaces, wOpts)

@@ -1,8 +1,6 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
@@ -10,8 +8,6 @@ import (
 
 // Attach creates a DebugAttachment with a state of PendingAttachment
 func (uc *UserController) Attach(name, namespace, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
-	fmt.Println("attaching...................")
-	fmt.Println(pod, container, image, processName, dbgger)
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      name,
@@ -36,8 +32,6 @@ func (uc *UserController) Attach(name, namespace, image, pod, container, process
 
 // Remove sets the DebugAttachment state to PendingDelete
 func (uc *UserController) RequestDelete(namespace, name string) (*v1.DebugAttachment, error) {
-	fmt.Println("removing...................")
-	fmt.Println(name, namespace)
 
 	da, err := (*uc.daClient).Read(namespace, name, clients.ReadOpts{Ctx: uc.ctx})
 	if err != nil {
