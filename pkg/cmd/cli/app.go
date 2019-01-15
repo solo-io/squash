@@ -1,11 +1,13 @@
 package cli
 
 import (
-	"github.com/solo-io/squash/pkg/cmd/cli/options"
+	"context"
+
+	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
-func App(version string) *cobra.Command {
+func App(version string) (*cobra.Command, error) {
 	app := &cobra.Command{
 		Use:   "squash",
 		Short: "debug microservices with squash",
@@ -14,7 +16,10 @@ func App(version string) *cobra.Command {
 		Version: version,
 	}
 
-	opts := options.Options{}
+	opts := Options{}
+	if err := initializeOptions(&opts); err != nil {
+		return &cobra.Command{}, err
+	}
 
 	// pFlags := app.PersistentFlags()
 	// pFlags.BoolVarP(&opts.Top.Static, "static", "s", false, "disable interactive mode")
@@ -23,7 +28,12 @@ func App(version string) *cobra.Command {
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
 		DebugContainerCmd(&opts),
+		DebugRequestCmd(&opts),
+		ListCmd(&opts),
+		WaitAttCmd(&opts),
 	)
+
+	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
 
 	// // Fail fast if we cannot connect to kubernetes
 	// err := setup.CheckConnection()
@@ -45,5 +55,16 @@ func App(version string) *cobra.Command {
 	// 	os.Exit(1)
 	// }
 
-	return app
+	return app, nil
+}
+
+func initializeOptions(o *Options) error {
+	ctx := context.Background()
+	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	if err != nil {
+		return err
+	}
+	o.ctx = ctx
+	o.daClient = daClient
+	return nil
 }

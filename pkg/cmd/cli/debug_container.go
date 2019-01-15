@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,19 +10,13 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/cmd/cli/options"
-	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
+
+	"github.com/solo-io/squash/pkg/options"
 )
 
-// TODO(mitchdraft) - remove this or put it in a shared location
-type Error struct {
-	Type string
-	Info string
-}
-
-func DebugContainerCmd(opts *options.Options) *cobra.Command {
-	dcOpts := &opts.DebugContainer
+func DebugContainerCmd(o *Options) *cobra.Command {
+	dcOpts := &o.DebugContainer
 	var debugContainerCmd = &cobra.Command{
 		Use:   "debug-container image pod container [debugger]",
 		Short: "debug-container adds a container type debug config",
@@ -32,13 +25,13 @@ func DebugContainerCmd(opts *options.Options) *cobra.Command {
 				return err
 			}
 			da := debugAttachmentFromOpts(*dcOpts)
-			dbgattchment, err := debugContainer(da)
+			dbgattchment, err := o.debugContainer(da)
 			if err != nil {
 				return err
 			}
 
 			if err != nil {
-				if !opts.Json {
+				if !o.Json {
 					fmt.Println("Failed adding container - check parameter names match container on the platform. error:", err)
 				} else {
 					json.NewEncoder(os.Stdout).Encode(Error{Type: "unknown", Info: err.Error()})
@@ -46,9 +39,10 @@ func DebugContainerCmd(opts *options.Options) *cobra.Command {
 				return err
 			}
 
-			if !opts.Json {
+			if !o.Json {
 				fmt.Println("Debug config id:", dbgattchment.Metadata.Name)
 			} else {
+				// TODO - convert
 				json.NewEncoder(os.Stdout).Encode(dbgattchment)
 			}
 
@@ -56,13 +50,13 @@ func DebugContainerCmd(opts *options.Options) *cobra.Command {
 		},
 	}
 
-	debugContainerCmd.Flags().StringVarP(&dcOpts.Namespace, "namespace", "n", "default", "Namespace the pod belongs to")
-	debugContainerCmd.Flags().StringVarP(&dcOpts.ProcessName, "processName", "p", "", "Process name to debug (defaults to the first running process)")
+	debugContainerCmd.PersistentFlags().StringVarP(&dcOpts.Namespace, "namespace", "n", "default", "Namespace the pod belongs to")
+	debugContainerCmd.PersistentFlags().StringVarP(&dcOpts.ProcessName, "processName", "p", "", "Process name to debug (defaults to the first running process)")
 
 	return debugContainerCmd
 }
 
-func ensureDebugContainerOpts(dcOpts *options.DebugContainer, args []string) error {
+func ensureDebugContainerOpts(dcOpts *DebugContainer, args []string) error {
 	var err error
 	dcOpts.DebuggerType = "gdb"
 	switch len(args) {
@@ -83,31 +77,27 @@ func ensureDebugContainerOpts(dcOpts *options.DebugContainer, args []string) err
 	return nil
 }
 
-func debugAttachmentFromOpts(o options.DebugContainer) v1.DebugAttachment {
+func debugAttachmentFromOpts(dc DebugContainer) v1.DebugAttachment {
 	return v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      o.Name,
-			Namespace: o.Namespace,
+			Name:      dc.Name,
+			Namespace: options.SquashClientNamespace,
 		},
-		Pod:            o.Pod,
-		Container:      o.Container,
-		ProcessName:    o.ProcessName,
-		Image:          o.Image,
-		Debugger:       o.DebuggerType,
-		DebugNamespace: o.Namespace,
+		Debugger:       dc.DebuggerType,
+		Image:          dc.Image,
+		Pod:            dc.Pod,
+		Container:      dc.Container,
+		DebugNamespace: options.SquashClientNamespace,
+		State:          v1.DebugAttachment_RequestingAttachment,
+		ProcessName:    dc.ProcessName,
 	}
 }
 
-func debugContainer(da v1.DebugAttachment) (*v1.DebugAttachment, error) {
-	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
-	if err != nil {
-		return &v1.DebugAttachment{}, err
-	}
+func (o *Options) debugContainer(da v1.DebugAttachment) (*v1.DebugAttachment, error) {
 	writeOpts := clients.WriteOpts{
-		Ctx:               ctx,
+		Ctx:               o.ctx,
 		OverwriteExisting: false,
 	}
 
-	return (*daClient).Write(&da, writeOpts)
+	return (*o.daClient).Write(&da, writeOpts)
 }

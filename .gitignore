@@ -3,3 +3,6 @@ target/
 *.iml
 
 vendor/*
+
+# temporary builds
+*.out
