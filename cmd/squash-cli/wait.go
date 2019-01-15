@@ -19,10 +19,6 @@ func init() {
 		Use:   "wait dbgattachmentid",
 		Short: "wait for a debug config to have a debug server url appear",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// c, err := getClient()
-			// if err != nil {
-			// 	return err
-			// }
 
 			if len(args) != 1 {
 				return fmt.Errorf("Invalid number of arguments: %v", args)
