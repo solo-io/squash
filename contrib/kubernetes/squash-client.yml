@@ -14,7 +14,7 @@ spec:
       hostPID: true
       containers:
       - name: squash-client
-        image: soloio/squash-client:mdev
+        image: soloio/squash-client:v0.3.1
         volumeMounts:
         - mountPath: /var/run/cri.sock
           name: crisock

@@ -59,9 +59,9 @@ func WaitAttCmd(o *Options) *cobra.Command {
 			da, err := (*o.daClient).Read(options.SquashClientNamespace, id, reOptions)
 			if err != nil || da.State != v1.DebugAttachment_Attached {
 				// TODO(mitchdraft) implement a periodic check instead of waiting the full timeout duration
-				overrideTimeoutTODO := 3 // TODO(mitchdraft) - unhardcode
+				const overrideTimeoutTODO = 3 // TODO(mitchdraft) - unhardcode
 				// time.Sleep(time.Duration(int32(o.Wait.Timeout)) * time.Second)
-				time.Sleep(time.Duration(int32(overrideTimeoutTODO)) * time.Second)
+				time.Sleep(overrideTimeoutTODO * time.Second)
 				da, err = (*o.daClient).Read(options.SquashClientNamespace, id, reOptions)
 				if err != nil {
 					o.exitOnError(timedOut, err)
