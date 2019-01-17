@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/derekparker/delve/service/rpc1"
+	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 )
 
@@ -60,7 +60,7 @@ func (d *DLV) Attach(pid int) (debuggers.DebugServer, error) {
 func startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.WithField("pid", pid).Debug("StartDebugServer called")
-	cmd := exec.Command("dlv", "attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:0", "--accept-multiclient=true", "--headless", "--log")
+	cmd := exec.Command("dlv", "attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:0", "--accept-multiclient=true", "--api-version=2", "--headless", "--log")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	log.WithFields(log.Fields{"cmd": cmd, "args": cmd.Args}).Debug("dlv command")
@@ -73,6 +73,7 @@ func startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.Debug("starting headless dlv for user started, trying to get port")
 	time.Sleep(2 * time.Second)
+	log.Debug("awake now")
 	port, err := debuggers.GetPort(cmd.Process.Pid)
 	if err != nil {
 		log.WithField("err", err).Error("can't get headless dlv port")

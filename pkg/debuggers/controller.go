@@ -11,18 +11,20 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/models"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
 
 type DebugController struct {
-	debugger         func(string) Debugger
-	conttopid        platforms.ContainerProcess
-	udpateAttachment func(*models.DebugAttachment) error
+	debugger  func(string) Debugger
+	conttopid platforms.ContainerProcess
+	pidLock   sync.Mutex
+	pidMap    map[int]bool
 
-	pidLock sync.Mutex
-	pidMap  map[int]bool
+	daClient *v1.DebugAttachmentClient
+	ctx      context.Context
 
 	debugattachmentsLock sync.Mutex
 	debugattachments     map[string]debugAttachmentData
@@ -33,13 +35,15 @@ type debugAttachmentData struct {
 	pid      int
 }
 
-func NewDebugController(debugger func(string) Debugger,
-	udpateAttachment func(*models.DebugAttachment) error,
+func NewDebugController(ctx context.Context,
+	debugger func(string) Debugger,
+	daClient *v1.DebugAttachmentClient,
 	conttopid platforms.ContainerProcess) *DebugController {
 	return &DebugController{
-		debugger:         debugger,
-		conttopid:        conttopid,
-		udpateAttachment: udpateAttachment,
+		debugger:  debugger,
+		conttopid: conttopid,
+
+		daClient: daClient,
 
 		pidMap: make(map[int]bool),
 
@@ -48,6 +52,7 @@ func NewDebugController(debugger func(string) Debugger,
 }
 
 func (d *DebugController) lockProcess(pid int) bool {
+	log.WithFields(log.Fields{"pidMap": d.pidMap}).Debug("locking process")
 	d.pidLock.Lock()
 	defer d.pidLock.Unlock()
 	oldpid := d.pidMap[pid]
@@ -61,14 +66,17 @@ func (d *DebugController) unlockProcess(pid int) {
 	delete(d.pidMap, pid)
 }
 
-func (d *DebugController) addActiveAttachment(attachment *models.DebugAttachment, pid int, debugger DebugServer) {
+func (d *DebugController) addActiveAttachment(da *v1.DebugAttachment, pid int, debugger DebugServer) error {
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
-	d.debugattachments[attachment.Metadata.Name] = debugAttachmentData{debugger, pid}
+	d.debugattachments[da.Metadata.Name] = debugAttachmentData{debugger, pid}
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
+	return nil
 }
 
-func (d *DebugController) removeAttachment(name string) {
+func (d *DebugController) removeAttachment(namespace, name string) {
 	d.debugattachmentsLock.Lock()
+	d.markForDeletion(namespace, name)
 	data, ok := d.debugattachments[name]
 	delete(d.debugattachments, name)
 	d.debugattachmentsLock.Unlock()
@@ -83,32 +91,64 @@ func (d *DebugController) removeAttachment(name string) {
 	}
 }
 
-func (d *DebugController) HandleAddedRemovedAttachments(attachments, removedAtachment []*models.DebugAttachment) error {
+func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 
-	for _, attachment := range removedAtachment {
-		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Removing attachment")
-		d.removeAttachment(attachment.Metadata.Name)
+	// Mark attachment as in progress
+	da.State = v1.DebugAttachment_PendingAttachment
+	_, err := (*d.daClient).Write(da, clients.WriteOpts{OverwriteExisting: true})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
 	}
-
-	for _, attachment := range attachments {
-		// notify the server that we are attaching, so we won't get the same attachment object next time.
-		if err := d.notifyState(attachment, models.DebugAttachmentStatusStateAttaching); err != nil {
-			log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name, "err": err}).Debug("Failed set state to attaching in squash server. aborting.")
-
-			d.notifyError(attachment)
-		}
-		go d.handleSingleAttachment(attachment)
-	}
-	return nil
-}
-
-func (d *DebugController) handleSingleAttachment(attachment *models.DebugAttachment) {
-
-	err := retry(func() error { return d.tryToAttach(attachment) })
+	err = retry(func() error { return d.tryToAttach(da) })
 
 	if err != nil {
-		log.WithFields(log.Fields{"attachment.Name": attachment.Metadata.Name}).Debug("Failed to attach... signaling server.")
-		d.notifyError(attachment)
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to attach debugger, deleting request.")
+		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
+	}
+}
+
+func (d *DebugController) markForDeletion(namespace, name string) {
+	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
+	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	if err != nil {
+		// should not happen, but if it does, the CRD was probably already deleted
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to delete.")
+	}
+
+	da.State = v1.DebugAttachment_PendingDelete
+
+	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+		Ctx:               d.ctx,
+		OverwriteExisting: true,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to mark attachment for deletion.")
+	}
+}
+
+func (d *DebugController) deleteResource(namespace, name string) {
+	err := (*d.daClient).Delete(namespace, name, clients.DeleteOpts{Ctx: d.ctx, IgnoreNotExist: true})
+	if err != nil {
+		log.WithFields(log.Fields{"name": name, "namespace": namespace, "error": err}).Warn("Failed to delete resource.")
+	}
+}
+
+func (d *DebugController) markAsAttached(namespace, name string) {
+	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
+		d.markForDeletion(namespace, name)
+	}
+
+	da.State = v1.DebugAttachment_Attached
+
+	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+		Ctx:               d.ctx,
+		OverwriteExisting: true,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to mark debug attachment as attached.")
+		d.markForDeletion(namespace, name)
 	}
 }
 
@@ -161,22 +201,23 @@ func FindFirstProcess(pids []int, processName string) (int, error) {
 	return minpid, nil
 }
 
-func (d *DebugController) tryToAttach(attachment *models.DebugAttachment) error {
+func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 
 	// make sure this is not a duplicate
-	ci, err := d.conttopid.GetContainerInfo(context.Background(), attachment.Spec.Attachment)
+	ci, err := d.conttopid.GetContainerInfo(context.Background(), da)
+	log.WithField("ContainerInfo", ci).Debug("GetContainerInfo output")
 	if err != nil {
 		log.WithField("err", err).Warn("GetContainerInfo error")
 		return err
 	}
 
-	pid, err := FindFirstProcess(ci.Pids, attachment.Spec.ProcessName)
+	pid, err := FindFirstProcess(ci.Pids, da.ProcessName)
 	if err != nil {
 		log.WithField("err", err).Warn("FindFirstProcess error")
 		return err
 	}
 
-	log.WithField("app", attachment).Info("Attaching to live session")
+	log.WithField("app", da).Info("Attaching to live session")
 
 	p, err := os.FindProcess(pid)
 	if err != nil {
@@ -185,41 +226,33 @@ func (d *DebugController) tryToAttach(attachment *models.DebugAttachment) error 
 	}
 	if d.lockProcess(pid) {
 		log.WithField("pid", pid).Info("starting to debug")
-		debugger, err := d.startDebug(attachment, p, ci.Name)
+		debugger, err := d.startDebug(da, p, ci.Name)
 		if err != nil {
-			d.notifyError(attachment)
+			log.WithFields(log.Fields{"namespace": da.Metadata.Namespace, "name": da.Metadata.Name, "error": err}).Warn("Error on startDebug")
+			d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 			return nil // no retry
 		}
-		d.addActiveAttachment(attachment, pid, debugger)
+		fmt.Println("preactive")
+		if err := d.addActiveAttachment(da, pid, debugger); err != nil {
+			return err
+		}
 
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
-		d.notifyError(attachment)
 	}
 	return nil
 }
 
-func (d *DebugController) notifyError(attachment *models.DebugAttachment) {
-	d.notifyState(attachment, models.DebugAttachmentStatusStateError)
-}
-
-func (d *DebugController) notifyState(attachment *models.DebugAttachment, newstate string) error {
-
-	attachmentCopy := *attachment
-	attachmentCopy.Status.State = newstate
-	return d.udpateAttachment(&attachmentCopy)
-}
-
-func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
+func (d *DebugController) startDebug(da *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {
 	log.Info("start debug called")
 
-	curdebugger := d.debugger(attachment.Spec.Debugger)
+	curdebugger := d.debugger(da.Debugger)
 
 	if curdebugger == nil {
 		return nil, errors.New("debugger doesn't exist")
 	}
 
-	log.WithFields(log.Fields{"curdebugger": attachment.Spec.Debugger}).Info("start debug params")
+	log.WithFields(log.Fields{"curdebugger": da.Debugger}).Info("start debug params")
 
 	log.WithFields(log.Fields{"pid": p.Pid}).Info("starting debug server")
 	var err error
@@ -231,11 +264,6 @@ func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.P
 	}
 
 	log.WithField("pid", p.Pid).Info("StartDebugServer - posting debug session")
-
-	attachmentPatch := &models.DebugAttachment{
-		Metadata: attachment.Metadata,
-		Spec:     attachment.Spec,
-	}
 
 	hostName := ""
 	switch debugServer.HostType() {
@@ -251,19 +279,21 @@ func (d *DebugController) startDebug(attachment *models.DebugAttachment, p *os.P
 		return nil, err
 	}
 
-	attachmentPatch.Status = &models.DebugAttachmentStatus{
-		DebugServerAddress: fmt.Sprintf("%s:%d", hostName, debugServer.Port()),
-		State:              models.DebugAttachmentStatusStateAttached,
-	}
-
-	log.WithFields(log.Fields{"newattachment": attachmentPatch}).Debug("Notifying server of attachment to debug config object")
-	err = d.udpateAttachment(attachmentPatch)
-
 	if err != nil {
 		log.WithField("err", err).Warn("Error adding debug session - detaching!")
 		debugServer.Detach()
-	} else {
-		log.Info("debug session added!")
+		return nil, err
 	}
+	log.Info("debug session added!")
+
+	latestDa, err := (*d.daClient).Read(da.Metadata.Namespace, da.Metadata.Name, clients.ReadOpts{Ctx: d.ctx})
+	latestDa.DebugServerAddress = fmt.Sprintf("%s:%d", hostName, debugServer.Port())
+	latestDa.State = v1.DebugAttachment_Attached
+
+	if _, err := (*d.daClient).Write(latestDa, clients.WriteOpts{Ctx: d.ctx, OverwriteExisting: true}); err != nil {
+		log.WithField("err", err).Error("Writing attachment")
+		return nil, err
+	}
+
 	return debugServer, nil
 }

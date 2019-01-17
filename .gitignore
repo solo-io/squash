@@ -5,3 +5,6 @@ target/
 *.DS_STORE
 
 vendor/*
+
+# temporary builds
+*.out

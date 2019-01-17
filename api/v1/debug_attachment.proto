@@ -1,0 +1,74 @@
+syntax = "proto3";
+package squash.solo.io;
+option go_package = "github.com/solo-io/squash/pkg/api/v1";
+
+import "gogoproto/gogo.proto";
+option (gogoproto.equal_all) = true;
+
+import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
+import "github.com/solo-io/solo-kit/api/v1/status.proto";
+import "github.com/solo-io/solo-kit/api/v1/ref.proto";
+
+/*
+@solo-kit:resource.short_name=debatt
+@solo-kit:resource.plural_name=debugattachments
+@solo-kit:resource.resource_groups=api.squash.solo.io
+
+Attachments store the information needed for squash to coordinate a debugging session
+ */
+message DebugAttachment {
+  // From solo-kit common
+
+  core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
+
+  core.solo.io.Status status = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "testdiff:\"ignore\""];
+
+  // From github.com/solo-io/squash/pkg/models.DebugAttachmentSpec
+
+  string attachment = 3; // TODO - make this work with the existing go interface{} implementation
+
+  string debugger = 4;
+
+  string image = 5;
+
+  string process_name = 6;
+
+  string node = 7;
+
+  bool match_request = 8;
+
+  // From github.com/solo-io/squash/pkg/models.DebugAttachmentStatus
+
+  string debug_server_address = 9;
+
+  enum State {
+
+    // Newly created DebugAttachments have state RequestingAttachment
+    RequestingAttachment = 0;
+
+    // When the event loop begins fullfilling an attachment request it sets
+    // DebugAttachments state to PendingAttachment
+    PendingAttachment = 1;
+
+    // When squash client successfully attaches, it sets state to Attached
+    Attached = 2;
+
+    // Indicates that user has requested an attachment be removed
+    RequestingDelete = 3;
+
+    // When the event loop begins fullfilling a delete request it sets this
+    // status and triggers a cleanup routine
+    // When the cleanup routine completes, it deletes the CRD
+    PendingDelete = 4;
+  }
+
+  State state = 10;
+
+  // From cli debug-container (possibly redundant)
+
+  string pod = 11;
+
+  string container = 12;
+
+  string debug_namespace = 13;
+}

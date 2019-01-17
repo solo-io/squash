@@ -10,6 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 
 	log "github.com/sirupsen/logrus"
@@ -44,11 +45,12 @@ func NewContainerProcess() (*CRIContainerProcess, error) {
 	return &CRIContainerProcess{}, nil
 }
 
-func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment interface{}) (*platforms.ContainerInfo, error) {
+func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment *v1.DebugAttachment) (*platforms.ContainerInfo, error) {
 
+	fmt.Println("v2")
 	log.WithField("attachment", attachment).Debug("Cri GetPid called")
 
-	ka, err := k8models.GenericToKubeAttachment(attachment)
+	ka, err := k8models.DebugAttachmentToKubeAttachment(attachment)
 
 	if err != nil {
 		return nil, errors.New("bad attachment format")

@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		cp, err = kubernetes.NewCRIContainerProcessAlphaV1()
 		if err != nil {
-			log.WithError(err).Fatal("Cannot get contrainer process locator")
+			log.WithError(err).Fatal("Cannot get container process locator")
 		}
 	}
 

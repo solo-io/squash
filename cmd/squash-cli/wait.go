@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/solo-io/squash/pkg/client/debugattachment"
+	"github.com/solo-io/squash/pkg/cmd/cli"
 	"github.com/solo-io/squash/pkg/models"
 	"github.com/spf13/cobra"
 )
@@ -18,16 +19,13 @@ func init() {
 		Use:   "wait dbgattachmentid",
 		Short: "wait for a debug config to have a debug server url appear",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := getClient()
-			if err != nil {
-				return err
-			}
 
 			if len(args) != 1 {
 				return fmt.Errorf("Invalid number of arguments: %v", args)
 			}
 
 			id := args[0]
+			return cli.WaitCmd(id, &attachmentWaitTimeout)
 
 			params := debugattachment.NewGetDebugAttachmentsParams()
 			params.States = []string{models.DebugAttachmentStatusStateAttached, models.DebugAttachmentStatusStateError}

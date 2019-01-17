@@ -5,17 +5,17 @@ VERSION ?= $(shell git describe --tags)
 all: binaries deployment
 
 .PHONY: binaries
-binaries: target/squash-server/squash-server target/squash-client/squash-client target/squash
+binaries: target/squash-client/squash-client target/squash
 
 
-RELEASE_BINARIES := target/squash-server/squash-server target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
+RELEASE_BINARIES := target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
 
 .PHONY: release-binaries
 release-binaries: $(RELEASE_BINARIES)
 
 .PHONY: manifests
 manifests: deployment
-	cp -f target/kubernetes/squash-client.yml target/kubernetes/squash-server.yml ./contrib/kubernetes
+	cp -f target/kubernetes/squash-client.yml ./contrib/kubernetes
 
 .PHONY: upload-release
 upload-release: release-binaries manifests dist
@@ -23,10 +23,10 @@ upload-release: release-binaries manifests dist
 	@$(foreach BINARY,$(RELEASE_BINARIES),./contrib/upload-github-release-asset.sh github_api_token=$(GITHUB_TOKEN) owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
 
 .PHONY: containers
-containers: target/squash-server-container target/squash-client-container
+containers: target/squash-client-container
 
 .PHONY: prep-containers
-prep-containers: ./target/squash-server/squash-server target/squash-server/Dockerfile target/squash-client/squash-client target/squash-client/Dockerfile
+prep-containers: target/squash-client/squash-client target/squash-client/Dockerfile
 
 
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
@@ -59,23 +59,6 @@ target/squash-client/Dockerfile: | target/squash-client/
 target/squash-client/Dockerfile: ./cmd/squash-client/platforms/kubernetes/Dockerfile
 	cp -f ./cmd/squash-client/platforms/kubernetes/Dockerfile ./target/squash-client/Dockerfile
 
-target/squash-server/:
-	[ -d $@ ] || mkdir -p $@
-
-target/squash-server/squash-server: | target/squash-server/
-target/squash-server/Dockerfile:    | target/squash-server/
-
-target/squash-server/squash-server: $(SRCS)
-	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o ./target/squash-server/squash-server ./cmd/squash-server/
-
-target/squash-server/Dockerfile: cmd/squash-server/Dockerfile
-	cp cmd/squash-server/Dockerfile target/squash-server/Dockerfile
-
-
-target/squash-server-container: ./target/squash-server/squash-server target/squash-server/Dockerfile
-	docker build -t $(DOCKER_REPO)/squash-server:$(VERSION) ./target/squash-server/
-	touch $@
-
 target/squash-client-container: target/squash-client/squash-client target/squash-client/Dockerfile
 	docker build -t $(DOCKER_REPO)/squash-client:$(VERSION) ./target/squash-client/
 	touch $@
@@ -91,24 +74,30 @@ push-client-base:
 target/%.yml : contrib/%.yml.tmpl
 	SQUASH_REPO=$(DOCKER_REPO) SQUASH_VERSION=$(VERSION) go run contrib/templategen.go $< > $@
 
-target/kubernetes/squash-server.yml: target/squash-server-container
 target/kubernetes/squash-client.yml: target/squash-client-container
 
 target/kubernetes/:
 	[ -d $@ ] || mkdir -p $@
 
 deployment: | target/kubernetes/
-deployment: target/kubernetes/squash-client.yml target/kubernetes/squash-server.yml
+deployment: target/kubernetes/squash-client.yml
 
 
 .PHONY: clean
 clean:
 	rm -rf target
 
-pkg/restapi: api.yaml
-	swagger generate server --name=Squash --exclude-main --target=./pkg/  --spec=./api.yaml
-	swagger generate client --name=Squash --target=./pkg/  --spec=./api.yaml
-
-dist: target/squash-server-container target/squash-client-container
+dist: target/squash-client-container
 	docker push $(DOCKER_REPO)/squash-client:$(VERSION)
-	docker push $(DOCKER_REPO)/squash-server:$(VERSION)
+
+# make the solo-kit-provided resources
+# do this on initialization and whenever the apichanges
+.PHONY: generate-sk
+generate-sk: docs-and-code/v1
+
+docs-and-code/v1:
+	go run cmd/generate-code/main.go
+
+.PHONY: tmpclient
+tmpclient:
+	GOOS=linux go build -o target/squash-client/squash-client cmd/squash-client/platforms/kubernetes/main.go
