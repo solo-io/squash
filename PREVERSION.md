@@ -2,10 +2,6 @@
 # Before tagging a new release
 
 ## Dev tasks
-- use correct namespace on CRD
-  - watch all namespaces
-- store DebugAttachment CRDs in the same namespace as the pods they are targeting
-  - implement a CRD that lives in a known namespace that will point to all the debugging namespaces
 - update makefile for new client/docker settings
 - update the Makefile
 - combine with Kube-squash
@@ -15,13 +11,20 @@
 
 # Zoom
 ## namespace update
-- [ ] store squash in SquashCentralNamespace
+- [x] store squash in SquashCentralNamespace
 - [ ] allow SquashCentralNamespace to be configured as a flag
+- [ ] allow in/out-of cluster to be configured as a flag
 - [ ] allow installation of squash agent from cli
-- [ ] watch all namespaces for DebugAttachments
+- [x] watch all namespaces for DebugAttachments
+- [ ] store DebugAttachment CRDs in the same namespace as the pods they are targeting
+- [ ] deploy sample apps from a cli tool
+  - [ ] go & go, same namespace
+  - [ ] go & go, diff namespace
+  - [ ] go & java, same namespace
+  - [ ] go & java, diff namespace
 ## helpers
 - [x] move watch util to hack/monitor
-- [ ] use an event loop in hack/monitor
+- [x] use an event loop in hack/monitor
 
 ## Release tasks
 - update the docs
