@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -24,14 +25,20 @@ func main() {
 }
 
 func run() error {
+	var name string
+	var namespace string
+	flag.StringVar(&name, "name", "some-name", "debug attachment name")
+	flag.StringVar(&namespace, "namespace", "default", "debug attachment namespace")
+	flag.Parse()
+
 	attClient, err := getDebugAttachmentClient()
 	if err != nil {
 		return err
 	}
 	initialAtt := &v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      "my-debug2",
-			Namespace: "squash",
+			Name:      name,
+			Namespace: namespace,
 		},
 		Debugger: "dlv",
 	}
