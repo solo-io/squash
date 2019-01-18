@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -39,17 +40,27 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	return namespaces, nil
 }
 
+func NewInClusterKubeClientset() (*kubernetes.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return clientset, nil
+}
+
 func NewOutOfClusterKubeClientset() (*kubernetes.Clientset, error) {
 	home := homeDir()
 	kubeconfig := filepath.Join(home, ".kube", "config")
 
-	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return &kubernetes.Clientset{}, nil
 	}
 
-	// create the clientset
 	return kubernetes.NewForConfig(config)
 }
 
