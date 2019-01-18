@@ -17,11 +17,11 @@
 - [ ] allow installation of squash agent from cli
 - [x] watch all namespaces for DebugAttachments
 - [ ] store DebugAttachment CRDs in the same namespace as the pods they are targeting
-- [ ] deploy sample apps from a cli tool
-  - [ ] go & go, same namespace
-  - [ ] go & go, diff namespace
-  - [ ] go & java, same namespace
-  - [ ] go & java, diff namespace
+- [x] deploy sample apps from a cli tool
+  - [x] go & go, same namespace
+  - [x] go & go, diff namespace
+  - [x] go & java, same namespace
+  - [x] go & java, diff namespace
 ## helpers
 - [x] move watch util to hack/monitor
 - [x] use an event loop in hack/monitor
