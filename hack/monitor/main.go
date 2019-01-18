@@ -8,6 +8,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/pkg/utils/kubeutils"
 )
 
 // this program exists to support the Squash development cycle
@@ -54,7 +55,7 @@ func (m *Monitor) Run() error {
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
 	// watch all namespaces
-	namespaces := []string{"squash", "default"}
+	namespaces := kubeutils.MustGetNamespaces(nil)
 	wOpts := clients.WatchOpts{}
 	errs, err := el.Run(namespaces, wOpts)
 	if err != nil {
