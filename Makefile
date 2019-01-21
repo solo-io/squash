@@ -101,3 +101,7 @@ docs-and-code/v1:
 .PHONY: tmpclient
 tmpclient:
 	GOOS=linux go build -o target/squash-client/squash-client cmd/squash-client/platforms/kubernetes/main.go
+
+.PHONY: runtest
+runtest: tmpclient
+	cd test/e2e/ && ginkgo -v .

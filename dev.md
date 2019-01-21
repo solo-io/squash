@@ -22,5 +22,6 @@ go run main --init && go run main --clean
 ## run the e2e tests
 ```
 cd test/e2e
+export WAIT_ON_FAIL=1 # if you want better failure debugging
 ginkgo -r
 ```

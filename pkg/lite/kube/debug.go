@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/solo-io/squash/pkg/utils/kubeutils"
 
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,6 +46,7 @@ type SquashConfig struct {
 
 func StartDebugContainer(config SquashConfig, clientset kubernetes.Interface) error {
 	// find the container from skaffold, or ask the user to chose one.
+	log.Info("StartDebugContainer called")
 
 	dp := DebugPrepare{
 		config: config,
@@ -74,7 +77,15 @@ func StartDebugContainer(config SquashConfig, clientset kubernetes.Interface) er
 
 	image, podname, _ := SkaffoldConfigToPod(skaffoldFile)
 
-	dbg, err := dp.GetMissing("", podname, image)
+	workingNs := ""
+	if config.InClusterMode {
+		var err error
+		workingNs, err = kubeutils.GetPodNamespace(clientset.(*kubernetes.Clientset), podname)
+		if err != nil {
+			return err
+		}
+	}
+	dbg, err := dp.GetMissing(workingNs, podname, image)
 	if err != nil {
 		return err
 	}
@@ -91,6 +102,9 @@ func StartDebugContainer(config SquashConfig, clientset kubernetes.Interface) er
 		}
 	}
 
+	//dbugger is nil
+	//dbg is nil
+	log.WithFields(log.Fields{"debugger": debugger, "dbg": dbg}).Info("start debugPodFor params")
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
 		return err
