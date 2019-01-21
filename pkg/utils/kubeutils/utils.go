@@ -30,6 +30,9 @@ func MustGetNamespaces(clientset *kubernetes.Clientset) []string {
 }
 
 func GetPodNamespace(clientset *kubernetes.Clientset, podName string) (string, error) {
+	if podName == "" {
+		return "", fmt.Errorf("no pod name specified")
+	}
 	namespaces, err := GetNamespaces(clientset)
 	if err != nil {
 		return "", err

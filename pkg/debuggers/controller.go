@@ -116,7 +116,7 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 		err = retry(func() error { return d.tryToAttach(da) })
 	}
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to attach debugger, deleting request.")
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace, "error": err}).Warn("Failed to attach debugger, deleting request.")
 		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 	}
 
@@ -263,6 +263,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	liteConfig := lite.SquashConfig{
 		InClusterMode:  true,
 		TimeoutSeconds: 3,
+		Debugger:       "dlv", // TODO(mitchdraft) - pass as arg
 	}
 	clientset, err := kubeutils.NewKubeClientset(d.inClusterMode)
 	if err != nil {
