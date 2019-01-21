@@ -10,9 +10,8 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
-
-	"github.com/solo-io/squash/pkg/options"
 )
 
 func DebugContainerCmd(o *Options) *cobra.Command {
@@ -24,7 +23,11 @@ func DebugContainerCmd(o *Options) *cobra.Command {
 			if err := ensureDebugContainerOpts(dcOpts, args); err != nil {
 				return err
 			}
-			da := debugAttachmentFromOpts(*dcOpts)
+			da, err := debugAttachmentFromOpts(*dcOpts)
+			if err != nil {
+				return err
+			}
+
 			dbgattchment, err := o.debugContainer(da)
 			if err != nil {
 				return err
@@ -77,20 +80,25 @@ func ensureDebugContainerOpts(dcOpts *DebugContainer, args []string) error {
 	return nil
 }
 
-func debugAttachmentFromOpts(dc DebugContainer) v1.DebugAttachment {
+func debugAttachmentFromOpts(dc DebugContainer) (v1.DebugAttachment, error) {
+	kubeResClient, err := kubeutils.NewOutOfClusterKubeClientset()
+	ns, err := kubeutils.GetPodNamespace(kubeResClient, dc.Pod)
+	if err != nil {
+		return v1.DebugAttachment{}, err
+	}
 	return v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      dc.Name,
-			Namespace: options.SquashClientNamespace,
+			Namespace: ns,
 		},
 		Debugger:       dc.DebuggerType,
 		Image:          dc.Image,
 		Pod:            dc.Pod,
 		Container:      dc.Container,
-		DebugNamespace: options.SquashClientNamespace,
+		DebugNamespace: ns,
 		State:          v1.DebugAttachment_RequestingAttachment,
 		ProcessName:    dc.ProcessName,
-	}
+	}, nil
 }
 
 func (o *Options) debugContainer(da v1.DebugAttachment) (*v1.DebugAttachment, error) {
