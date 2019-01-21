@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	cmd "github.com/solo-io/kubesquash/pkg/kscmd"
+	cmd "github.com/solo-io/squash/pkg/kscmd"
 )
 
 const descriptionUsage = `Normally squash lite requires no arguments. just run it!

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	soloutils "github.com/solo-io/go-utils/v1/common"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +68,7 @@ func ensureDebugRequestOpts(drOpts *DebugContainer, args []string) error {
 
 	drOpts.Image = image
 	drOpts.DebuggerType = debugger
-	drOpts.Name = soloutils.RandKubeNameBytes(6)
+	drOpts.Name = RandKubeNameBytes(6)
 
 	return nil
 }

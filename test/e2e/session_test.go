@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -42,6 +43,10 @@ var _ = Describe("Single debug mode", func() {
 	Describe("Single Container mode", func() {
 		FIt("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
+			fmt.Println("container")
+			fmt.Println(container)
+			fmt.Println(container.Name)
+			fmt.Println(container.Image)
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
