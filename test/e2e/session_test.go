@@ -9,7 +9,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
 )
 
@@ -22,7 +21,7 @@ func Must(err error) {
 var (
 	daName        = "debug-attachment-1"
 	daName2       = "debug-attachment-2"
-	testNamespace = options.SquashClientNamespace
+	testNamespace = "squash-debugger-test"
 )
 
 var _ = Describe("Single debug mode", func() {

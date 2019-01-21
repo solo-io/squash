@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/devutil"
 	"github.com/solo-io/squash/test/devutil/writer"
 )
 
 type Cfg struct {
-	init  bool
-	att   bool
-	clean bool
-	name  string
+	init      bool
+	att       bool
+	clean     bool
+	name      string
+	namespace string
 }
 
 func main() {
@@ -23,6 +23,7 @@ func main() {
 	flag.BoolVar(&cfg.att, "att", false, "attach a debugger")
 	flag.BoolVar(&cfg.clean, "clean", false, "remove debugger")
 	flag.StringVar(&cfg.name, "name", "mitch", "resource name")
+	flag.StringVar(&cfg.namespace, "namespace", "squash-debugger-test", "resource name")
 	flag.Parse()
 
 	if err := run(cfg); err != nil {
@@ -33,7 +34,7 @@ func main() {
 
 func run(cfg Cfg) error {
 	kWriter := writer.New(os.Stdout)
-	params, err := devutil.NewE2eParams(options.SquashClientNamespace, cfg.name, kWriter)
+	params, err := devutil.NewE2eParams(cfg.namespace, cfg.name, kWriter)
 	if err != nil {
 		return err
 		// return params.Cleanup()
