@@ -13,10 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
-	lite "github.com/solo-io/squash/pkg/lite/kube"
+	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
-	"github.com/solo-io/squash/pkg/utils/kubeutils"
 )
 
 type DebugController struct {
@@ -260,16 +259,29 @@ func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 
 // uses the kubesquash debug approach
 func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
-	liteConfig := lite.SquashConfig{
-		InClusterMode:  true,
-		TimeoutSeconds: 3,
-		Debugger:       "dlv", // TODO(mitchdraft) - pass as arg
+	ksConfig := kscmd.SquashConfig{
+		TimeoutSeconds: 300,
+		Machine:        true,
+		DebugServer:    true,
+
+		DebugContainerVersion: "v0.1.9",
+		DebugContainerRepo:    "soloio",
+
+		CRISock: "/var/run/dockershim.sock",
+
+		Debugger:  "dlv", // TODO(mitchdraft) - pass as arg
+		Namespace: da.Metadata.Namespace,
+		Pod:       da.Pod,
+		Container: da.Image,
 	}
-	clientset, err := kubeutils.NewKubeClientset(d.inClusterMode)
+	log.Debug("inside tryToAttachPod")
+	err := kscmd.StartDebugContainer(ksConfig)
+	// TODO(mitchdraft) - refactor once old squash functionality is removed
 	if err != nil {
 		return err
 	}
-	return lite.StartDebugContainer(liteConfig, clientset)
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
+	return nil
 }
 
 func (d *DebugController) startDebug(da *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {

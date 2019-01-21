@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	soloutils "github.com/solo-io/go-utils/v1/common"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
@@ -76,7 +75,7 @@ func ensureDebugContainerOpts(dcOpts *DebugContainer, args []string) error {
 	if err != nil {
 		return err
 	}
-	dcOpts.Name = soloutils.RandKubeNameBytes(6)
+	dcOpts.Name = RandKubeNameBytes(6)
 	return nil
 }
 
