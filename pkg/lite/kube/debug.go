@@ -42,14 +42,14 @@ type SquashConfig struct {
 	Debugger      string
 }
 
-func StartDebugContainer(config SquashConfig, clientset *kubernetes.Interface) error {
+func StartDebugContainer(config SquashConfig, clientset kubernetes.Interface) error {
 	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
 		config: config,
 	}
 	if clientset != nil {
-		dp.clientset = *clientset
+		dp.clientset = clientset
 	}
 
 	si, err := dp.getClientSet().Discovery().ServerVersion()

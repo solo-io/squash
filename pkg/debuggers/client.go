@@ -36,7 +36,7 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 		return err
 	}
 
-	kubeResClient, err = kubeutils.NewKubeClientset(inClusterMode)
+	kubeResClient, err := kubeutils.NewKubeClientset(inClusterMode)
 	if err != nil {
 		return err
 	}
