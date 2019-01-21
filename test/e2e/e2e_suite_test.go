@@ -2,12 +2,15 @@ package e2e_test
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/solo-io/solo-kit/test/helpers"
 
 	"testing"
 )
 
 func TestE2e(t *testing.T) {
-	RegisterFailHandler(Fail)
+
+	helpers.RegisterCommonFailHandlers()
+	helpers.SetupLog()
+
 	RunSpecs(t, "E2e Suite")
 }

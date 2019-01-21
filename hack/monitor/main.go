@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
@@ -13,7 +14,6 @@ import (
 
 // this program exists to support the Squash development cycle
 func main() {
-	// namespace := options.SquashClientNamespace
 	mon, err := NewMonitor()
 	if err != nil {
 		fmt.Println(err)
@@ -56,6 +56,7 @@ func (m *Monitor) Run() error {
 	// run event loop
 	// watch all namespaces
 	namespaces := kubeutils.MustGetNamespaces(nil)
+	fmt.Printf("watching namespaces: %v\n", strings.Join(namespaces, ", "))
 	wOpts := clients.WatchOpts{}
 	errs, err := el.Run(namespaces, wOpts)
 	if err != nil {

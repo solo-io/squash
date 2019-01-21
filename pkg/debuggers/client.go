@@ -134,7 +134,7 @@ func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 	case v1.DebugAttachment_RequestingDelete:
 		log.Debug("handling requesting delete")
 		log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
-		d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name)
+		go func() { d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name) }()
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")
