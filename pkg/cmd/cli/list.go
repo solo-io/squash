@@ -7,10 +7,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/models"
-	"github.com/solo-io/squash/pkg/options"
 
 	"github.com/spf13/cobra"
 )
@@ -55,11 +53,10 @@ func (o *Options) listattachments(name string) error {
 
 	if name == "" {
 
-		das, err := (*o.daClient).List(options.SquashClientNamespace, clients.ListOpts{Ctx: o.ctx})
+		das, err := o.getAllDebugAttachments()
 		if err != nil {
 			return err
 		}
-
 		if o.Json {
 			printDebugAttachments(das)
 		} else {
@@ -70,7 +67,7 @@ func (o *Options) listattachments(name string) error {
 
 	} else {
 
-		da, err := (*o.daClient).Read(options.SquashClientNamespace, name, clients.ReadOpts{Ctx: o.ctx})
+		da, err := o.getNamedDebugAttachment(name)
 		if err != nil {
 			return err
 		}
