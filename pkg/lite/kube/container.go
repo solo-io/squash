@@ -37,7 +37,10 @@ func Debug() error {
 		return errors.New("unknown debugger")
 	}
 
-	containerProcess := squashkube.NewContainerProcess()
+	containerProcess, err := squashkube.NewContainerProcess()
+	if err != nil {
+		return err
+	}
 	info, err := containerProcess.GetContainerInfoKube(nil, &cfg.Attachment)
 	if err != nil {
 		return err

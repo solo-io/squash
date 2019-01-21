@@ -28,7 +28,7 @@ func main() {
 	flag.IntVar(&cfg.TimeoutSeconds, "timeout", 60, "timeout in seconds to wait for debug pod to be ready")
 	flag.Parse()
 
-	err := kube.StartDebugContainer(cfg)
+	err := kube.StartDebugContainer(cfg, nil)
 	if err != nil {
 		fmt.Println(err)
 	}

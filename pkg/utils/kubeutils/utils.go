@@ -60,6 +60,13 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	return namespaces, nil
 }
 
+func NewKubeClientset(inCluster bool) (*kubernetes.Clientset, error) {
+	if inCluster {
+		return NewInClusterKubeClientset()
+	}
+	return NewOutOfClusterKubeClientset()
+}
+
 func NewInClusterKubeClientset() (*kubernetes.Clientset, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
