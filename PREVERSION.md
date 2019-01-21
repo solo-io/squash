@@ -12,11 +12,9 @@
 # Zoom
 ## namespace update
 - [x] store squash in SquashCentralNamespace
-- [ ] allow SquashCentralNamespace to be configured as a flag
-- [ ] allow in/out-of cluster to be configured as a flag
-- [ ] allow installation of squash agent from cli
+- [x] allow SquashCentralNamespace to be configured as a flag
 - [x] watch all namespaces for DebugAttachments
-- [ ] store DebugAttachment CRDs in the same namespace as the pods they are targeting
+- [x] store DebugAttachment CRDs in the same namespace as the pods they are targeting
 - [x] deploy sample apps from a cli tool
   - [x] go & go, same namespace
   - [x] go & go, diff namespace
@@ -25,6 +23,11 @@
 ## helpers
 - [x] move watch util to hack/monitor
 - [x] use an event loop in hack/monitor
+## remove daemonset
+- [ ] use pod instead of daemonset
+## backlog
+- [ ] allow in/out-of cluster to be configured as a flag
+- [ ] allow installation of squash agent from cli
 
 ## Release tasks
 - update the docs
