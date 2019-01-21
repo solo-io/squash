@@ -13,13 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
+	lite "github.com/solo-io/squash/pkg/lite/kube"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/pkg/utils/kubeutils"
 )
-
-// TODO(mitchdraft) - configure from flag
-// in-cluster mode is the only option at this point
-const inClusterMode = true
 
 type DebugController struct {
 	debugger  func(string) Debugger
@@ -32,6 +30,9 @@ type DebugController struct {
 
 	debugattachmentsLock sync.Mutex
 	debugattachments     map[string]debugAttachmentData
+
+	liteMode      bool
+	inClusterMode bool
 }
 
 type debugAttachmentData struct {
@@ -42,7 +43,9 @@ type debugAttachmentData struct {
 func NewDebugController(ctx context.Context,
 	debugger func(string) Debugger,
 	daClient *v1.DebugAttachmentClient,
-	conttopid platforms.ContainerProcess) *DebugController {
+	conttopid platforms.ContainerProcess,
+	liteMode bool,
+	inClusterMode bool) *DebugController {
 	return &DebugController{
 		debugger:  debugger,
 		conttopid: conttopid,
@@ -52,6 +55,9 @@ func NewDebugController(ctx context.Context,
 		pidMap: make(map[int]bool),
 
 		debugattachments: make(map[string]debugAttachmentData),
+
+		liteMode:      liteMode,
+		inClusterMode: inClusterMode,
 	}
 }
 
@@ -103,12 +109,17 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
 	}
-	err = retry(func() error { return d.tryToAttach(da) })
-
+	if d.liteMode {
+		// TODO - put in a goroutine
+		err = d.tryToAttachPod(da)
+	} else {
+		err = retry(func() error { return d.tryToAttach(da) })
+	}
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to attach debugger, deleting request.")
 		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 	}
+
 }
 
 func (d *DebugController) markForDeletion(namespace, name string) {
@@ -245,6 +256,19 @@ func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
 	}
 	return nil
+}
+
+// uses the kubesquash debug approach
+func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
+	liteConfig := lite.SquashConfig{
+		InClusterMode:  true,
+		TimeoutSeconds: 3,
+	}
+	clientset, err := kubeutils.NewKubeClientset(d.inClusterMode)
+	if err != nil {
+		return err
+	}
+	return lite.StartDebugContainer(liteConfig, clientset)
 }
 
 func (d *DebugController) startDebug(da *v1.DebugAttachment, p *os.Process, targetName string) (DebugServer, error) {

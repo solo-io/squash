@@ -37,13 +37,19 @@ type SquashConfig struct {
 	NoClean        bool
 	ChoosePod      bool
 	TimeoutSeconds int
+	// InClusterMode disables interactive prompts
+	InClusterMode bool
+	Debugger      string
 }
 
-func StartDebugContainer(config SquashConfig) error {
+func StartDebugContainer(config SquashConfig, clientset *kubernetes.Interface) error {
 	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
 		config: config,
+	}
+	if clientset != nil {
+		dp.clientset = *clientset
 	}
 
 	si, err := dp.getClientSet().Discovery().ServerVersion()
@@ -58,9 +64,12 @@ func StartDebugContainer(config SquashConfig) error {
 		return fmt.Errorf("squash lite requires kube 1.10 or higher. your version is %s.%s;", si.Major, si.Minor)
 	}
 
-	debugger, err := dp.chooseDebugger()
-	if err != nil {
-		return err
+	debugger := config.Debugger
+	if !config.InClusterMode {
+		debugger, err = dp.chooseDebugger()
+		if err != nil {
+			return err
+		}
 	}
 
 	image, podname, _ := SkaffoldConfigToPod(skaffoldFile)
@@ -70,14 +79,16 @@ func StartDebugContainer(config SquashConfig) error {
 		return err
 	}
 
-	confirmed := false
-	prompt := &survey.Confirm{
-		Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
-		Default: true,
-	}
-	survey.AskOne(prompt, &confirmed, nil)
-	if !confirmed {
-		return errors.New("user aborted")
+	if !config.InClusterMode {
+		confirmed := false
+		prompt := &survey.Confirm{
+			Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
+			Default: true,
+		}
+		survey.AskOne(prompt, &confirmed, nil)
+		if !confirmed {
+			return errors.New("user aborted")
+		}
 	}
 
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)

@@ -13,11 +13,14 @@ import (
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
-	"k8s.io/client-go/kubernetes"
 )
 
 func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
 	log.SetLevel(log.DebugLevel)
+
+	// TODO(mitchdraft) make configurable
+	liteMode := true
+	inClusterMode := true
 
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
@@ -33,24 +36,16 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 		return err
 	}
 
-	var kubeResClient *kubernetes.Clientset
-	if inClusterMode {
-		kubeResClient, err = kubeutils.NewInClusterKubeClientset()
-		if err != nil {
-			return err
-		}
-	} else {
-		kubeResClient, err = kubeutils.NewOutOfClusterKubeClientset()
-		if err != nil {
-			return err
-		}
+	kubeResClient, err = kubeutils.NewKubeClientset(inClusterMode)
+	if err != nil {
+		return err
 	}
 	watchNamespaces, err := kubeutils.GetNamespaces(kubeResClient)
 	if err != nil {
 		return err
 	}
 
-	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid).handleAttachments()
+	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid, liteMode, inClusterMode).handleAttachments()
 }
 
 type DebugHandler struct {
@@ -68,7 +63,7 @@ type DebugHandler struct {
 }
 
 func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
-	conttopid platforms.ContainerProcess) *DebugHandler {
+	conttopid platforms.ContainerProcess, liteMode bool, inClusterMode bool) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
@@ -77,7 +72,7 @@ func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1
 		watchNamespaces: watchNamespaces,
 	}
 
-	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid)
+	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid, liteMode, inClusterMode)
 	return dbghandler
 }
 
