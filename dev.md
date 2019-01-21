@@ -25,3 +25,8 @@ cd test/e2e
 export WAIT_ON_FAIL=1 # if you want better failure debugging
 ginkgo -r
 ```
+
+## tmp - build kubesquash
+```
+make -f Makefile_kubesquash
+```
