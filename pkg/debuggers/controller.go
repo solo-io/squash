@@ -14,6 +14,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/kscmd"
+	"github.com/solo-io/squash/pkg/kube"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -121,6 +122,24 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 
 }
 
+func (d *DebugController) setState(namespace, name string, state v1.DebugAttachment_State) {
+	log.WithFields(log.Fields{"namespace": namespace, "name": name, "state": state}).Debug("marking state")
+	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	if err != nil {
+		// should not happen, but if it does, the CRD was probably already deleted
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment.")
+	}
+
+	da.State = state
+
+	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+		Ctx:               d.ctx,
+		OverwriteExisting: true,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to set attachment state.")
+	}
+}
 func (d *DebugController) markForDeletion(namespace, name string) {
 	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
@@ -155,6 +174,8 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 	}
 
 	da.State = v1.DebugAttachment_Attached
+	// TODO(mitchdraft) - rework this
+	da.DebugServerAddress = kube.GetDebugServerAddress()
 
 	_, err = (*d.daClient).Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
@@ -262,6 +283,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	ksConfig := kscmd.SquashConfig{
 		TimeoutSeconds: 300,
 		Machine:        true,
+		InCluster:      true,
 		DebugServer:    true,
 
 		DebugContainerVersion: "v0.1.9",
