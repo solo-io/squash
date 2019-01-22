@@ -46,12 +46,14 @@ type SquashConfig struct {
 	DebugContainerVersion string
 	DebugContainerRepo    string
 	DebugServer           bool
+	InCluster             bool
 
-	Debugger  string
-	Namespace string
-	Pod       string
-	Container string
-	Machine   bool
+	Debugger           string
+	Namespace          string
+	Pod                string
+	Container          string
+	Machine            bool
+	DebugServerAddress string
 
 	CRISock string
 }
@@ -135,20 +137,22 @@ func StartDebugContainer(config SquashConfig) error {
 		fmt.Printf("pod.name: %v", createdPod.Name)
 	} else {
 
-		// Starting port forward in background.
-		cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, DebuggerPort, "-n", namespace)
-		cmd1.Stdout = os.Stdout
-		cmd1.Stderr = os.Stderr
-		cmd1.Stdin = os.Stdin
-		err = cmd1.Start()
-		if err != nil {
-			dp.showLogs(err, createdPod)
-			return err
-		}
+		if !dp.config.InCluster {
+			// Starting port forward in background.
+			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, DebuggerPort, "-n", namespace)
+			cmd1.Stdout = os.Stdout
+			cmd1.Stderr = os.Stderr
+			cmd1.Stdin = os.Stdin
+			err = cmd1.Start()
+			if err != nil {
+				dp.showLogs(err, createdPod)
+				return err
+			}
 
-		// Delaying to allow port forwarding to complete.
-		duration := time.Duration(5) * time.Second
-		time.Sleep(duration)
+			// Delaying to allow port forwarding to complete.
+			duration := time.Duration(5) * time.Second
+			time.Sleep(duration)
+		}
 
 		cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+DebuggerPort)
 		cmd2.Stdout = os.Stdout
@@ -156,6 +160,7 @@ func StartDebugContainer(config SquashConfig) error {
 		cmd2.Stdin = os.Stdin
 		err = cmd2.Run()
 		if err != nil {
+			log.Warn("failed, printing logs")
 			dp.showLogs(err, createdPod)
 			return err
 		}
@@ -178,6 +183,7 @@ func (dp *DebugPrepare) showLogs(err error, createdPod *v1.Pod) {
 	}
 
 	fmt.Printf("Pod errored with: %v\n Logs:\n %s", err, string(buf))
+	log.Warn(fmt.Sprintf("Pod errored with: %v\n Logs:\n %s", err, string(buf)))
 }
 
 func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan error {
