@@ -65,6 +65,9 @@ func (p *E2eParams) SetupE2e() {
 		fmt.Fprintln(GinkgoWriter, "error creating ns", err)
 		panic(err)
 	}
+	// give the namespace time to be created
+	time.Sleep(time.Second)
+
 	fmt.Fprintf(GinkgoWriter, "creating environment %v \n", p.kubectl)
 
 	if err := p.kubectl.CreateSleep("../../contrib/kubernetes/squash-client.yml"); err != nil {

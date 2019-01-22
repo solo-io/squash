@@ -10,9 +10,10 @@ import (
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"k8s.io/client-go/kubernetes"
 )
 
 func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
@@ -32,10 +33,24 @@ func RunSquashClient(debugger func(string) Debugger, conttopid platforms.Contain
 		return err
 	}
 
-	// TODO(mitchdraft) - the debug handler will need to be spawned/removed when a new debugging session is opened/closed
-	// The debug initialization request will include the watchNamespace. For now, use a known placeholder
-	watchNamespace := options.SquashClientNamespace
-	return NewDebugHandler(ctx, watchNamespace, daClient, debugger, conttopid).handleAttachments()
+	var kubeResClient *kubernetes.Clientset
+	if inClusterMode {
+		kubeResClient, err = kubeutils.NewInClusterKubeClientset()
+		if err != nil {
+			return err
+		}
+	} else {
+		kubeResClient, err = kubeutils.NewOutOfClusterKubeClientset()
+		if err != nil {
+			return err
+		}
+	}
+	watchNamespaces, err := kubeutils.GetNamespaces(kubeResClient)
+	if err != nil {
+		return err
+	}
+
+	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid).handleAttachments()
 }
 
 type DebugHandler struct {
@@ -46,20 +61,20 @@ type DebugHandler struct {
 	debugController *DebugController
 	daClient        *v1.DebugAttachmentClient
 
-	watchNamespace string
+	watchNamespaces []string
 
 	etag        *string
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, watchNamespace string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
+func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
 	conttopid platforms.ContainerProcess) *DebugHandler {
 	dbghandler := &DebugHandler{
-		ctx:            ctx,
-		daClient:       daClient,
-		debugger:       debugger,
-		conttopid:      conttopid,
-		watchNamespace: watchNamespace,
+		ctx:             ctx,
+		daClient:        daClient,
+		debugger:        debugger,
+		conttopid:       conttopid,
+		watchNamespaces: watchNamespaces,
 	}
 
 	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid)
@@ -76,9 +91,9 @@ func (d *DebugHandler) handleAttachments() error {
 	syncer := d // DebugHandler implements Sync
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
-	namespaces := []string{d.watchNamespace}
 	wOpts := clients.WatchOpts{}
-	errs, err := el.Run(namespaces, wOpts)
+	log.WithField("list", d.watchNamespaces).Info("Watching namespaces")
+	errs, err := el.Run(d.watchNamespaces, wOpts)
 	if err != nil {
 		return err
 	}
@@ -119,7 +134,7 @@ func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 	case v1.DebugAttachment_RequestingDelete:
 		log.Debug("handling requesting delete")
 		log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
-		d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name)
+		go func() { d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name) }()
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")

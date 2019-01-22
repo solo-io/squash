@@ -10,7 +10,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/models"
-	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +29,11 @@ func WaitCmd(namespace string, name string, timeout float64) (v1.DebugAttachment
 	if err != nil {
 		// TODO(mitchdraft) implement a periodic check instead of waiting the full timeout duration
 		time.Sleep(time.Duration(int32(timeout)) * time.Second)
-		da, err = (*daClient).Read(options.SquashClientNamespace, name, reOptions)
+		o := Options{
+			daClient: daClient,
+			ctx:      ctx,
+		}
+		da, err = o.getNamedDebugAttachment(name)
 		if err != nil {
 			return v1.DebugAttachment{}, err
 		}
@@ -52,17 +55,14 @@ func WaitAttCmd(o *Options) *cobra.Command {
 
 			id := args[0]
 
-			reOptions := clients.ReadOpts{
-				Ctx: o.ctx,
-			}
 			timedOut := false
-			da, err := (*o.daClient).Read(options.SquashClientNamespace, id, reOptions)
+			da, err := o.getNamedDebugAttachment(id)
 			if err != nil || da.State != v1.DebugAttachment_Attached {
 				// TODO(mitchdraft) implement a periodic check instead of waiting the full timeout duration
 				const overrideTimeoutTODO = 3 // TODO(mitchdraft) - unhardcode
 				// time.Sleep(time.Duration(int32(o.Wait.Timeout)) * time.Second)
 				time.Sleep(overrideTimeoutTODO * time.Second)
-				da, err = (*o.daClient).Read(options.SquashClientNamespace, id, reOptions)
+				da, err = o.getNamedDebugAttachment(id)
 				if err != nil {
 					o.exitOnError(timedOut, err)
 				}

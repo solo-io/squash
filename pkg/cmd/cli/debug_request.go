@@ -21,7 +21,11 @@ func DebugRequestCmd(o *Options) *cobra.Command {
 			if err := ensureDebugRequestOpts(drOpts, args); err != nil {
 				return err
 			}
-			da := debugAttachmentFromOpts(*drOpts)
+			da, err := debugAttachmentFromOpts(*drOpts)
+			if err != nil {
+				return err
+			}
+
 			dbgattchment, err := o.debugContainer(da)
 			if err != nil {
 				return err

@@ -17,6 +17,10 @@ import (
 	"github.com/solo-io/squash/pkg/utils"
 )
 
+// TODO(mitchdraft) - configure from flag
+// in-cluster mode is the only option at this point
+const inClusterMode = true
+
 type DebugController struct {
 	debugger  func(string) Debugger
 	conttopid platforms.ContainerProcess

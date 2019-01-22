@@ -92,7 +92,7 @@ func GetListeningPortsFor(pid int) ([]int, error) {
 		}
 
 	}
-	log.WithFields(log.Fields{"pid": pid, "inoddedPorts": inoddedPorts}).Debug("GetSocketInodesFor: got listeningsokcets")
+	log.WithFields(log.Fields{"pid": pid, "inoddedPorts": inoddedPorts}).Debug("GetSocketInodesFor: got listening sockets")
 
 	sockets, err := GetSocketInodesFor(pid)
 	if err != nil {
