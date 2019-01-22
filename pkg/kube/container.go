@@ -38,7 +38,7 @@ func init() {
 	}}
 }
 
-func Debug() error {
+func Debug(ctx context.Context) error {
 	cfg := GetConfig()
 
 	var err error
@@ -52,12 +52,12 @@ func Debug() error {
 		}
 	}
 
-	info, err := containerProcess.GetContainerInfo(context.TODO(), &cfg.Attachment)
+	info, err := containerProcess.GetContainerInfo(ctx, &cfg.Attachment)
 	if err != nil {
 		return err
 	}
 
 	pid := info.Pids[0]
 
-	return startServer(cfg, pid)
+	return startServer(ctx, cfg, pid)
 }
