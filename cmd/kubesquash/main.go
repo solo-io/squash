@@ -31,7 +31,7 @@ func main() {
 	flag.StringVar(&cfg.DebugContainerVersion, "container-version", cmd.ImageVersion, "debug container version to use")
 	flag.StringVar(&cfg.DebugContainerRepo, "container-repo", cmd.ImageRepo, "debug container repo to use")
 
-	flag.BoolVar(&cfg.Machine, "machine", false, "machine moode input and output")
+	flag.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")
 	flag.StringVar(&cfg.Debugger, "debugger", "", "Debugger to use")
 	flag.StringVar(&cfg.Namespace, "namespace", "", "Namespace to debug")
 	flag.StringVar(&cfg.Pod, "pod", "", "Pod to debug")

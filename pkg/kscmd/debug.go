@@ -134,8 +134,6 @@ func StartDebugContainer(config SquashConfig) error {
 		// that would require us to track the lifetime of the session
 
 		// print the pod name and exit
-		fmt.Printf("pod.name: %v", createdPod.Name)
-	} else {
 
 		if !dp.config.InCluster {
 			// Starting port forward in background.
@@ -506,7 +504,6 @@ func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
 	log.Debug("mitch3")
-	trueVar := true
 	const crisockvolume = "crisock"
 	isDebugServer := ""
 	if dp.config.DebugServer {
@@ -539,7 +536,11 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 					MountPath: squashkube.CriRuntime,
 				}},
 				SecurityContext: &v1.SecurityContext{
-					Privileged: &trueVar,
+					Capabilities: &v1.Capabilities{
+						Add: []v1.Capability{
+							"SYS_PTRACE",
+						},
+					},
 				},
 				Env: []v1.EnvVar{{
 					Name:  "SQUASH_NAMESPACE",
