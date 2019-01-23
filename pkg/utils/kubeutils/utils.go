@@ -44,7 +44,7 @@ func GetPodNamespace(clientset *kubernetes.Clientset, podName string) (string, e
 		}
 		for _, pod := range pods.Items {
 			if pod.ObjectMeta.Name == podName {
-				return pod.ObjectMeta.Name, nil
+				return pod.ObjectMeta.Namespace, nil
 			}
 		}
 	}
