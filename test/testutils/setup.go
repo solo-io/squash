@@ -97,7 +97,7 @@ func (p *E2eParams) SetupE2e() {
 		case strings.HasPrefix(pod.ObjectMeta.Name, "example-service2"):
 			p.Microservice2Pods[pod.Spec.NodeName] = &newpod
 		case strings.HasPrefix(pod.ObjectMeta.Name, "squash-agent"):
-			pathToClientBinary := "../../target/squash-agent/squash-agent"
+			pathToClientBinary := "../../target/agent/squash-agent"
 			if _, err := os.Stat(pathToClientBinary); os.IsNotExist(err) {
 				Fail("You must generate the squash-agent binary before running this e2e test.")
 			}
@@ -148,7 +148,8 @@ func (p *E2eParams) SetupE2e() {
 
 func (p *E2eParams) CleanupE2e() {
 	defer p.kubectl.StopProxy()
-	defer p.kubectl.DeleteNS()
+	// Deleting namespaces can be slow, do it in the background
+	defer func() { go p.kubectl.DeleteNS() }()
 
 	if err := p.kubectl.RemoveClusterAdminPermissions(p.crbAdminName); err != nil {
 		// Fail(fmt.Sprintf("Failed to delete permissions: %v", err))

@@ -100,7 +100,7 @@ docs-and-code/v1:
 
 .PHONY: tmpagent
 tmpagent:
-	GOOS=linux go build -o target/squash-agent/squash-agent cmd/squash-agent/platforms/kubernetes/main.go
+	GOOS=linux go build -o target/agent/squash-agent cmd/agent/main.go
 
 .PHONY: runtest
 runtest: tmpagent
@@ -109,5 +109,5 @@ runtest: tmpagent
 DEVVERSION="dev"
 .PHONY: devpush
 devpush:
-	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/squash-agent/platforms/kubernetes/Dockerfile ./target/squash-agent/
+	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/agent/Dockerfile ./target/agent/
 	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)
