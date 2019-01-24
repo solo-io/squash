@@ -32,6 +32,10 @@ var (
 
 var _ = Describe("Single debug mode", func() {
 
+	seed := time.Now().UnixNano()
+	fmt.Printf("rand seed: %v\n", seed)
+	rand.Seed(seed)
+
 	var (
 		params testutils.E2eParams
 	)
