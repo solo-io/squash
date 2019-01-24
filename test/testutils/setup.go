@@ -149,10 +149,14 @@ func (p *E2eParams) SetupE2e() {
 func (p *E2eParams) CleanupE2e() {
 	defer p.kubectl.StopProxy()
 	// Deleting namespaces can be slow, do it in the background
-	defer func() { go p.kubectl.DeleteNS() }()
+	defer func() {
+		go p.kubectl.DeleteNS()
+		// give kubectl syscall time to execute
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	if err := p.kubectl.RemoveClusterAdminPermissions(p.crbAdminName); err != nil {
-		// Fail(fmt.Sprintf("Failed to delete permissions: %v", err))
+		// No need to fail on these errors
 		fmt.Sprintf("Failed to delete permissions: %v", err)
 	}
 

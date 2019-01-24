@@ -26,6 +26,12 @@ export WAIT_ON_FAIL=1 # if you want better failure debugging
 ginkgo -r
 ```
 
+### run e2e on specific namespaces
+```
+go run hack/monitor/main.go -namespaces stest-1,stest-2,stest-3,stest-4,stest-5,stest-6
+SERIALIZE_NAMESPACES=1 ginkgo -r
+```
+
 ## tmp - build kubesquash
 ```
 make -f Makefile_kubesquash
