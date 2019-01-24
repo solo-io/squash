@@ -58,7 +58,7 @@ type SquashConfig struct {
 	CRISock string
 }
 
-func StartDebugContainer(config SquashConfig) error {
+func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
@@ -67,7 +67,7 @@ func StartDebugContainer(config SquashConfig) error {
 
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 	ns, podname, image := config.Namespace, config.Pod, config.Container
 	if podname == "" && image == "" {
@@ -78,7 +78,7 @@ func StartDebugContainer(config SquashConfig) error {
 
 	dbg, err := dp.GetMissing(ns, podname, image)
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 
 	if !config.Machine {
@@ -89,7 +89,7 @@ func StartDebugContainer(config SquashConfig) error {
 		}
 		survey.AskOne(prompt, &confirmed, nil)
 		if !confirmed {
-			return errors.New("user aborted")
+			return &v1.Pod{}, errors.New("user aborted")
 		}
 	}
 
@@ -97,7 +97,7 @@ func StartDebugContainer(config SquashConfig) error {
 
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 	log.Debug("mitch2")
 	// create namespace. ignore errors as it most likely exists and will error
@@ -107,7 +107,7 @@ func StartDebugContainer(config SquashConfig) error {
 	createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Create(dbgpod)
 	log.WithFields(log.Fields{"CreatedPod": createdPod, "error": err}).Debug("on the other side")
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 	log.Debug("mitch5")
 
@@ -125,7 +125,7 @@ func StartDebugContainer(config SquashConfig) error {
 	cancel()
 	if err != nil {
 		dp.showLogs(err, createdPod)
-		return err
+		return &v1.Pod{}, err
 	}
 	log.Debug("mitch7")
 
@@ -144,28 +144,29 @@ func StartDebugContainer(config SquashConfig) error {
 			err = cmd1.Start()
 			if err != nil {
 				dp.showLogs(err, createdPod)
-				return err
+				return &v1.Pod{}, err
 			}
 
 			// Delaying to allow port forwarding to complete.
 			duration := time.Duration(5) * time.Second
 			time.Sleep(duration)
-		}
 
-		cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+DebuggerPort)
-		cmd2.Stdout = os.Stdout
-		cmd2.Stderr = os.Stderr
-		cmd2.Stdin = os.Stdin
-		err = cmd2.Run()
-		if err != nil {
-			log.Warn("failed, printing logs")
-			dp.showLogs(err, createdPod)
-			return err
+			cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+DebuggerPort)
+			cmd2.Stdout = os.Stdout
+			cmd2.Stderr = os.Stderr
+			cmd2.Stdin = os.Stdin
+			err = cmd2.Run()
+			if err != nil {
+				log.Warn("failed, printing logs")
+				log.Warn(err)
+				dp.showLogs(err, createdPod)
+				return &v1.Pod{}, err
+			}
 		}
 
 	}
 	log.Debug("mitch8")
-	return nil
+	return createdPod, nil
 }
 func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
 	var options metav1.DeleteOptions

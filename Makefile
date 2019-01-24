@@ -98,10 +98,16 @@ generate-sk: docs-and-code/v1
 docs-and-code/v1:
 	go run cmd/generate-code/main.go
 
-.PHONY: tmpclient
-tmpclient:
-	GOOS=linux go build -o target/squash-client/squash-client cmd/squash-client/platforms/kubernetes/main.go
+.PHONY: tmpagent
+tmpagent:
+	GOOS=linux go build -o target/squash-agent/squash-agent cmd/squash-agent/platforms/kubernetes/main.go
 
 .PHONY: runtest
-runtest: tmpclient
+runtest: tmpagent
 	cd test/e2e/ && ginkgo -v .
+
+DEVVERSION="dev"
+.PHONY: devpush
+devpush:
+	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/squash-agent/platforms/kubernetes/Dockerfile ./target/squash-agent/
+	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)

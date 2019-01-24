@@ -19,7 +19,7 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Info("bridge started")
+	log.Info("bridge started + TMP 1")
 
 	var err error
 	var cp platforms.ContainerProcess

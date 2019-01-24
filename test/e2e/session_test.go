@@ -1,7 +1,6 @@
 package e2e_test
 
 import (
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -20,9 +19,10 @@ func Must(err error) {
 }
 
 var (
-	daName        = "debug-attachment-1"
-	daName2       = "debug-attachment-2"
-	testNamespace = "squash-debugger-test"
+	daName  = "debug-attachment-1"
+	daName2 = "debug-attachment-2"
+	// testNamespace = "squash-debugger-test2"
+	testNamespace = "sdt5"
 )
 
 var _ = Describe("Single debug mode", func() {
@@ -41,13 +41,10 @@ var _ = Describe("Single debug mode", func() {
 	AfterEach(params.CleanupE2e)
 
 	Describe("Single Container mode", func() {
-		FIt("should get a debug server endpoint", func() {
+		It("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
-			fmt.Println("container")
-			fmt.Println(container)
-			fmt.Println(container.Name)
-			fmt.Println(container.Image)
 
+			time.Sleep(3 * time.Second)
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
