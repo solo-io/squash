@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +23,9 @@ var (
 	daName  = "debug-attachment-1"
 	daName2 = "debug-attachment-2"
 	// testNamespace = "squash-debugger-test2"
-	testNamespace = "sdt5"
+	testNamespace = "stest"
+	testNSRoot    = "stest"
+	testsStarted  = 0
 )
 
 var _ = Describe("Single debug mode", func() {
@@ -33,6 +36,11 @@ var _ = Describe("Single debug mode", func() {
 
 	// Deploy the services that you will debug
 	BeforeEach(func() {
+		testsStarted++
+		// Use unique namespaces so we can start tests before namespace is deleted
+		// Use predictable namespaces so that we can establish watches
+		// (solo-kit does not have a "watch all namespaces" feature yet)
+		testNamespace = fmt.Sprintf("%v-%v", testNSRoot, testsStarted)
 		params = testutils.NewE2eParams(testNamespace, daName, GinkgoWriter)
 		params.SetupE2e()
 	})
