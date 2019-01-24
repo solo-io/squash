@@ -2,6 +2,8 @@ package e2e_test
 
 import (
 	"fmt"
+	"math/rand"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -40,7 +42,11 @@ var _ = Describe("Single debug mode", func() {
 		// Use unique namespaces so we can start tests before namespace is deleted
 		// Use predictable namespaces so that we can establish watches
 		// (solo-kit does not have a "watch all namespaces" feature yet)
-		testNamespace = fmt.Sprintf("%v-%v", testNSRoot, testsStarted)
+		if os.Getenv("SERIALIZE_NAMESPACES") != "1" {
+			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, rand.Int31n(100000))
+		} else {
+			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, testsStarted)
+		}
 		params = testutils.NewE2eParams(testNamespace, daName, GinkgoWriter)
 		params.SetupE2e()
 	})
