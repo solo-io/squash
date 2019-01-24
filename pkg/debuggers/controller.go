@@ -14,7 +14,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/kscmd"
-	"github.com/solo-io/squash/pkg/kube"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 )
@@ -80,7 +79,8 @@ func (d *DebugController) addActiveAttachment(da *v1.DebugAttachment, pid int, d
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
 	d.debugattachments[da.Metadata.Name] = debugAttachmentData{debugger, pid}
-	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
+	debUrlTODO := "---"
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrlTODO)
 	return nil
 }
 
@@ -166,7 +166,7 @@ func (d *DebugController) deleteResource(namespace, name string) {
 	}
 }
 
-func (d *DebugController) markAsAttached(namespace, name string) {
+func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
@@ -175,7 +175,8 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 
 	da.State = v1.DebugAttachment_Attached
 	// TODO(mitchdraft) - rework this
-	da.DebugServerAddress = kube.GetDebugServerAddress()
+	// da.DebugServerAddress = kube.GetDebugServerAddress()
+	da.DebugServerAddress = debUrl
 
 	_, err = (*d.daClient).Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
@@ -297,12 +298,13 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		Container: da.Image,
 	}
 	log.Debug("inside tryToAttachPod")
-	err := kscmd.StartDebugContainer(ksConfig)
+	debPod, err := kscmd.StartDebugContainer(ksConfig)
 	// TODO(mitchdraft) - refactor once old squash functionality is removed
 	if err != nil {
 		return err
 	}
-	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
+	debUrl := fmt.Sprintf("%v:%v", debPod.ObjectMeta.Name, 1235)
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrl)
 	return nil
 }
 

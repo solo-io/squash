@@ -81,7 +81,7 @@ func (m *Monitor) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
 }
 
 func (m *Monitor) syncOne(da *v1.DebugAttachment) error {
-	str := fmt.Sprintf("ns: %v, name: %v, state: %v", da.Metadata.Namespace, da.Metadata.Name, da.State)
+	str := fmt.Sprintf("ns: %v, name: %v, state: %v, server: %v", da.Metadata.Namespace, da.Metadata.Name, da.State, da.DebugServerAddress)
 	fmt.Println(str)
 	return nil
 }

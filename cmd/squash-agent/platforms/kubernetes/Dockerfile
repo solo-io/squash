@@ -18,5 +18,5 @@ RUN cd $GOPATH/src/github.com/derekparker/delve/cmd/dlv && go install
 
 FROM base
 
-COPY squash-client /
-ENTRYPOINT ["/squash-client"]
+COPY squash-agent /
+ENTRYPOINT ["/squash-agent"]
