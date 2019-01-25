@@ -80,6 +80,8 @@ func (p *E2eParams) SetupE2e() {
 		panic(err)
 	}
 
+	time.Sleep(4 * time.Second)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	err := p.kubectl.WaitPods(ctx)
 	cancel()
