@@ -16,6 +16,7 @@ import (
 	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/pkg/version"
 )
 
 type DebugController struct {
@@ -287,8 +288,8 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		InCluster:      true,
 		DebugServer:    true,
 
-		DebugContainerVersion: "v0.1.9",
-		DebugContainerRepo:    "soloio",
+		DebugContainerVersion: version.ImageVersion,
+		DebugContainerRepo:    version.ImageRepo,
 
 		CRISock: "/var/run/dockershim.sock",
 

@@ -6,6 +6,8 @@ import (
 	"os"
 
 	cmd "github.com/solo-io/squash/pkg/kscmd"
+	sqOpts "github.com/solo-io/squash/pkg/options"
+	"github.com/solo-io/squash/pkg/version"
 )
 
 const descriptionUsage = `Normally squash lite requires no arguments. just run it!
@@ -28,11 +30,14 @@ func main() {
 	flag.BoolVar(&cfg.NoDetectSkaffold, "no-detect-pod", false, "don't auto settigns based on skaffold configuration present in current folder")
 	flag.BoolVar(&cfg.DebugServer, "debug-server", false, "start a debug server instead of an interactive session")
 	flag.IntVar(&cfg.TimeoutSeconds, "timeout", 300, "timeout in seconds to wait for debug pod to be ready")
-	flag.StringVar(&cfg.DebugContainerVersion, "container-version", cmd.ImageVersion, "debug container version to use")
-	flag.StringVar(&cfg.DebugContainerRepo, "container-repo", cmd.ImageRepo, "debug container repo to use")
+	flag.StringVar(&cfg.DebugContainerVersion, "container-version", version.ImageVersion, "debug container version to use")
+	flag.StringVar(&cfg.DebugContainerRepo, "container-repo", version.ImageRepo, "debug container repo to use")
+
+	flag.BoolVar(&cfg.LiteMode, "lite", true, "run in lite mode (default)")
+	flag.IntVar(&cfg.LocalPort, "localport", 0, fmt.Sprintf("port to use to connect to debugger (defaults to %v)", sqOpts.DebuggerPort))
 
 	flag.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")
-	flag.StringVar(&cfg.Debugger, "debugger", "", "Debugger to use")
+	flag.StringVar(&cfg.Debugger, "debugger", "dlv", "Debugger to use")
 	flag.StringVar(&cfg.Namespace, "namespace", "", "Namespace to debug")
 	flag.StringVar(&cfg.Pod, "pod", "", "Pod to debug")
 	flag.StringVar(&cfg.Container, "container", "", "Container to debug")

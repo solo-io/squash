@@ -1,8 +1,11 @@
 DOCKER_REPO ?= soloio
 VERSION ?= $(shell git describe --tags)
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
+IMAGE_VERSION ?= "v0.1.9" # TODO(mitchdraft) - replace with actual workflow
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE)"
+-X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE) \
+-X github.com/solo-io/squash/pkg/version.ImageVersion=$(IMAGE_VERSION) \
+-X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
 .PHONY: all
 all: binaries deployment

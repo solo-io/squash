@@ -26,9 +26,6 @@ import (
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
-var ImageVersion string
-var ImageRepo string
-
 type SquashConfig struct {
 	ChooseDebugger        bool
 	NoClean               bool
@@ -39,6 +36,8 @@ type SquashConfig struct {
 	DebugContainerRepo    string
 	DebugServer           bool
 	InCluster             bool
+	LiteMode              bool
+	LocalPort             int
 
 	Debugger           string
 	Namespace          string
@@ -61,14 +60,14 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	if err != nil {
 		return &v1.Pod{}, err
 	}
-	ns, podname, image := config.Namespace, config.Pod, config.Container
+	podname, image := config.Pod, config.Container
 	if podname == "" && image == "" {
 		if !config.NoDetectSkaffold {
 			image, podname, _ = SkaffoldConfigToPod(sqOpts.DefaultSkaffoldFile)
 		}
 	}
 
-	dbg, err := dp.GetMissing(ns, podname, image)
+	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
 		return &v1.Pod{}, err
 	}
@@ -89,7 +88,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	if err != nil {
 		return &v1.Pod{}, err
 	}
-	debuggerPodNamespace := config.Namespace
+	debuggerPodNamespace := dp.config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
 	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: debuggerPodNamespace}})
 
@@ -114,7 +113,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return &v1.Pod{}, err
 	}
 
-	if dp.config.DebugServer {
+	if dp.config.LiteMode || dp.config.DebugServer {
 		// TODO: do we want to delete the pod on successful completion?
 		// that would require us to track the lifetime of the session
 
@@ -122,7 +121,13 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 		if !dp.config.InCluster {
 			// Starting port forward in background.
-			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, sqOpts.DebuggerPort, "-n", debuggerPodNamespace)
+			portSpec := sqOpts.DebuggerPort
+			localConnectPort := sqOpts.DebuggerPort
+			if dp.config.LocalPort != 0 {
+				portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
+				localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
+			}
+			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
 			cmd1.Stdout = os.Stdout
 			cmd1.Stderr = os.Stderr
 			cmd1.Stdin = os.Stdin
@@ -136,7 +141,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 			duration := time.Duration(5) * time.Second
 			time.Sleep(duration)
 
-			cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+sqOpts.DebuggerPort)
+			cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
 			cmd2.Stdout = os.Stdout
 			cmd2.Stderr = os.Stderr
 			cmd2.Stdin = os.Stdin
@@ -226,7 +231,6 @@ func (dp *DebugPrepare) printError(pod *v1.Pod) error {
 }
 
 type Debugee struct {
-	Namespace string
 	Pod       *v1.Pod
 	Container *v1.Container
 }
@@ -293,16 +297,15 @@ func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
 
 }
 
-func (dp *DebugPrepare) GetMissing(ns, podname, image string) (*Debugee, error) {
+func (dp *DebugPrepare) GetMissing(podname, image string) (*Debugee, error) {
 
 	//	clientset.CoreV1().Namespace().
-	// see if namespace exist, and if not prompot for one.
+	// see if namespace exist, and if not prompt for one.
 	var options metav1.GetOptions
 	var debuggee Debugee
-	debuggee.Namespace = ns
-	if debuggee.Namespace == "" {
+	if dp.config.Namespace == "" {
 		var err error
-		debuggee.Namespace, err = dp.chooseNamespace()
+		(&dp.config).Namespace, err = dp.chooseNamespace()
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing namespace")
 		}
@@ -310,13 +313,13 @@ func (dp *DebugPrepare) GetMissing(ns, podname, image string) (*Debugee, error) 
 
 	if podname == "" {
 		var err error
-		debuggee.Pod, err = dp.choosePod(debuggee.Namespace, image)
+		debuggee.Pod, err = dp.choosePod(dp.config.Namespace, image)
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing pod")
 		}
 	} else {
 		var err error
-		debuggee.Pod, err = dp.getClientSet().CoreV1().Pods(debuggee.Namespace).Get(podname, options)
+		debuggee.Pod, err = dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Get(podname, options)
 		if err != nil {
 			return nil, errors.Wrap(err, "fetching pod")
 		}
