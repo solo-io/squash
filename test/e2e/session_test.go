@@ -163,8 +163,7 @@ var _ = Describe("Single debug mode", func() {
 				Total(0)
 		})
 
-		// TODO(mitchdraft) - investigate why detatch hangs (currently working around it by running Detach in a goroutine)
-		PIt("Be able to re-attach once session exited", func() {
+		It("Be able to re-attach once session exited", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
