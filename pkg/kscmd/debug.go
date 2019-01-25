@@ -94,7 +94,6 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: debuggerPodNamespace}})
 
 	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
-	log.WithFields(log.Fields{"CreatedPod": createdPod, "error": err}).Debug("on the other side")
 	if err != nil {
 		return &v1.Pod{}, err
 	}
@@ -554,6 +553,5 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 			}},
 		}}
 
-	log.Debug(templatePod)
 	return templatePod, nil
 }
