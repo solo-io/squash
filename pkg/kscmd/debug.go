@@ -14,6 +14,7 @@ import (
 
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -27,14 +28,6 @@ import (
 
 var ImageVersion string
 var ImageRepo string
-
-const DebuggerPort = "1235"
-
-const (
-	ImageContainer = "kubesquash-container"
-	ContainerName  = "kubesquash-container"
-	skaffoldFile   = "skaffold.yaml"
-)
 
 type SquashConfig struct {
 	ChooseDebugger        bool
@@ -71,7 +64,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	ns, podname, image := config.Namespace, config.Pod, config.Container
 	if podname == "" && image == "" {
 		if !config.NoDetectSkaffold {
-			image, podname, _ = SkaffoldConfigToPod(skaffoldFile)
+			image, podname, _ = SkaffoldConfigToPod(sqOpts.DefaultSkaffoldFile)
 		}
 	}
 
@@ -137,7 +130,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 		if !dp.config.InCluster {
 			// Starting port forward in background.
-			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, DebuggerPort, "-n", debuggerPodNamespace)
+			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, sqOpts.DebuggerPort, "-n", debuggerPodNamespace)
 			cmd1.Stdout = os.Stdout
 			cmd1.Stderr = os.Stderr
 			cmd1.Stdin = os.Stdin
@@ -151,7 +144,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 			duration := time.Duration(5) * time.Second
 			time.Sleep(duration)
 
-			cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+DebuggerPort)
+			cmd2 := exec.Command("dlv", "connect", "127.0.0.1:"+sqOpts.DebuggerPort)
 			cmd2.Stdout = os.Stdout
 			cmd2.Stderr = os.Stderr
 			cmd2.Stdin = os.Stdin
@@ -174,7 +167,7 @@ func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
 }
 func (dp *DebugPrepare) showLogs(err error, createdPod *v1.Pod) {
 
-	cmd := exec.Command("kubectl", "-n", dp.config.Namespace, "logs", createdPod.ObjectMeta.Name, ContainerName)
+	cmd := exec.Command("kubectl", "-n", dp.config.Namespace, "logs", createdPod.ObjectMeta.Name, sqOpts.ContainerName)
 	buf, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println("Can't get logs from errored pod")
@@ -510,24 +503,26 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 	if dp.config.DebugServer {
 		isDebugServer = "1"
 	}
-	targetImage := dp.config.DebugContainerRepo + "/" + ImageContainer + "-" + debugger + ":" + dp.config.DebugContainerVersion
-	log.Debug("targetImage")
-	log.Debug(targetImage)
+
+	// this is our convention for naming the container images that contain specific debuggers
+	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
+	// repoRoot/containerName:tag
+	targetImage := fmt.Sprintf("%v/%v:%v", dp.config.DebugContainerRepo, fullParticularContainerName, dp.config.DebugContainerVersion)
 	templatePod := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: ContainerName,
-			Labels:       map[string]string{"squash": "kubesquash-container"},
+			GenerateName: sqOpts.ContainerName,
+			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
 		},
 		Spec: v1.PodSpec{
 			HostPID:       true,
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeName:      in.Spec.NodeName,
 			Containers: []v1.Container{{
-				Name:      ContainerName,
+				Name:      sqOpts.ContainerName,
 				Image:     targetImage,
 				Stdin:     true,
 				StdinOnce: true,

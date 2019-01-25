@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/go-utils/contextutils"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +44,7 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 	defer conn.Close()
 
 	// connect to debug server
-	conn2, err := net.Dial("tcp", ListenHost+":"+DebuggerPort)
+	conn2, err := net.Dial("tcp", ListenHost+":"+sqOpts.DebuggerPort)
 	if err != nil {
 		return err
 	}
