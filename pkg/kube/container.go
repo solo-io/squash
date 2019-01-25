@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
@@ -34,7 +35,7 @@ func init() {
 	}}
 	debuggerServer = make(map[string]*DebuggerInfo)
 	debuggerServer["dlv"] = &DebuggerInfo{CmdlineGen: func(pid int) []string {
-		return []string{"attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:" + DebuggerPort, "--headless", "--log", "--api-version=2"}
+		return []string{"attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:" + sqOpts.DebuggerPort, "--headless", "--log", "--api-version=2"}
 	}}
 }
 

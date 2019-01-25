@@ -292,12 +292,11 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 
 		CRISock: "/var/run/dockershim.sock",
 
-		Debugger:  "dlv", // TODO(mitchdraft) - pass as arg
+		Debugger:  da.Debugger,
 		Namespace: da.Metadata.Namespace,
 		Pod:       da.Pod,
 		Container: da.Image,
 	}
-	log.Debug("inside tryToAttachPod")
 	debPod, err := kscmd.StartDebugContainer(ksConfig)
 	// TODO(mitchdraft) - refactor once old squash functionality is removed
 	if err != nil {

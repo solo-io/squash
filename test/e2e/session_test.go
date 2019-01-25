@@ -13,6 +13,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
 )
 
@@ -60,7 +61,7 @@ var _ = Describe("Single debug mode", func() {
 	AfterEach(params.CleanupE2e)
 
 	Describe("Single Container mode", func() {
-		It("should get a debug server endpoint", func() {
+		FIt("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			time.Sleep(3 * time.Second)
@@ -74,7 +75,7 @@ var _ = Describe("Single debug mode", func() {
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
 
 			// TODO(mitchdraft) put selector spec in a shared package
-			nsPods, err := params.KubeClient.CoreV1().Pods(params.Namespace).List(metav1.ListOptions{LabelSelector: "squash=kubesquash-container"})
+			nsPods, err := params.KubeClient.CoreV1().Pods(params.Namespace).List(metav1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(nsPods.Items)).To(Equal(1))
 
