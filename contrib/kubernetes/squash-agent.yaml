@@ -14,8 +14,6 @@ spec:
       containers:
       - name: squash-agent
         image: soloio/squash-agent:dev
-        # TODO - REMOVE
-        command: ["sleep", "60000"]
         volumeMounts:
         - mountPath: /var/run/cri.sock
           name: crisock
