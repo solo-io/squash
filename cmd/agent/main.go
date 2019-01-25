@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 	"github.com/solo-io/squash/pkg/debuggers/dlv"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
+	"github.com/solo-io/squash/pkg/version"
 )
 
 func main() {
@@ -19,7 +22,7 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Info("bridge started + TMP 1")
+	log.Info(fmt.Sprintf("bridge started %v, %v", version.Version, version.TimeStamp))
 
 	var err error
 	var cp platforms.ContainerProcess

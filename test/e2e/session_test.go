@@ -61,7 +61,7 @@ var _ = Describe("Single debug mode", func() {
 	AfterEach(params.CleanupE2e)
 
 	Describe("Single Container mode", func() {
-		FIt("should get a debug server endpoint", func() {
+		It("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			time.Sleep(3 * time.Second)

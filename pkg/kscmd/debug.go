@@ -85,24 +85,19 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		}
 	}
 
-	log.Debug("mitch")
-
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
 		return &v1.Pod{}, err
 	}
-	log.Debug("mitch2")
 	debuggerPodNamespace := config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
 	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: debuggerPodNamespace}})
-	log.Debug("mitch2.5")
 
 	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
 	log.WithFields(log.Fields{"CreatedPod": createdPod, "error": err}).Debug("on the other side")
 	if err != nil {
 		return &v1.Pod{}, err
 	}
-	log.Debug("mitch5")
 
 	// TODO: we may be able to delete with DebugServer. see TODO below
 	if (!dp.config.DebugServer) && (!config.NoClean) {
@@ -110,7 +105,6 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		// connection
 		defer dp.deletePod(createdPod)
 	}
-	log.Debug("mitch6")
 
 	// wait for running state
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
@@ -120,7 +114,6 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		dp.showLogs(err, createdPod)
 		return &v1.Pod{}, err
 	}
-	log.Debug("mitch7")
 
 	if dp.config.DebugServer {
 		// TODO: do we want to delete the pod on successful completion?
@@ -158,7 +151,6 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		}
 
 	}
-	log.Debug("mitch8")
 	return createdPod, nil
 }
 func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
@@ -497,7 +489,6 @@ func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
 }
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
-	log.Debug("mitch3")
 	const crisockvolume = "crisock"
 	isDebugServer := ""
 	if dp.config.DebugServer {
@@ -563,7 +554,6 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 			}},
 		}}
 
-	log.Debug("mitch4")
 	log.Debug(templatePod)
 	return templatePod, nil
 }

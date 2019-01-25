@@ -1,12 +1,14 @@
 DOCKER_REPO ?= soloio
 VERSION ?= $(shell git describe --tags)
+DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
+LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE)"
 
 .PHONY: all
 all: binaries deployment
 
 .PHONY: binaries
 binaries: target/squash-client/squash-client target/squash
-
 
 RELEASE_BINARIES := target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
 
@@ -105,7 +107,7 @@ tmpkubesquash:
 
 .PHONY: tmpagent
 tmpagent:
-	GOOS=linux go build -o target/agent/squash-agent cmd/agent/main.go
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash-agent cmd/agent/main.go
 
 .PHONY: runtest
 runtest: tmpagent
