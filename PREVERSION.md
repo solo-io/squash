@@ -24,7 +24,7 @@
 - [x] move watch util to hack/monitor
 - [x] use an event loop in hack/monitor
 ## remove daemonset
-- [ ] use pod instead of daemonset
+- [x] use pod instead of daemonset
 ## backlog
 - [ ] allow in/out-of cluster to be configured as a flag
 - [ ] allow installation of squash agent from cli

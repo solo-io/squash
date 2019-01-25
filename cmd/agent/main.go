@@ -35,7 +35,7 @@ func main() {
 		}
 	}
 
-	err = debuggers.RunSquashClient(getDebugger, cp)
+	err = debuggers.RunSquashAgent(getDebugger, cp)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }

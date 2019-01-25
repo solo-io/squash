@@ -15,7 +15,7 @@ import (
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 )
 
-func RunSquashClient(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
+func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
 	log.SetLevel(log.DebugLevel)
 
 	// TODO(mitchdraft) make configurable
