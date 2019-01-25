@@ -40,7 +40,8 @@ func main() {
 
 	flag.Parse()
 
-	err := cmd.StartDebugContainer(cfg)
+	// don't need to know about the created pod
+	_, err := cmd.StartDebugContainer(cfg)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)

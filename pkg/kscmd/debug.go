@@ -33,7 +33,6 @@ const DebuggerPort = "1235"
 const (
 	ImageContainer = "kubesquash-container"
 	ContainerName  = "kubesquash-container"
-	namespace      = "squash"
 	skaffoldFile   = "skaffold.yaml"
 )
 
@@ -100,11 +99,12 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return &v1.Pod{}, err
 	}
 	log.Debug("mitch2")
+	debuggerPodNamespace := config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
-	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: debuggerPodNamespace}})
 	log.Debug("mitch2.5")
 
-	createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Create(dbgpod)
+	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
 	log.WithFields(log.Fields{"CreatedPod": createdPod, "error": err}).Debug("on the other side")
 	if err != nil {
 		return &v1.Pod{}, err
@@ -137,7 +137,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 		if !dp.config.InCluster {
 			// Starting port forward in background.
-			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, DebuggerPort, "-n", namespace)
+			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, DebuggerPort, "-n", debuggerPodNamespace)
 			cmd1.Stdout = os.Stdout
 			cmd1.Stderr = os.Stderr
 			cmd1.Stdin = os.Stdin
@@ -170,11 +170,11 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 }
 func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
 	var options metav1.DeleteOptions
-	dp.getClientSet().CoreV1().Pods(namespace).Delete(createdPod.ObjectMeta.Name, &options)
+	dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
 }
 func (dp *DebugPrepare) showLogs(err error, createdPod *v1.Pod) {
 
-	cmd := exec.Command("kubectl", "-n", namespace, "logs", createdPod.ObjectMeta.Name, ContainerName)
+	cmd := exec.Command("kubectl", "-n", dp.config.Namespace, "logs", createdPod.ObjectMeta.Name, ContainerName)
 	buf, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println("Can't get logs from errored pod")
@@ -201,7 +201,7 @@ func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-ch
 				var options metav1.GetOptions
 				options.ResourceVersion = createdPod.ResourceVersion
 				var err error
-				createdPod, err = dp.getClientSet().CoreV1().Pods(namespace).Get(name, options)
+				createdPod, err = dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Get(name, options)
 				if err != nil {
 					errchan <- err
 					return
@@ -226,7 +226,7 @@ func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-ch
 
 func (dp *DebugPrepare) printError(pod *v1.Pod) error {
 	var options v1.PodLogOptions
-	req := dp.getClientSet().Core().Pods(namespace).GetLogs(pod.ObjectMeta.Name, &options)
+	req := dp.getClientSet().Core().Pods(dp.config.Namespace).GetLogs(pod.ObjectMeta.Name, &options)
 
 	readCloser, err := req.Stream()
 	if err != nil {

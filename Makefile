@@ -98,6 +98,11 @@ generate-sk: docs-and-code/v1
 docs-and-code/v1:
 	go run cmd/generate-code/main.go
 
+# this will be removed when clis merge
+.PHONY: tmpkubesquash
+tmpkubesquash:
+	go build -o target/tmpks/tmpks cmd/kubesquash/main.go
+
 .PHONY: tmpagent
 tmpagent:
 	GOOS=linux go build -o target/agent/squash-agent cmd/agent/main.go
