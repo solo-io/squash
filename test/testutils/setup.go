@@ -10,10 +10,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/test/testutils/kubecdl"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type E2eParams struct {
@@ -23,6 +25,7 @@ type E2eParams struct {
 	kubectl        *kubecdl.Kubecdl
 	Squash         *Squash
 	UserController actions.UserController
+	KubeClient     *kubernetes.Clientset
 
 	AgentPod                map[string]*v1.Pod
 	Microservice1Pods       map[string]*v1.Pod
@@ -38,6 +41,11 @@ func NewE2eParams(namespace, daName string, w io.Writer) E2eParams {
 	uc, err := actions.NewUserController()
 	Expect(err).NotTo(HaveOccurred())
 
+	restCfg, err := gokubeutils.GetConfig("", "")
+	Expect(err).NotTo(HaveOccurred())
+	kubeClient, err := kubernetes.NewForConfig(restCfg)
+	Expect(err).NotTo(HaveOccurred())
+
 	return E2eParams{
 		DebugAttachmetName: daName,
 
@@ -45,6 +53,7 @@ func NewE2eParams(namespace, daName string, w io.Writer) E2eParams {
 		kubectl:        k,
 		Squash:         NewSquash(k),
 		UserController: uc,
+		KubeClient:     kubeClient,
 
 		AgentPod:          make(map[string]*v1.Pod),
 		Microservice1Pods: make(map[string]*v1.Pod),

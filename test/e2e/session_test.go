@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
@@ -71,6 +72,12 @@ var _ = Describe("Single debug mode", func() {
 			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
+
+			// TODO(mitchdraft) put selector spec in a shared package
+			nsPods, err := params.KubeClient.CoreV1().Pods(params.Namespace).List(metav1.ListOptions{LabelSelector: "squash=kubesquash-container"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nsPods.Items)).To(Equal(1))
+
 		})
 
 		It("should get a debug server endpoint, specific process", func() {
