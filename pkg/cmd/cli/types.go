@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/kscmd"
 )
 
 type Options struct {
@@ -16,6 +17,7 @@ type Options struct {
 	daClient     *v1.DebugAttachmentClient
 	ctx          context.Context
 	Wait         Wait
+	LiteOptions  kscmd.SquashConfig
 }
 
 type DebugContainer struct {

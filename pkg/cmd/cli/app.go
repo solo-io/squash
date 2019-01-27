@@ -30,6 +30,7 @@ func App(version string) (*cobra.Command, error) {
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
+	applyLiteFlags(&opts.LiteOptions, app.PersistentFlags())
 
 	return app, nil
 }
