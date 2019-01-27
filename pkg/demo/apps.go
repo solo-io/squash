@@ -10,6 +10,21 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	GoApp1Name      = "example-service1"
+	GoTemplate1Name = "soloio/example-service1:v0.2.2"
+
+	GoApp2Name      = "example-service2"
+	GoTemplate2Name = "soloio/example-service2:v0.2.2"
+
+	JavaApp2Name      = "example-service2-java"
+	JavaTemplate2Name = "soloio/example-service2-java:v0.2.2"
+
+	DemoGoGo   = "go-go"
+	DemoGoJava = "go-java"
+	DemoIds    = []string{DemoGoGo, DemoGoJava}
+)
+
 func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName string, containerPort int) error {
 
 	deployment := &appsv1.Deployment{
@@ -84,3 +99,40 @@ func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName s
 }
 
 func int32Ptr(i int32) *int32 { return &i }
+
+func DeployGoGo(cs *kubernetes.Clientset, namespace, namespace2 string) error {
+	app1Name := GoApp1Name
+	template1Name := GoTemplate1Name
+
+	app2Name := GoApp2Name
+	template2Name := GoTemplate2Name
+
+	containerPort := 8080
+
+	if err := DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
+		return err
+	}
+	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeployGoJava(cs *kubernetes.Clientset, namespace, namespace2 string) error {
+
+	app1Name := GoApp1Name
+	template1Name := GoTemplate1Name
+
+	app2Name := JavaApp2Name
+	template2Name := JavaTemplate2Name
+
+	containerPort := 8080
+
+	if err := DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
+		return err
+	}
+	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
+		return err
+	}
+	return nil
+}
