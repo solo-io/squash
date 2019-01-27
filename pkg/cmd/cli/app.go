@@ -2,8 +2,10 @@ package cli
 
 import (
 	"context"
+	"fmt"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -37,15 +39,21 @@ if err := top.ensureParticularCmdOption(po *particularOption); err != nil {
 */
 
 func App(version string) (*cobra.Command, error) {
+	opts := Options{}
 	app := &cobra.Command{
 		Use:   "squash",
 		Short: "debug microservices with squash",
 		Long: `debug microservices with squash
 	Find more information at https://solo.io`,
 		Version: version,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// when no sub commands are specified, run in squash lite mode
+			fmt.Println("Attaching debugger")
+			_, err := kscmd.StartDebugContainer(opts.LiteOptions)
+			return err
+		},
 	}
 
-	opts := Options{}
 	if err := initializeOptions(&opts); err != nil {
 		return &cobra.Command{}, err
 	}
