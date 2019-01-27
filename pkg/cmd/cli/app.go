@@ -9,6 +9,33 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+/*
+Notes on CLI design
+
+An options struct is populated by a combination of:
+- user input args
+- user input flags
+- env variables
+- config file
+- defaults
+
+A specific command is specified by a chain of strings
+
+The options struct is interpreted according to the command
+Ideally, the options struct's format should follow the command tree's format
+
+All commands should have an interactive mode.
+Interactive mode and option validation can be implemented with this pattern:
+```
+if err := top.ensureParticularCmdOption(po *particularOption); err != nil {
+    return err
+}
+```
+- Methods should be built off of the root of the options tree (the "top" var in the example above). This allows sub commands to share common values.
+- Sub commands should only modify their portion of the options tree. (This makes it easier to move sub commands around if we want a different organization later).
+
+*/
+
 func App(version string) (*cobra.Command, error) {
 	app := &cobra.Command{
 		Use:   "squash",

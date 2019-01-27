@@ -58,7 +58,7 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 }
 
 func ensureDemoDeployOpts(dOpts *DemoOptions) error {
-	fmt.Println("TODO - ensure demo opts")
+	// TODO(mitchdraft) - interactive mode
 	return nil
 }
 
@@ -75,11 +75,9 @@ func (top *Options) deployAgentCmd(agentOpts *AgentOptions) *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVar(&agentOpts.Namespace, "agentNamespace", install.DefaultNamespace, "namespace in which to install the sample app")
-	// f.StringVar(&demoOpts.Namespace2, "demoNamespace2", "", "(optional) ns for second app - defaults to 'namespace' flag's value")
-	// f.StringVar(&demoOpts.DemoId, "demoId", "default", "which sample microservice to deploy. Options: go-go, go-java")
 	return cmd
 }
 func ensureAgentDeployOpts(dOpts *AgentOptions) error {
-	fmt.Println("TODO ensure agent opts")
+	// TODO(mitchdraft) - interactive mode
 	return nil
 }
