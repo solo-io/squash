@@ -115,14 +115,17 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
 	}
 
 	// create the namespace
+	fmt.Printf("Creating namespace %v\n", namespace)
 	_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	createdCRB, err := cs.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+	crbName := fmt.Sprintf("squash-sa-cluster-admin-%v", namespace)
+	fmt.Printf("Creating clusterRoleBinding %v\n", crbName)
+	_, err = cs.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "squash-agent-serviceaccount-cluster-admin",
+			Name: crbName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -137,15 +140,13 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
 		},
 	})
 	if err != nil {
-		fmt.Println(createdCRB)
-		return err
+		fmt.Println(err)
 	}
 
-	createdDeployment, err := cs.AppsV1().Deployments(namespace).Create(deployment)
+	fmt.Println("Creating squash agent deployment")
+	_, err = cs.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
 		return err
 	}
-	fmt.Println(createdDeployment)
-
 	return nil
 }
