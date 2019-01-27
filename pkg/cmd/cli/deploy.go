@@ -14,9 +14,6 @@ func (top *Options) DeployCmd(o *Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",
 		Short: "deploy the squash agent or a demo microservice",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-		},
 	}
 
 	cmd.AddCommand(
