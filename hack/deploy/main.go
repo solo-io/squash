@@ -7,7 +7,6 @@ import (
 
 	"github.com/solo-io/squash/pkg/demo"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
-	"k8s.io/client-go/kubernetes"
 )
 
 func main() {
@@ -26,7 +25,6 @@ func app() error {
 	namespace := "squash"
 	namespace2 := ""
 
-	demoIds := []string{"go-go", "go-java"}
 	demoId := "default"
 
 	flag.StringVar(&namespace, "namespace", "default", "namespace in which to install the sample app")
@@ -41,52 +39,15 @@ func app() error {
 	switch demoId {
 	case "default":
 		fallthrough
-	case "go-go":
+	case demo.DemoGoGo:
 		fmt.Println("using go-go")
-		return deployGoGo(cs, namespace, namespace2)
-	case "go-java":
+		return demo.DeployGoGo(cs, namespace, namespace2)
+	case demo.DemoGoJava:
 		fmt.Println("using go-java")
-		return deployGoJava(cs, namespace, namespace2)
+		return demo.DeployGoJava(cs, namespace, namespace2)
 	default:
-		return fmt.Errorf("Please choose a valid demo option: %v", strings.Join(demoIds, ", "))
+		return fmt.Errorf("Please choose a valid demo option: %v", strings.Join(demo.DemoIds, ", "))
 	}
 
-	return nil
-}
-
-func deployGoGo(cs *kubernetes.Clientset, namespace, namespace2 string) error {
-	app1Name := "example-service1"
-	template1Name := "soloio/example-service1:v0.2.2"
-
-	app2Name := "example-service2"
-	template2Name := "soloio/example-service2:v0.2.2"
-
-	containerPort := 8080
-
-	if err := demo.DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
-		return err
-	}
-	if err := demo.DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deployGoJava(cs *kubernetes.Clientset, namespace, namespace2 string) error {
-
-	app1Name := "example-service1"
-	template1Name := "soloio/example-service1:v0.2.2"
-
-	app2Name := "example-service2-java"
-	template2Name := "soloio/example-service2-java:v0.2.2"
-
-	containerPort := 8080
-
-	if err := demo.DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
-		return err
-	}
-	if err := demo.DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
-		return err
-	}
 	return nil
 }

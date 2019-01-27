@@ -3,8 +3,10 @@ package cli
 import (
 	"context"
 
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
 )
 
 func App(version string) (*cobra.Command, error) {
@@ -27,6 +29,7 @@ func App(version string) (*cobra.Command, error) {
 		DebugRequestCmd(&opts),
 		ListCmd(&opts),
 		WaitAttCmd(&opts),
+		opts.DeployCmd(&opts),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
@@ -43,5 +46,17 @@ func initializeOptions(o *Options) error {
 	}
 	o.ctx = ctx
 	o.daClient = daClient
+
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return err
+	}
+	kubeClient, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return err
+	}
+	o.KubeClient = kubeClient
+
+	o.DeployOptions = defaultDeployOptions()
 	return nil
 }
