@@ -58,7 +58,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 	podname, image := config.Pod, config.Container
 	if podname == "" && image == "" {
@@ -69,7 +69,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
 	if !config.Machine {
@@ -80,13 +80,13 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		}
 		survey.AskOne(prompt, &confirmed, nil)
 		if !confirmed {
-			return &v1.Pod{}, errors.New("user aborted")
+			return nil, errors.New("user aborted")
 		}
 	}
 
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 	debuggerPodNamespace := dp.config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
@@ -94,7 +94,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
 	// TODO: we may be able to delete with DebugServer. see TODO below
@@ -110,7 +110,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	cancel()
 	if err != nil {
 		dp.showLogs(err, createdPod)
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
 	if dp.config.LiteMode || dp.config.DebugServer {
@@ -134,7 +134,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 			err = cmd1.Start()
 			if err != nil {
 				dp.showLogs(err, createdPod)
-				return &v1.Pod{}, err
+				return nil, err
 			}
 
 			// Delaying to allow port forwarding to complete.
@@ -150,7 +150,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 				log.Warn("failed, printing logs")
 				log.Warn(err)
 				dp.showLogs(err, createdPod)
-				return &v1.Pod{}, err
+				return nil, err
 			}
 		}
 
