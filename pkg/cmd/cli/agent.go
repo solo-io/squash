@@ -28,6 +28,7 @@ func (top *Options) AgentCmd(o *Options) *cobra.Command {
 
 	cmd.AddCommand(
 		top.agentStatusCmd(),
+		top.agentDeleteCmd(),
 	)
 
 	return cmd
@@ -63,6 +64,38 @@ func (top *Options) agentStatusCmd() *cobra.Command {
 			}
 			fmt.Println(strings.Join(matchNsList, ", "))
 			return nil
+		},
+	}
+	return cmd
+}
+
+func (top *Options) agentDeleteCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "delete squash agents by namespace",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("Please specify one namespace")
+			}
+			ns := args[0]
+			fmt.Printf("Looking for squash agent in namespace %v\n", ns)
+			squashDeployments, err := squashutils.ListSquashDeployments(top.KubeClient, []string{ns})
+			if err != nil {
+				return err
+			}
+
+			switch len(squashDeployments) {
+			case 0:
+				fmt.Println("Found no squash agent deployments")
+				return nil
+			default:
+				count, err := squashutils.DeleteSquashDeployments(top.KubeClient, squashDeployments)
+				if err != nil {
+					return fmt.Errorf("Deleted %v deployments: %v", count, err)
+				}
+				fmt.Printf("Deleted %v deployments\n", count)
+				return nil
+			}
 		},
 	}
 	return cmd
