@@ -57,10 +57,6 @@
 vi pkg/options/default.go
 	SquashCentralNamespace = "gloo-system"
     
-# prevent the helper script from erroring
-vi test/devutil/setup.go
-comment out the "CreateNs()" block on line 63 (will error because your ns already exists)
-
 # build the agent image
 make tmpclient
 
