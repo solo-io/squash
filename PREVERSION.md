@@ -31,6 +31,8 @@
 - [ ] distinguish between lite/agent mode
 - [ ] use cobra
 - [ ] auto gen docs
+## tutorial
+- [ ] install sample apps from command line
 ## backlog
 - [ ] allow in/out-of cluster to be configured as a flag
 - [ ] allow installation of squash agent from cli

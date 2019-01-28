@@ -1,0 +1,40 @@
+site_name: Squash
+nav:
+- Index: index.md
+- CLI reference:
+  - root: cli/squash.md
+  - debug-container: cli/squash_debug-container.md
+  - debug-request: cli/squash_debug-request.md
+  - list: cli/squash_list.md
+  - wait: cli/squash_wait.md
+  - agent: cli/squash_agent.md
+  - agent status: cli/squash_agent_status.md
+  - agent delete: cli/squash_agent_delete.md
+  - deploy: cli/squash_deploy.md
+  - deploy agent: cli/squash_deploy_agent.md
+  - deploy demo: cli/squash_deploy_demo.md
+- Getting Started: getting-started.md
+- Debuggers:
+  - overview: debuggers.md
+  - Java: debuggers/java.md
+  - NodeJs: debuggers/nodejs.md
+  - Python: debuggers/python_vscode.md
+- Install:
+  - Overview: install/README.md
+  - Kubernetes: install/kubernetes.md
+- IDEs: IDEs.md
+site_author: solo.io
+copyright: © Copyright 2018, solo.io Inc.
+repo_url: https://github.com/solo-io/squash/
+edit_uri: ""
+google_analytics: ['UA-101654320-1', 'squash.solo.io'] # TODO (rick): UA-... copied from glooE
+theme:
+  name: 'mkdocs'
+  favicon: 'img/favicon.ico'
+extra_css: [extra.css]
+extra:
+  version: 0.1.1
+plugins:
+  - search
+
+

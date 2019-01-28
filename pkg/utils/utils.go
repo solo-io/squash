@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/solo-io/squash/pkg/install"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // GetCmdArgsByPid gets comand line arguments of the running process by PID
@@ -25,4 +30,39 @@ func GetCmdArgsByPid(pid int) ([]string, error) {
 	ss := strings.Split(s, " ")
 
 	return ss, nil
+}
+
+func ListSquashDeployments(kc *kubernetes.Clientset, nsList []string) ([]appsv1.Deployment, error) {
+	matches := []appsv1.Deployment{}
+	for _, ns := range nsList {
+		deps, err := kc.Apps().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.AgentName)})
+		if err != nil {
+			return []appsv1.Deployment{}, err
+		}
+		if len(deps.Items) > 0 {
+			matches = append(matches, deps.Items...)
+		}
+	}
+	return matches, nil
+}
+
+func DeleteSquashDeployments(kc *kubernetes.Clientset, deps []appsv1.Deployment) (int, error) {
+	count := 0
+	for _, dep := range deps {
+		if err := DeleteSquashDeployment(kc, dep.ObjectMeta.Namespace, dep.ObjectMeta.Name); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}
+
+func DeleteSquashDeployment(kc *kubernetes.Clientset, namespace, name string) error {
+	var gracePeriod int64
+	gracePeriod = 0
+	err := kc.Apps().Deployments(namespace).Delete(name, &v1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+	if err != nil {
+		return err
+	}
+	return nil
 }
