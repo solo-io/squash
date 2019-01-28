@@ -18,9 +18,6 @@ import (
 func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
 	log.SetLevel(log.DebugLevel)
 
-	// TODO(mitchdraft) make configurable
-	inClusterMode := true
-
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
@@ -35,7 +32,8 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	kubeResClient, err := kubeutils.NewKubeClientset(inClusterMode)
+	// TODO - switch to go-utils
+	kubeResClient, err := kubeutils.NewKubeClientset(true)
 	if err != nil {
 		return err
 	}
@@ -44,7 +42,7 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid, inClusterMode).handleAttachments()
+	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid).handleAttachments()
 }
 
 type DebugHandler struct {
@@ -62,7 +60,7 @@ type DebugHandler struct {
 }
 
 func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
-	conttopid platforms.ContainerProcess, inClusterMode bool) *DebugHandler {
+	conttopid platforms.ContainerProcess) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
@@ -71,7 +69,7 @@ func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1
 		watchNamespaces: watchNamespaces,
 	}
 
-	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid, inClusterMode)
+	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid)
 	return dbghandler
 }
 

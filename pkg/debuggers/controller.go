@@ -24,8 +24,6 @@ type DebugController struct {
 
 	debugattachmentsLock sync.Mutex
 	debugattachments     map[string]debugAttachmentData
-
-	inClusterMode bool
 }
 
 type debugAttachmentData struct {
@@ -36,8 +34,7 @@ type debugAttachmentData struct {
 func NewDebugController(ctx context.Context,
 	debugger func(string) Debugger,
 	daClient *v1.DebugAttachmentClient,
-	conttopid platforms.ContainerProcess,
-	inClusterMode bool) *DebugController {
+	conttopid platforms.ContainerProcess) *DebugController {
 	return &DebugController{
 		debugger:  debugger,
 		conttopid: conttopid,
@@ -47,8 +44,6 @@ func NewDebugController(ctx context.Context,
 		pidMap: make(map[int]bool),
 
 		debugattachments: make(map[string]debugAttachmentData),
-
-		inClusterMode: inClusterMode,
 	}
 }
 
