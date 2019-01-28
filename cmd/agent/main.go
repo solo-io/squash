@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 	"github.com/solo-io/squash/pkg/debuggers/dlv"
@@ -22,7 +20,7 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Info(fmt.Sprintf("bridge started %v, %v", version.Version, version.TimeStamp))
+	log.Infof("bridge started %v, %v", version.Version, version.TimeStamp)
 
 	var err error
 	var cp platforms.ContainerProcess
