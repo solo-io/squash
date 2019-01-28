@@ -38,13 +38,19 @@ if err := top.ensureParticularCmdOption(po *particularOption); err != nil {
 
 */
 
+const descriptionUsage = `Squash requires no arguments. Just run it!
+It creates a privileged debug pod, starts a debugger, and then attaches to it.
+If you are debugging in a shared cluster, consider using squash the squash agent.
+(squash agent --help for more info)
+Find more information at https://solo.io
+`
+
 func App(version string) (*cobra.Command, error) {
 	opts := Options{}
 	app := &cobra.Command{
-		Use:   "squash",
-		Short: "debug microservices with squash",
-		Long: `debug microservices with squash
-	Find more information at https://solo.io`,
+		Use:     "squash",
+		Short:   "debug microservices with squash",
+		Long:    descriptionUsage,
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// when no sub commands are specified, run in squash lite mode
@@ -65,6 +71,7 @@ func App(version string) (*cobra.Command, error) {
 		ListCmd(&opts),
 		WaitAttCmd(&opts),
 		opts.DeployCmd(&opts),
+		opts.AgentCmd(&opts),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
