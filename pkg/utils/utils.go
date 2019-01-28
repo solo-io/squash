@@ -45,3 +45,24 @@ func ListSquashDeployments(kc *kubernetes.Clientset, nsList []string) ([]appsv1.
 	}
 	return matches, nil
 }
+
+func DeleteSquashDeployments(kc *kubernetes.Clientset, deps []appsv1.Deployment) (int, error) {
+	count := 0
+	for _, dep := range deps {
+		if err := DeleteSquashDeployment(kc, dep.ObjectMeta.Namespace, dep.ObjectMeta.Name); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}
+
+func DeleteSquashDeployment(kc *kubernetes.Clientset, namespace, name string) error {
+	var gracePeriod int64
+	gracePeriod = 0
+	err := kc.Apps().Deployments(namespace).Delete(name, &v1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+	if err != nil {
+		return err
+	}
+	return nil
+}
