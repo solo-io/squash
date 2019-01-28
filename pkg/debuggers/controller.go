@@ -164,7 +164,6 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		Container: da.Image,
 	}
 	debPod, err := kscmd.StartDebugContainer(ksConfig)
-	// TODO(mitchdraft) - refactor once old squash functionality is removed
 	if err != nil {
 		return err
 	}
