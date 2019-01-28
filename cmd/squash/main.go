@@ -34,7 +34,3 @@ func main() {
 	}
 
 }
-
-func toptr(s string) *string {
-	return &s
-}
