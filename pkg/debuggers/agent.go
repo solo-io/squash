@@ -8,11 +8,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/go-utils/contextutils"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"k8s.io/client-go/kubernetes"
 )
 
 func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
@@ -32,8 +34,11 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	// TODO - switch to go-utils
-	kubeResClient, err := kubeutils.NewKubeClientset(true)
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return err
+	}
+	kubeResClient, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		return err
 	}

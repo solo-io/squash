@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/demo"
-	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"k8s.io/client-go/kubernetes"
 )
 
 func main() {
@@ -17,7 +18,11 @@ func main() {
 }
 
 func app() error {
-	cs, err := kubeutils.NewOutOfClusterKubeClientset()
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return err
+	}
+	cs, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		return err
 	}

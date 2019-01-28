@@ -2,13 +2,10 @@ package kubeutils
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // MustGetNamespaces returns a list of all namespaces in a cluster - or panics.
@@ -16,7 +13,14 @@ import (
 // In the event of any error it will panic.
 func MustGetNamespaces(clientset *kubernetes.Clientset) []string {
 	if clientset == nil {
-		cs, err := NewOutOfClusterKubeClientset()
+		restCfg, err := gokubeutils.GetConfig("", "")
+		if err != nil {
+			panic(err)
+		}
+		cs, err := kubernetes.NewForConfig(restCfg)
+		if err != nil {
+			panic(err)
+		}
 		if err != nil {
 			panic(err)
 		}
@@ -61,42 +65,4 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 		namespaces = append(namespaces, ns.ObjectMeta.Name)
 	}
 	return namespaces, nil
-}
-
-func NewKubeClientset(inCluster bool) (*kubernetes.Clientset, error) {
-	if inCluster {
-		return NewInClusterKubeClientset()
-	}
-	return NewOutOfClusterKubeClientset()
-}
-
-func NewInClusterKubeClientset() (*kubernetes.Clientset, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return clientset, nil
-}
-
-func NewOutOfClusterKubeClientset() (*kubernetes.Clientset, error) {
-	home := homeDir()
-	kubeconfig := filepath.Join(home, ".kube", "config")
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return &kubernetes.Clientset{}, nil
-	}
-
-	return kubernetes.NewForConfig(config)
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
 }

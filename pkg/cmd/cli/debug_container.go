@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
 )
 
 func DebugContainerCmd(o *Options) *cobra.Command {
@@ -80,7 +82,14 @@ func ensureDebugContainerOpts(dcOpts *DebugContainer, args []string) error {
 }
 
 func debugAttachmentFromOpts(dc DebugContainer) (v1.DebugAttachment, error) {
-	kubeResClient, err := kubeutils.NewOutOfClusterKubeClientset()
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return v1.DebugAttachment{}, err
+	}
+	kubeResClient, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return v1.DebugAttachment{}, err
+	}
 	ns, err := kubeutils.GetPodNamespace(kubeResClient, dc.Pod)
 	if err != nil {
 		return v1.DebugAttachment{}, err
