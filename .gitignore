@@ -8,3 +8,5 @@ vendor/*
 
 # temporary builds
 *.out
+
+site/
