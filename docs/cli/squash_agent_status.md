@@ -1,21 +1,22 @@
-## squash
+## squash agent status
 
-debug microservices with squash
+list status of squash agent
 
 ### Synopsis
 
-Squash requires no arguments. Just run it!
-It creates a privileged debug pod, starts a debugger, and then attaches to it.
-If you are debugging in a shared cluster, consider using squash the squash agent.
-(squash agent --help for more info)
-Find more information at https://solo.io
-
+list status of squash agent
 
 ```
-squash [flags]
+squash agent status [flags]
 ```
 
 ### Options
+
+```
+  -h, --help   help for status
+```
+
+### Options inherited from parent commands
 
 ```
       --container string           Container to debug
@@ -24,7 +25,6 @@ squash [flags]
       --crisock string             The path to the CRI socket (default "/var/run/dockershim.sock")
       --debug-server               start a debug server instead of an interactive session
       --debugger string            Debugger to use (default "dlv")
-  -h, --help                       help for squash
       --json                       output json format
       --lite                       run in lite mode (default) (default true)
       --localport int              port to use to connect to debugger (defaults to 1235)
@@ -41,9 +41,4 @@ squash [flags]
 ### SEE ALSO
 
 * [squash agent](squash_agent.md)	 - manage the squash agent
-* [squash debug-container](squash_debug-container.md)	 - debug-container adds a container type debug config
-* [squash debug-request](squash_debug-request.md)	 - debug-request adds a debug request.
-* [squash deploy](squash_deploy.md)	 - deploy the squash agent or a demo microservice
-* [squash list](squash_list.md)	 - lists debug requests or attachments
-* [squash wait](squash_wait.md)	 - wait for a debug config to have a debug server url appear
 

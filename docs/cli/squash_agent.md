@@ -1,21 +1,26 @@
-## squash
+## squash agent
 
-debug microservices with squash
+manage the squash agent
 
 ### Synopsis
 
-Squash requires no arguments. Just run it!
-It creates a privileged debug pod, starts a debugger, and then attaches to it.
-If you are debugging in a shared cluster, consider using squash the squash agent.
-(squash agent --help for more info)
-Find more information at https://solo.io
+Squash agent allows you to debug with RBAC enabled.
+This may be desired for shared clusters. Squash supports RBAC through its agent
+mode. In this mode, a squash agent runs in your cluster as a server. When a
+user initiates a debug session with squash, the agent will create the debugging
+pod, rather than the person who initiated the debug session. The agent will
+only open debug session on pods in namespaces where you have CRD write access.
+You can configure squash to use agent mode by setting the ENABLE_RBAC_MODE value
+in your .squash config file.
 
-
-```
-squash [flags]
-```
 
 ### Options
+
+```
+  -h, --help   help for agent
+```
+
+### Options inherited from parent commands
 
 ```
       --container string           Container to debug
@@ -24,7 +29,6 @@ squash [flags]
       --crisock string             The path to the CRI socket (default "/var/run/dockershim.sock")
       --debug-server               start a debug server instead of an interactive session
       --debugger string            Debugger to use (default "dlv")
-  -h, --help                       help for squash
       --json                       output json format
       --lite                       run in lite mode (default) (default true)
       --localport int              port to use to connect to debugger (defaults to 1235)
@@ -40,10 +44,7 @@ squash [flags]
 
 ### SEE ALSO
 
-* [squash agent](squash_agent.md)	 - manage the squash agent
-* [squash debug-container](squash_debug-container.md)	 - debug-container adds a container type debug config
-* [squash debug-request](squash_debug-request.md)	 - debug-request adds a debug request.
-* [squash deploy](squash_deploy.md)	 - deploy the squash agent or a demo microservice
-* [squash list](squash_list.md)	 - lists debug requests or attachments
-* [squash wait](squash_wait.md)	 - wait for a debug config to have a debug server url appear
+* [squash](squash.md)	 - debug microservices with squash
+* [squash agent delete](squash_agent_delete.md)	 - delete squash agents by namespace
+* [squash agent status](squash_agent_status.md)	 - list status of squash agent
 
