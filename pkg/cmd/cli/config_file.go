@@ -76,12 +76,6 @@ func (top *Options) prepareViperConfig() error {
 		if _, err := os.Stat(squashConfigFile); err == nil {
 			// path exists
 			top.printVerbosef("Reading squash config from %v\n", squashConfigFile)
-
-		} else if os.IsNotExist(err) {
-			// path does not exist
-			if err := writeDefaultConfigFile(squashConfigFile); err != nil {
-				return err
-			}
 		} else {
 			if err := writeDefaultConfigFile(squashConfigFile); err != nil {
 				return err
