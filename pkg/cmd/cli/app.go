@@ -3,11 +3,14 @@ package cli
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/spf13/cobra"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -112,29 +115,46 @@ func (o *Options) runBaseCommand() error {
 
 	if o.RbacMode {
 		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
-		fmt.Println("TODO")
+		if err := o.runBaseCommandWithRbac(); err != nil {
+			return err
+		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
 		_, err := kscmd.StartDebugContainer(o.LiteOptions)
 		return err
 	}
 
-	// // OR create a DebugAttachment CRD and let the agent do it
-	// uc, err := actions.NewUserController()
-	// if err != nil {
-	// 	return err
-	// }
-	// daName = fmt.Sprintf("da-%v", rand.Int31n(100000))
-	// lo := o.LiteOptions
-	// image := "TODOgetthis"
-	// _, err := uc.Attach(
-	// 	daName,
-	// 	lo.Namespace,
-	// 	image,
-	// 	lo.Pod,
-	// 	lo.Container,
-	// 	"",
-	// 	"dlv")
-	// return err
 	return nil
+}
+
+func (top *Options) runBaseCommandWithRbac() error {
+	uc, err := actions.NewUserController()
+	if err != nil {
+		return err
+	}
+
+	// TODO(mitchdraft) - use kubernetes' generate name instead of making a dummy name
+	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
+
+	lo := top.LiteOptions
+
+	podSpec, err := top.KubeClient.Core().Pods(lo.Namespace).Get(lo.Pod, meta_v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// TODO(mitchdraft) - choose among images (rather than taking the first)
+	image := podSpec.Spec.Containers[0].Image
+
+	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
+	// TODO(mitchdraft) - get these values interactively
+	_, err = uc.Attach(
+		daName,
+		lo.Namespace,
+		image,
+		lo.Pod,
+		lo.Container,
+		"",
+		lo.Debugger)
+	return err
 }
