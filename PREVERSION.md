@@ -24,7 +24,13 @@
 - [x] move watch util to hack/monitor
 - [x] use an event loop in hack/monitor
 ## remove daemonset
-- [ ] use pod instead of daemonset
+- [x] use pod instead of daemonset
+## enhancements
+- [x] squash lite supports multiple connections (use localport flag)
+## cli
+- [ ] distinguish between lite/agent mode
+- [ ] use cobra
+- [ ] auto gen docs
 ## backlog
 - [ ] allow in/out-of cluster to be configured as a flag
 - [ ] allow installation of squash agent from cli

@@ -1,14 +1,19 @@
 package e2e_test
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
 	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
 )
 
@@ -19,12 +24,19 @@ func Must(err error) {
 }
 
 var (
-	daName        = "debug-attachment-1"
-	daName2       = "debug-attachment-2"
-	testNamespace = "squash-debugger-test"
+	daName  = "debug-attachment-1"
+	daName2 = "debug-attachment-2"
+	// testNamespace = "squash-debugger-test2"
+	testNamespace = "stest"
+	testNSRoot    = "stest"
+	testsStarted  = 0
 )
 
 var _ = Describe("Single debug mode", func() {
+
+	seed := time.Now().UnixNano()
+	fmt.Printf("rand seed: %v\n", seed)
+	rand.Seed(seed)
 
 	var (
 		params testutils.E2eParams
@@ -32,6 +44,15 @@ var _ = Describe("Single debug mode", func() {
 
 	// Deploy the services that you will debug
 	BeforeEach(func() {
+		testsStarted++
+		// Use unique namespaces so we can start tests before namespace is deleted
+		// Use predictable namespaces so that we can establish watches
+		// (solo-kit does not have a "watch all namespaces" feature yet)
+		if os.Getenv("SERIALIZE_NAMESPACES") != "1" {
+			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, rand.Int31n(100000))
+		} else {
+			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, testsStarted)
+		}
 		params = testutils.NewE2eParams(testNamespace, daName, GinkgoWriter)
 		params.SetupE2e()
 	})
@@ -43,6 +64,7 @@ var _ = Describe("Single debug mode", func() {
 		It("should get a debug server endpoint", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
+			time.Sleep(3 * time.Second)
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -51,6 +73,12 @@ var _ = Describe("Single debug mode", func() {
 			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
+
+			// TODO(mitchdraft) put selector spec in a shared package
+			nsPods, err := params.KubeClient.CoreV1().Pods(params.Namespace).List(metav1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nsPods.Items)).To(Equal(1))
+
 		})
 
 		It("should get a debug server endpoint, specific process", func() {
@@ -143,8 +171,7 @@ var _ = Describe("Single debug mode", func() {
 				Total(0)
 		})
 
-		// TODO(mitchdraft) - investigate why detatch hangs (currently working around it by running Detach in a goroutine)
-		PIt("Be able to re-attach once session exited", func() {
+		It("Be able to re-attach once session exited", func() {
 			container := params.CurrentMicroservicePod.Spec.Containers[0]
 
 			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")

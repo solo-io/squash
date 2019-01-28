@@ -1,4 +1,4 @@
-package kube
+package kscmd
 
 import (
 	"context"
@@ -6,14 +6,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -21,106 +22,156 @@ import (
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-)
 
-var ImageVersion string
-var ImageRepo string
-
-const (
-	ImageContainer = "squash-lite-container"
-	namespace      = "squash"
-	skaffoldFile   = "skaffold.yaml"
+	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
 type SquashConfig struct {
-	ChooseDebugger bool
-	NoClean        bool
-	ChoosePod      bool
-	TimeoutSeconds int
+	ChooseDebugger        bool
+	NoClean               bool
+	ChoosePod             bool
+	NoDetectSkaffold      bool
+	TimeoutSeconds        int
+	DebugContainerVersion string
+	DebugContainerRepo    string
+	DebugServer           bool
+	InCluster             bool
+	LiteMode              bool
+	LocalPort             int
+
+	Debugger           string
+	Namespace          string
+	Pod                string
+	Container          string
+	Machine            bool
+	DebugServerAddress string
+
+	CRISock string
 }
 
-func StartDebugContainer(config SquashConfig) error {
+func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
 		config: config,
 	}
 
-	si, err := dp.getClientSet().Discovery().ServerVersion()
-	if err != nil {
-		return err
-	}
-	minoirver, err := strconv.Atoi(si.Minor)
-	if err != nil {
-		return err
-	}
-	if minoirver < 10 {
-		return fmt.Errorf("squash lite requires kube 1.10 or higher. your version is %s.%s;", si.Major, si.Minor)
-	}
-
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
+	}
+	podname, image := config.Pod, config.Container
+	if podname == "" && image == "" {
+		if !config.NoDetectSkaffold {
+			image, podname, _ = SkaffoldConfigToPod(sqOpts.DefaultSkaffoldFile)
+		}
 	}
 
-	image, podname, _ := SkaffoldConfigToPod(skaffoldFile)
-
-	dbg, err := dp.GetMissing("", podname, image)
+	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 
-	confirmed := false
-	prompt := &survey.Confirm{
-		Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
-		Default: true,
-	}
-	survey.AskOne(prompt, &confirmed, nil)
-	if !confirmed {
-		return errors.New("user aborted")
+	if !config.Machine {
+		confirmed := false
+		prompt := &survey.Confirm{
+			Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
+			Default: true,
+		}
+		survey.AskOne(prompt, &confirmed, nil)
+		if !confirmed {
+			return &v1.Pod{}, errors.New("user aborted")
+		}
 	}
 
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
+	debuggerPodNamespace := dp.config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
-	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+	dp.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: debuggerPodNamespace}})
 
-	createdPod, err := dp.getClientSet().CoreV1().Pods(namespace).Create(dbgpod)
+	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
 	if err != nil {
-		return err
+		return &v1.Pod{}, err
 	}
 
-	// wait for runnign state
-	name := createdPod.ObjectMeta.Name
-	if !config.NoClean {
-		defer func() {
-			var options metav1.DeleteOptions
-			dp.getClientSet().CoreV1().Pods(namespace).Delete(name, &options)
-		}()
+	// TODO: we may be able to delete with DebugServer. see TODO below
+	if (!dp.config.DebugServer) && (!config.NoClean) {
+		// do not remove the pod on a debug server as it is waiting for a
+		// connection
+		defer dp.deletePod(createdPod)
 	}
 
+	// wait for running state
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
 	err = <-dp.waitForPod(ctx, createdPod)
 	cancel()
 	if err != nil {
-		return err
+		dp.showLogs(err, createdPod)
+		return &v1.Pod{}, err
 	}
 
-	// attach to the created
-	cmd := exec.Command("kubectl", "attach", "-n", namespace, "-i", "-t", createdPod.ObjectMeta.Name, "-c", "squash-lite-container")
+	if dp.config.LiteMode || dp.config.DebugServer {
+		// TODO: do we want to delete the pod on successful completion?
+		// that would require us to track the lifetime of the session
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+		// print the pod name and exit
 
-	err = cmd.Run()
+		if !dp.config.InCluster {
+			// Starting port forward in background.
+			portSpec := sqOpts.DebuggerPort
+			localConnectPort := sqOpts.DebuggerPort
+			if dp.config.LocalPort != 0 {
+				portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
+				localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
+			}
+			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
+			cmd1.Stdout = os.Stdout
+			cmd1.Stderr = os.Stderr
+			cmd1.Stdin = os.Stdin
+			err = cmd1.Start()
+			if err != nil {
+				dp.showLogs(err, createdPod)
+				return &v1.Pod{}, err
+			}
+
+			// Delaying to allow port forwarding to complete.
+			duration := time.Duration(5) * time.Second
+			time.Sleep(duration)
+
+			cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
+			cmd2.Stdout = os.Stdout
+			cmd2.Stderr = os.Stderr
+			cmd2.Stdin = os.Stdin
+			err = cmd2.Run()
+			if err != nil {
+				log.Warn("failed, printing logs")
+				log.Warn(err)
+				dp.showLogs(err, createdPod)
+				return &v1.Pod{}, err
+			}
+		}
+
+	}
+	return createdPod, nil
+}
+func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
+	var options metav1.DeleteOptions
+	dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
+}
+func (dp *DebugPrepare) showLogs(err error, createdPod *v1.Pod) {
+
+	cmd := exec.Command("kubectl", "-n", dp.config.Namespace, "logs", createdPod.ObjectMeta.Name, sqOpts.ContainerName)
+	buf, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		fmt.Println("Can't get logs from errored pod")
+		return
 	}
 
-	return nil
+	fmt.Printf("Pod errored with: %v\n Logs:\n %s", err, string(buf))
+	log.Warn(fmt.Sprintf("Pod errored with: %v\n Logs:\n %s", err, string(buf)))
 }
 
 func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan error {
@@ -139,7 +190,7 @@ func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-ch
 				var options metav1.GetOptions
 				options.ResourceVersion = createdPod.ResourceVersion
 				var err error
-				createdPod, err = dp.getClientSet().CoreV1().Pods(namespace).Get(name, options)
+				createdPod, err = dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Get(name, options)
 				if err != nil {
 					errchan <- err
 					return
@@ -164,7 +215,7 @@ func (dp *DebugPrepare) waitForPod(ctx context.Context, createdPod *v1.Pod) <-ch
 
 func (dp *DebugPrepare) printError(pod *v1.Pod) error {
 	var options v1.PodLogOptions
-	req := dp.getClientSet().Core().Pods(namespace).GetLogs(pod.ObjectMeta.Name, &options)
+	req := dp.getClientSet().Core().Pods(dp.config.Namespace).GetLogs(pod.ObjectMeta.Name, &options)
 
 	readCloser, err := req.Stream()
 	if err != nil {
@@ -180,7 +231,6 @@ func (dp *DebugPrepare) printError(pod *v1.Pod) error {
 }
 
 type Debugee struct {
-	Namespace string
 	Pod       *v1.Pod
 	Container *v1.Container
 }
@@ -247,16 +297,15 @@ func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
 
 }
 
-func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, error) {
+func (dp *DebugPrepare) GetMissing(podname, image string) (*Debugee, error) {
 
 	//	clientset.CoreV1().Namespace().
-	// see if namespace exist, and if not prompot for one.
+	// see if namespace exist, and if not prompt for one.
 	var options metav1.GetOptions
 	var debuggee Debugee
-	debuggee.Namespace = ns
-	if debuggee.Namespace == "" {
+	if dp.config.Namespace == "" {
 		var err error
-		debuggee.Namespace, err = dp.chooseNamespace()
+		(&dp.config).Namespace, err = dp.chooseNamespace()
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing namespace")
 		}
@@ -264,23 +313,35 @@ func (dp *DebugPrepare) GetMissing(ns, podname, container string) (*Debugee, err
 
 	if podname == "" {
 		var err error
-		debuggee.Pod, err = dp.choosePod(debuggee.Namespace, container)
+		debuggee.Pod, err = dp.choosePod(dp.config.Namespace, image)
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing pod")
 		}
 	} else {
 		var err error
-		debuggee.Pod, err = dp.getClientSet().CoreV1().Pods(debuggee.Namespace).Get(podname, options)
+		debuggee.Pod, err = dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Get(podname, options)
 		if err != nil {
 			return nil, errors.Wrap(err, "fetching pod")
 		}
 	}
 
-	if container == "" {
+	if image == "" {
 		var err error
 		debuggee.Container, err = dp.chooseContainer(debuggee.Pod)
 		if err != nil {
 			return nil, errors.Wrap(err, "choosing container")
+		}
+	} else {
+		for _, podContainer := range debuggee.Pod.Spec.Containers {
+			log.Debug(podContainer.Image)
+			if strings.HasPrefix(podContainer.Image, image) {
+				debuggee.Container = &podContainer
+				break
+			}
+		}
+		if debuggee.Container == nil {
+			// time.Sleep(555 * time.Second)
+			return nil, errors.New(fmt.Sprintf("no such container image: %v", image))
 		}
 	}
 	return &debuggee, nil
@@ -329,6 +390,10 @@ func (dp *DebugPrepare) detectLang() string {
 }
 
 func (dp *DebugPrepare) chooseDebugger() (string, error) {
+	if len(dp.config.Debugger) != 0 {
+		return dp.config.Debugger, nil
+	}
+
 	availableDebuggers := []string{"dlv", "gdb"}
 	debugger := dp.detectLang()
 
@@ -383,7 +448,7 @@ func (dp *DebugPrepare) chooseNamespace() (string, error) {
 	return choice, nil
 }
 
-func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
+func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
 
 	var options metav1.ListOptions
 	pods, err := dp.getClientSet().CoreV1().Pods(ns).List(options)
@@ -392,11 +457,11 @@ func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 	}
 	podName := make([]string, 0, len(pods.Items))
 	for _, pod := range pods.Items {
-		if dp.config.ChoosePod || container == "" {
+		if dp.config.ChoosePod || image == "" {
 			podName = append(podName, pod.ObjectMeta.Name)
 		} else {
 			for _, podContainer := range pod.Spec.Containers {
-				if strings.HasPrefix(podContainer.Image, container) {
+				if strings.HasPrefix(podContainer.Image, image) {
 					podName = append(podName, pod.ObjectMeta.Name)
 					break
 				}
@@ -426,33 +491,45 @@ func (dp *DebugPrepare) choosePod(ns, container string) (*v1.Pod, error) {
 }
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
-	trueVar := true
 	const crisockvolume = "crisock"
+	isDebugServer := ""
+	if dp.config.DebugServer {
+		isDebugServer = "1"
+	}
+
+	// this is our convention for naming the container images that contain specific debuggers
+	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
+	// repoRoot/containerName:tag
+	targetImage := fmt.Sprintf("%v/%v:%v", dp.config.DebugContainerRepo, fullParticularContainerName, dp.config.DebugContainerVersion)
 	templatePod := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "squash-lite-container",
-			Labels:       map[string]string{"squash": "squash-lite-container"},
+			GenerateName: sqOpts.ContainerName,
+			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
 		},
 		Spec: v1.PodSpec{
 			HostPID:       true,
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeName:      in.Spec.NodeName,
 			Containers: []v1.Container{{
-				Name:      "squash-lite-container",
-				Image:     ImageRepo + "/" + ImageContainer + "-" + debugger + ":" + ImageVersion,
+				Name:      sqOpts.ContainerName,
+				Image:     targetImage,
 				Stdin:     true,
 				StdinOnce: true,
 				TTY:       true,
 				VolumeMounts: []v1.VolumeMount{{
 					Name:      crisockvolume,
-					MountPath: "/var/run/cri.sock",
+					MountPath: squashkube.CriRuntime,
 				}},
 				SecurityContext: &v1.SecurityContext{
-					Privileged: &trueVar,
+					Capabilities: &v1.Capabilities{
+						Add: []v1.Capability{
+							"SYS_PTRACE",
+						},
+					},
 				},
 				Env: []v1.EnvVar{{
 					Name:  "SQUASH_NAMESPACE",
@@ -463,6 +540,9 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 				}, {
 					Name:  "SQUASH_CONTAINER",
 					Value: containername,
+				}, {
+					Name:  "DEBUGGER_SERVER",
+					Value: fmt.Sprintf("%s", isDebugServer),
 				},
 				}},
 			},
@@ -470,7 +550,7 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 				Name: crisockvolume,
 				VolumeSource: v1.VolumeSource{
 					HostPath: &v1.HostPathVolumeSource{
-						Path: "/var/run/dockershim.sock",
+						Path: dp.config.CRISock,
 					},
 				},
 			}},

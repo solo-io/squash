@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/debuggers"
 	"github.com/solo-io/squash/pkg/debuggers/dlv"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
+	"github.com/solo-io/squash/pkg/version"
 )
 
 func main() {
@@ -19,7 +22,7 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Info("bridge started")
+	log.Info(fmt.Sprintf("bridge started %v, %v", version.Version, version.TimeStamp))
 
 	var err error
 	var cp platforms.ContainerProcess
@@ -32,7 +35,7 @@ func main() {
 		}
 	}
 
-	err = debuggers.RunSquashClient(getDebugger, cp)
+	err = debuggers.RunSquashAgent(getDebugger, cp)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }

@@ -13,13 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
+	"github.com/solo-io/squash/pkg/version"
 )
-
-// TODO(mitchdraft) - configure from flag
-// in-cluster mode is the only option at this point
-const inClusterMode = true
 
 type DebugController struct {
 	debugger  func(string) Debugger
@@ -32,6 +30,9 @@ type DebugController struct {
 
 	debugattachmentsLock sync.Mutex
 	debugattachments     map[string]debugAttachmentData
+
+	liteMode      bool
+	inClusterMode bool
 }
 
 type debugAttachmentData struct {
@@ -42,7 +43,9 @@ type debugAttachmentData struct {
 func NewDebugController(ctx context.Context,
 	debugger func(string) Debugger,
 	daClient *v1.DebugAttachmentClient,
-	conttopid platforms.ContainerProcess) *DebugController {
+	conttopid platforms.ContainerProcess,
+	liteMode bool,
+	inClusterMode bool) *DebugController {
 	return &DebugController{
 		debugger:  debugger,
 		conttopid: conttopid,
@@ -52,6 +55,9 @@ func NewDebugController(ctx context.Context,
 		pidMap: make(map[int]bool),
 
 		debugattachments: make(map[string]debugAttachmentData),
+
+		liteMode:      liteMode,
+		inClusterMode: inClusterMode,
 	}
 }
 
@@ -74,7 +80,8 @@ func (d *DebugController) addActiveAttachment(da *v1.DebugAttachment, pid int, d
 	d.debugattachmentsLock.Lock()
 	defer d.debugattachmentsLock.Unlock()
 	d.debugattachments[da.Metadata.Name] = debugAttachmentData{debugger, pid}
-	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
+	debUrlTODO := "---"
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrlTODO)
 	return nil
 }
 
@@ -103,14 +110,37 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
 	}
-	err = retry(func() error { return d.tryToAttach(da) })
-
+	if d.liteMode {
+		// TODO - put in a goroutine
+		err = d.tryToAttachPod(da)
+	} else {
+		err = retry(func() error { return d.tryToAttach(da) })
+	}
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to attach debugger, deleting request.")
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace, "error": err}).Warn("Failed to attach debugger, deleting request.")
 		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 	}
+
 }
 
+func (d *DebugController) setState(namespace, name string, state v1.DebugAttachment_State) {
+	log.WithFields(log.Fields{"namespace": namespace, "name": name, "state": state}).Debug("marking state")
+	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	if err != nil {
+		// should not happen, but if it does, the CRD was probably already deleted
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment.")
+	}
+
+	da.State = state
+
+	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+		Ctx:               d.ctx,
+		OverwriteExisting: true,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to set attachment state.")
+	}
+}
 func (d *DebugController) markForDeletion(namespace, name string) {
 	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
@@ -137,7 +167,7 @@ func (d *DebugController) deleteResource(namespace, name string) {
 	}
 }
 
-func (d *DebugController) markAsAttached(namespace, name string) {
+func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
@@ -145,6 +175,9 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 	}
 
 	da.State = v1.DebugAttachment_Attached
+	// TODO(mitchdraft) - rework this
+	// da.DebugServerAddress = kube.GetDebugServerAddress()
+	da.DebugServerAddress = debUrl
 
 	_, err = (*d.daClient).Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
@@ -244,6 +277,34 @@ func (d *DebugController) tryToAttach(da *v1.DebugAttachment) error {
 	} else {
 		log.WithField("pid", pid).Warn("Already debugging pid. ignoring")
 	}
+	return nil
+}
+
+// uses the kubesquash debug approach
+func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
+	ksConfig := kscmd.SquashConfig{
+		TimeoutSeconds: 300,
+		Machine:        true,
+		InCluster:      true,
+		DebugServer:    true,
+
+		DebugContainerVersion: version.ImageVersion,
+		DebugContainerRepo:    version.ImageRepo,
+
+		CRISock: "/var/run/dockershim.sock",
+
+		Debugger:  da.Debugger,
+		Namespace: da.Metadata.Namespace,
+		Pod:       da.Pod,
+		Container: da.Image,
+	}
+	debPod, err := kscmd.StartDebugContainer(ksConfig)
+	// TODO(mitchdraft) - refactor once old squash functionality is removed
+	if err != nil {
+		return err
+	}
+	debUrl := fmt.Sprintf("%v:%v", debPod.ObjectMeta.Name, 1235)
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrl)
 	return nil
 }
 

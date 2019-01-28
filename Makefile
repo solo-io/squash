@@ -1,12 +1,17 @@
 DOCKER_REPO ?= soloio
 VERSION ?= $(shell git describe --tags)
+DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
+IMAGE_VERSION ?= "v0.1.9" # TODO(mitchdraft) - replace with actual workflow
+LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE) \
+-X github.com/solo-io/squash/pkg/version.ImageVersion=$(IMAGE_VERSION) \
+-X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
 .PHONY: all
 all: binaries deployment
 
 .PHONY: binaries
 binaries: target/squash-client/squash-client target/squash
-
 
 RELEASE_BINARIES := target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
 
@@ -98,6 +103,21 @@ generate-sk: docs-and-code/v1
 docs-and-code/v1:
 	go run cmd/generate-code/main.go
 
-.PHONY: tmpclient
-tmpclient:
-	GOOS=linux go build -o target/squash-client/squash-client cmd/squash-client/platforms/kubernetes/main.go
+# this will be removed when clis merge
+.PHONY: tmpkubesquash
+tmpkubesquash:
+	go build -o target/tmpks/tmpks cmd/kubesquash/main.go
+
+.PHONY: tmpagent
+tmpagent:
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash-agent cmd/agent/main.go
+
+.PHONY: runtest
+runtest: tmpagent
+	cd test/e2e/ && ginkgo -v .
+
+DEVVERSION="dev"
+.PHONY: devpush
+devpush:
+	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/agent/Dockerfile ./target/agent/
+	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)

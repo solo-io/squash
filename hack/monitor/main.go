@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 
@@ -49,6 +50,12 @@ func NewMonitor() (Monitor, error) {
 }
 
 func (m *Monitor) Run() error {
+	customNamespaces := ""
+	unspecifiedCustomNamespaces := ""
+	e2eHelper := "stest-1,stest-2,stest-3,stest-4,stest-5,stest-6"
+	flag.StringVar(&customNamespaces, "namespaces", unspecifiedCustomNamespaces, fmt.Sprintf("Specify specific namespaces to watch (csv, optional, defaults to all that currently exist)\ne2e helper:\n%v\n(for use with `SERIALIZE_NAMESPACES=1 ginkgo -r`)", e2eHelper))
+	flag.Parse()
+
 	// setup event loop
 	emitter := v1.NewApiEmitter(*m.daClient)
 	syncer := m // DebugHandler implements Sync
@@ -56,6 +63,9 @@ func (m *Monitor) Run() error {
 	// run event loop
 	// watch all namespaces
 	namespaces := kubeutils.MustGetNamespaces(nil)
+	if customNamespaces == unspecifiedCustomNamespaces {
+		namespaces = strings.Split(customNamespaces, ",")
+	}
 	fmt.Printf("watching namespaces: %v\n", strings.Join(namespaces, ", "))
 	wOpts := clients.WatchOpts{}
 	errs, err := el.Run(namespaces, wOpts)
@@ -81,7 +91,7 @@ func (m *Monitor) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
 }
 
 func (m *Monitor) syncOne(da *v1.DebugAttachment) error {
-	str := fmt.Sprintf("ns: %v, name: %v, state: %v", da.Metadata.Namespace, da.Metadata.Name, da.State)
+	str := fmt.Sprintf("ns: %v, name: %v, state: %v, server: %v", da.Metadata.Namespace, da.Metadata.Name, da.State, da.DebugServerAddress)
 	fmt.Println(str)
 	return nil
 }

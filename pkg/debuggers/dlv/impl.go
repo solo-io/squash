@@ -73,7 +73,6 @@ func startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.Debug("starting headless dlv for user started, trying to get port")
 	time.Sleep(2 * time.Second)
-	log.Debug("awake now")
 	port, err := debuggers.GetPort(cmd.Process.Pid)
 	if err != nil {
 		log.WithField("err", err).Error("can't get headless dlv port")

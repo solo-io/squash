@@ -4,5 +4,5 @@ RUN apt-get update
 RUN apt-get install --yes gdb
 
 ENV DEBUGGER=gdb
-COPY squash-lite-container /
-ENTRYPOINT ["/squash-lite-container"]
+COPY kubesquash-container /
+ENTRYPOINT ["/kubesquash-container"]
