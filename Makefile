@@ -121,3 +121,13 @@ DEVVERSION="dev"
 devpush:
 	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/agent/Dockerfile ./target/agent/
 	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)
+
+.PHONY: generatedocs
+generatedocs:
+	go run cmd/generate-docs/main.go
+	mkdocs build
+
+.PHONY: previewsite
+previewsite:
+	cd site && python3 -m http.server 0
+

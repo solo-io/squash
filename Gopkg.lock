@@ -74,6 +74,14 @@
   revision = "36687d344cfd03a7463e722d77a0a05a68c4f116"
 
 [[projects]]
+  digest = "1:982e2547680f9fd2212c6443ab73ea84eef40ee1cdcecb61d997de838445214c"
+  name = "github.com/cpuguy83/go-md2man"
+  packages = ["md2man"]
+  pruneopts = ""
+  revision = "20f5889cbdc3c73dbd2862796665e7c465ade7d1"
+  version = "v1.0.8"
+
+[[projects]]
   digest = "1:56c130d885a4aacae1dd9c7b71cfe39912c7ebc1ff7d2b46083c8812996dc43b"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -673,6 +681,14 @@
   version = "1.0.5"
 
 [[projects]]
+  digest = "1:2761e287c811d0948d47d0252b82281eca3801eb3c9d5f9530956643d5b9f430"
+  name = "github.com/russross/blackfriday"
+  packages = ["."]
+  pruneopts = ""
+  revision = "05f3235734ad95d0016f6a23902f06461fcf567a"
+  version = "v1.5.2"
+
+[[projects]]
   digest = "1:29df111893b87bd947307aab294c042e900c2f29c53ad3896127955b4283728a"
   name = "github.com/ryanuber/go-glob"
   packages = ["."]
@@ -784,7 +800,10 @@
   branch = "master"
   digest = "1:a1403cc8a94b8d7956ee5e9694badef0e7b051af289caad1cf668331e3ffa4f6"
   name = "github.com/spf13/cobra"
-  packages = ["."]
+  packages = [
+    ".",
+    "doc",
+  ]
   pruneopts = ""
   revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
 
@@ -1328,6 +1347,8 @@
     "github.com/solo-io/solo-kit/test/setup",
     "github.com/solo-io/solo-kit/test/tests/typed",
     "github.com/spf13/cobra",
+    "github.com/spf13/cobra/doc",
+    "github.com/spf13/pflag",
     "github.com/spf13/viper",
     "github.com/vishvananda/netlink/nl",
     "go.opencensus.io/stats",
@@ -1341,6 +1362,7 @@
     "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
+    "k8s.io/api/rbac/v1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
