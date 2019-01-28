@@ -17,6 +17,4 @@ var (
 	SquashLabelSelectorKey    = "squash"
 	SquashLabelSelectorValue  = ContainerName
 	SquashLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
-
-	DefaultSkaffoldFile = "skaffold.yaml"
 )

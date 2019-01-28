@@ -12,13 +12,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
-	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	sqOpts "github.com/solo-io/squash/pkg/options"
-	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	skaffkubeapi "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,7 +27,6 @@ type SquashConfig struct {
 	ChooseDebugger        bool
 	NoClean               bool
 	ChoosePod             bool
-	NoDetectSkaffold      bool
 	TimeoutSeconds        int
 	DebugContainerVersion string
 	DebugContainerRepo    string
@@ -50,7 +46,6 @@ type SquashConfig struct {
 }
 
 func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
-	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
 		config: config,
@@ -61,11 +56,6 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return nil, err
 	}
 	podname, image := config.Pod, config.Container
-	if podname == "" && image == "" {
-		if !config.NoDetectSkaffold {
-			image, podname, _ = SkaffoldConfigToPod(sqOpts.DefaultSkaffoldFile)
-		}
-	}
 
 	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
@@ -240,59 +230,19 @@ type DebugPrepare struct {
 	config    SquashConfig
 }
 
-func GetSkaffoldConfig(filename string) (*config.SkaffoldConfig, error) {
-
-	buf, err := util.ReadConfiguration(filename)
-	if err != nil {
-		return nil, errors.Wrap(err, "read skaffold config")
-	}
-
-	apiVersion := &config.ApiVersion{}
-	if err := yaml.Unmarshal(buf, apiVersion); err != nil {
-		return nil, errors.Wrap(err, "parsing api version")
-	}
-
-	if apiVersion.Version != config.LatestVersion {
-		return nil, errors.New("Config version out of date.`")
-	}
-
-	cfg, err := config.GetConfig(buf, true, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing skaffold config")
-	}
-
-	// we already ensured that the versions match in the previous block,
-	// so this type assertion is safe.
-	latestConfig, ok := cfg.(*config.SkaffoldConfig)
-	if !ok {
-		return nil, errors.Wrap(err, "can't use skaffold config")
-	}
-	return latestConfig, nil
-}
-
-func SkaffoldConfigToPod(filename string) (string, string, error) {
-	latestConfig, err := GetSkaffoldConfig(filename)
-
-	if err != nil {
-		return "", "", err
-	}
-	if len(latestConfig.Build.Artifacts) == 0 {
-		return "", "", errors.New("no artifacts")
-	}
-	image := latestConfig.Build.Artifacts[0].ImageName
-	podname := "" //latestConfig.Deploy.Name
-	return image, podname, nil
-}
-
 func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
 	if dp.clientset != nil {
 		return dp.clientset
 	}
-	clientset, err := skaffkubeapi.GetClientset()
+	restCfg, err := gokubeutils.GetConfig("", "")
 	if err != nil {
 		panic(err)
 	}
-	dp.clientset = clientset
+	cs, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		panic(err)
+	}
+	dp.clientset = cs
 	return dp.clientset
 
 }

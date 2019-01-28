@@ -13,7 +13,6 @@ func applyLiteFlags(cfg *kscmd.SquashConfig, f *pflag.FlagSet) {
 	f.BoolVar(&cfg.NoClean, "no-clean", false, "don't clean temporar pod when existing")
 	f.BoolVar(&cfg.ChooseDebugger, "no-guess-debugger", false, "don't auto detect debugger to use")
 	f.BoolVar(&cfg.ChoosePod, "no-guess-pod", false, "don't auto detect pod to use")
-	f.BoolVar(&cfg.NoDetectSkaffold, "no-detect-pod", false, "don't auto settigns based on skaffold configuration present in current folder")
 	f.BoolVar(&cfg.DebugServer, "debug-server", false, "start a debug server instead of an interactive session")
 	f.IntVar(&cfg.TimeoutSeconds, "timeout", 300, "timeout in seconds to wait for debug pod to be ready")
 	f.StringVar(&cfg.DebugContainerVersion, "container-version", version.ImageVersion, "debug container version to use")
