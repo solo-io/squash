@@ -19,7 +19,6 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 	log.SetLevel(log.DebugLevel)
 
 	// TODO(mitchdraft) make configurable
-	liteMode := true
 	inClusterMode := true
 
 	customFormatter := new(log.TextFormatter)
@@ -45,7 +44,7 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid, liteMode, inClusterMode).handleAttachments()
+	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid, inClusterMode).handleAttachments()
 }
 
 type DebugHandler struct {
@@ -63,7 +62,7 @@ type DebugHandler struct {
 }
 
 func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
-	conttopid platforms.ContainerProcess, liteMode bool, inClusterMode bool) *DebugHandler {
+	conttopid platforms.ContainerProcess, inClusterMode bool) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
@@ -72,7 +71,7 @@ func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1
 		watchNamespaces: watchNamespaces,
 	}
 
-	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid, liteMode, inClusterMode)
+	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid, inClusterMode)
 	return dbghandler
 }
 

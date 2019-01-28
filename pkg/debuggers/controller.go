@@ -25,7 +25,6 @@ type DebugController struct {
 	debugattachmentsLock sync.Mutex
 	debugattachments     map[string]debugAttachmentData
 
-	liteMode      bool
 	inClusterMode bool
 }
 
@@ -38,7 +37,6 @@ func NewDebugController(ctx context.Context,
 	debugger func(string) Debugger,
 	daClient *v1.DebugAttachmentClient,
 	conttopid platforms.ContainerProcess,
-	liteMode bool,
 	inClusterMode bool) *DebugController {
 	return &DebugController{
 		debugger:  debugger,
@@ -50,7 +48,6 @@ func NewDebugController(ctx context.Context,
 
 		debugattachments: make(map[string]debugAttachmentData),
 
-		liteMode:      liteMode,
 		inClusterMode: inClusterMode,
 	}
 }
@@ -140,8 +137,6 @@ func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	}
 
 	da.State = v1.DebugAttachment_Attached
-	// TODO(mitchdraft) - rework this
-	// da.DebugServerAddress = kube.GetDebugServerAddress()
 	da.DebugServerAddress = debUrl
 
 	_, err = (*d.daClient).Write(da, clients.WriteOpts{
