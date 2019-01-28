@@ -24,6 +24,14 @@ type Options struct {
 	LiteOptions kscmd.SquashConfig
 
 	DeployOptions DeployOptions
+
+	RbacMode bool
+
+	// Verbose controls how much contextual information is printed
+	Verbose bool
+
+	// Internal contains cli-specific metadata
+	Internal Internal
 }
 
 type DebugContainer struct {
@@ -79,4 +87,8 @@ func defaultAgentOptions() AgentOptions {
 	return AgentOptions{
 		Namespace: "squash-debugger",
 	}
+}
+
+type Internal struct {
+	ConfigLoaded bool
 }

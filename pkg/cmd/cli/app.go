@@ -53,10 +53,8 @@ func App(version string) (*cobra.Command, error) {
 		Long:    descriptionUsage,
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// when no sub commands are specified, run in squash lite mode
-			fmt.Println("Attaching debugger")
-			_, err := kscmd.StartDebugContainer(opts.LiteOptions)
-			return err
+			// when no sub commands are specified, run w/wo RBAC according to settings
+			return opts.runBaseCommand()
 		},
 	}
 
@@ -100,5 +98,43 @@ func initializeOptions(o *Options) error {
 	o.KubeClient = kubeClient
 
 	o.DeployOptions = defaultDeployOptions()
+	return nil
+}
+
+func (o *Options) runBaseCommand() error {
+	if err := o.determineUsageMode(&o.RbacMode); err != nil {
+		return err
+	}
+	if err := o.determineVerbosity(&o.Verbose); err != nil {
+		return err
+	}
+	o.printVerbose("Attaching debugger")
+
+	if o.RbacMode {
+		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
+		fmt.Println("TODO")
+	} else {
+		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
+		_, err := kscmd.StartDebugContainer(o.LiteOptions)
+		return err
+	}
+
+	// // OR create a DebugAttachment CRD and let the agent do it
+	// uc, err := actions.NewUserController()
+	// if err != nil {
+	// 	return err
+	// }
+	// daName = fmt.Sprintf("da-%v", rand.Int31n(100000))
+	// lo := o.LiteOptions
+	// image := "TODOgetthis"
+	// _, err := uc.Attach(
+	// 	daName,
+	// 	lo.Namespace,
+	// 	image,
+	// 	lo.Pod,
+	// 	lo.Container,
+	// 	"",
+	// 	"dlv")
+	// return err
 	return nil
 }

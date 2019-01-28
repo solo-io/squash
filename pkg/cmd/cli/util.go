@@ -92,3 +92,15 @@ func RandKubeNameBytes(n int) string {
 	}
 	return strings.Join([]string{firstChar, suffix}, "")
 }
+
+func (top *Options) printVerbose(msg string) {
+	if top.Verbose {
+		fmt.Println(msg)
+	}
+}
+
+func (top *Options) printVerbosef(tmpl string, args ...string) {
+	if top.Verbose {
+		fmt.Printf(tmpl, args)
+	}
+}
