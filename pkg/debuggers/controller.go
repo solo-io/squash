@@ -9,6 +9,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/kscmd"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/version"
 )
@@ -167,7 +168,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	if err != nil {
 		return err
 	}
-	debUrl := fmt.Sprintf("%v:%v", debPod.ObjectMeta.Name, 1235)
+	debUrl := fmt.Sprintf("%v:%v", debPod.ObjectMeta.Name, options.DebuggerPort)
 	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrl)
 	return nil
 }
