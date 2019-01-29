@@ -6,14 +6,18 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 var _ = Describe("Get namespaces", func() {
 	It("should get namespaces", func() {
-		cs, err := kubeutils.NewOutOfClusterKubeClientset()
+		restCfg, err := gokubeutils.GetConfig("", "")
+		Expect(err).NotTo(HaveOccurred())
+		cs, err := kubernetes.NewForConfig(restCfg)
 		Expect(err).NotTo(HaveOccurred())
 
 		// create known ns

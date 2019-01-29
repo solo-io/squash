@@ -2,43 +2,6 @@
 
 
 [[projects]]
-  digest = "1:62750fcd190d5c1a50ed49fcbfa70ef83d7481a4d5570de677a82411091c4bf5"
-  name = "cloud.google.com/go"
-  packages = ["compute/metadata"]
-  pruneopts = ""
-  revision = "29f476ffa9c4cd4fd14336b6043090ac1ad76733"
-  version = "v0.21.0"
-
-[[projects]]
-  digest = "1:f1f464dded149767f5ceb579e73628139ee1a63d9022602109d439862b18f708"
-  name = "github.com/Azure/go-autorest"
-  packages = [
-    "autorest",
-    "autorest/adal",
-    "autorest/azure",
-    "autorest/date",
-  ]
-  pruneopts = ""
-  revision = "fc3b03a2d2d1f43fad3007038bd16f044f870722"
-  version = "v9.10.0"
-
-[[projects]]
-  digest = "1:e4275acfc46fd577a58716b2701469f512b461ac20e6cfa8c9c1b67483ca1045"
-  name = "github.com/GoogleContainerTools/skaffold"
-  packages = [
-    "pkg/skaffold/config",
-    "pkg/skaffold/constants",
-    "pkg/skaffold/kubernetes",
-    "pkg/skaffold/schema/util",
-    "pkg/skaffold/schema/v1alpha1",
-    "pkg/skaffold/schema/v1alpha2",
-    "pkg/skaffold/util",
-  ]
-  pruneopts = ""
-  revision = "a9b7884039ae50fbada04e5bdcaf9e43ddf0a3e4"
-  version = "v0.5.0"
-
-[[projects]]
   digest = "1:8e47871087b94913898333f37af26732faaab30cdb41571136cf7aec9921dae7"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -111,14 +74,6 @@
   pruneopts = ""
   revision = "279a8a792e2748ba07be9ca15688d1871c0f1a5f"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:6098222470fe0172157ce9bbef5d2200df4edde17ee649c5d6e48330e4afa4c6"
-  name = "github.com/dgrijalva/jwt-go"
-  packages = ["."]
-  pruneopts = ""
-  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
-  version = "v3.2.0"
 
 [[projects]]
   digest = "1:b2ac39cf926d768133bdd17e53333235a3e1d6154ed806777f0ba5f43819fa2e"
@@ -306,22 +261,6 @@
   pruneopts = ""
   revision = "ee43cbb60db7bd22502942cccbc39059117352ab"
   version = "v0.1.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:97b43a0224e274ba4815ca55eb4365c7e736595dbfa65c39513364ca34151dff"
-  name = "github.com/gophercloud/gophercloud"
-  packages = [
-    ".",
-    "openstack",
-    "openstack/identity/v2/tenants",
-    "openstack/identity/v2/tokens",
-    "openstack/identity/v3/tokens",
-    "openstack/utils",
-    "pagination",
-  ]
-  pruneopts = ""
-  revision = "a603c51586b8ec881cd9dbed88210f141b35a34f"
 
 [[projects]]
   digest = "1:c3e611af9663f0a7a8f8f725d448af63d6dcfb2b9d39a70afebfe92708c33959"
@@ -919,7 +858,6 @@
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp",
     "html",
     "html/atom",
     "html/charset",
@@ -933,20 +871,6 @@
   ]
   pruneopts = ""
   revision = "5f9ae10d9af5b1c89ae6904293b14b064d4ada23"
-
-[[projects]]
-  branch = "master"
-  digest = "1:02e8c7acab792d62e476e155796938c4eb7321a838071153190f05ea926ee302"
-  name = "golang.org/x/oauth2"
-  packages = [
-    ".",
-    "google",
-    "internal",
-    "jws",
-    "jwt",
-  ]
-  pruneopts = ""
-  revision = "6881fee410a5daf86371371f9ad451b95e168b71"
 
 [[projects]]
   branch = "master"
@@ -1002,25 +926,6 @@
   packages = ["rate"]
   pruneopts = ""
   revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
-
-[[projects]]
-  digest = "1:934fb8966f303ede63aa405e2c8d7f0a427a05ea8df335dfdc1833dd4d40756f"
-  name = "google.golang.org/appengine"
-  packages = [
-    ".",
-    "internal",
-    "internal/app_identity",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/modules",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "urlfetch",
-  ]
-  pruneopts = ""
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -1240,15 +1145,9 @@
     "pkg/apis/clientauthentication",
     "pkg/apis/clientauthentication/v1alpha1",
     "pkg/version",
-    "plugin/pkg/client/auth",
-    "plugin/pkg/client/auth/azure",
     "plugin/pkg/client/auth/exec",
-    "plugin/pkg/client/auth/gcp",
-    "plugin/pkg/client/auth/oidc",
-    "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
-    "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
     "tools/clientcmd",
@@ -1265,7 +1164,6 @@
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
-    "util/jsonpath",
     "util/retry",
     "util/workqueue",
   ]
@@ -1306,9 +1204,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/GoogleContainerTools/skaffold/pkg/skaffold/config",
-    "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes",
-    "github.com/GoogleContainerTools/skaffold/pkg/skaffold/util",
     "github.com/davecgh/go-spew/spew",
     "github.com/derekparker/delve/service/rpc1",
     "github.com/go-openapi/errors",
@@ -1341,7 +1236,6 @@
     "github.com/solo-io/solo-kit/pkg/errors",
     "github.com/solo-io/solo-kit/pkg/utils/contextutils",
     "github.com/solo-io/solo-kit/pkg/utils/errutils",
-    "github.com/solo-io/solo-kit/pkg/utils/kubeutils",
     "github.com/solo-io/solo-kit/pkg/utils/log",
     "github.com/solo-io/solo-kit/test/helpers",
     "github.com/solo-io/solo-kit/test/setup",
@@ -1359,7 +1253,6 @@
     "golang.org/x/net/context",
     "google.golang.org/grpc",
     "gopkg.in/AlecAivazis/survey.v1",
-    "gopkg.in/yaml.v2",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",

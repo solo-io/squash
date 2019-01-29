@@ -1,15 +1,10 @@
 
 # Before tagging a new release
 
-## Dev tasks
-- update makefile for new client/docker settings
-- update the Makefile
-- combine with Kube-squash
-- bring vscode extension code into this repo
-- make it easier to deploy sample apps
-- deployment manifest for go w/ java sample microservice
-
-# Zoom
+## General
+- [x] combine with Kube-squash
+- [x] make it easier to deploy sample apps
+- [x] deployment manifest for go w/ java sample microservice
 ## namespace update
 - [x] store squash in SquashCentralNamespace
 - [x] allow SquashCentralNamespace to be configured as a flag
@@ -28,53 +23,46 @@
 ## enhancements
 - [x] squash lite supports multiple connections (use localport flag)
 ## cli
-- [ ] distinguish between lite/agent mode
-- [ ] use cobra
-- [ ] auto gen docs
+- [x] distinguish between lite/agent mode
+- [x] use cobra
+- [x] auto gen docs
 ## tutorial
-- [ ] install sample apps from command line
+- [x] install sample apps from command line
 ## backlog
-- [ ] allow in/out-of cluster to be configured as a flag
-- [ ] allow installation of squash agent from cli
+- [x] allow in/out-of cluster to be configured as a flag - will not do
+- [x] allow installation of squash agent from cli
+## outstanding
+- [ ] (P0) interactive input for RBAC mode
+- [ ] (P0) decide what to call RBAC/Agent
+- [ ] (P0) choose container in interactive mode
+- [ ] (P1, testing, docs) python support updates
+- [ ] (P1, testing, docs) java support updates
+- [ ] (P1, testing, docs) nodejs support updates
+- [ ] (P1, future) simplify DebugAttachment.State options
+## e2e tests
+- [x] rbac mode
+- [ ] (P1) non rbac mode
 
 ## Release tasks
-- update the docs
-  - no server required
-  - new cli flags
-  - caveats for each debugger/ide
-- tag a release update
-- push a new image to dockerhub
-- update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
+- [ ] (P0) update makefile for new client/docker settings
+- [ ] (P0) update the docs
+  - [ ] (P0) no server required
+  - [x] new cli flags
+  - [ ] (P1) caveats for each debugger/ide
+- [ ] (P0) (small) tag a release update
+- [ ] (P0) (small) push a new image to dockerhub
+- [ ] (P0) (small) update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
+
+## Port from kubesquash
+- [ ] (P0) there are a few kubesquash commits that were contributed recently that we should port.
+- [ ] (P0) also port the CI process that releases everything automatically.
+- [ ] (P0) port and merge the extensions (i.e. port the download an version pinning from the kube squash extension)
 
 ## Other
 - delete this file
 
 
-# USAGE - until squash updated
-
-# edit the active namespace
-# change SquashCentralNamespace to "gloo-system" - or wherever the container you want to debug lives
-vi pkg/options/default.go
-	SquashCentralNamespace = "gloo-system"
-    
-# prevent the helper script from erroring
-vi test/devutil/setup.go
-comment out the "CreateNs()" block on line 63 (will error because your ns already exists)
-
-# build the agent image
-make tmpclient
-
-# build the cli, put it in your path as "squash"
-cd cmd/squash-client
-go build -o squash main.go
-
-# copy the agent to your cluster
-cd test/dev
-go run main.go --init
-
-# start a watcher on the namespace
-cd test/dev/watch
-go run main.go --init
+# USAGE (dev)
 
 # (in a new terminal) run the squash cli or use one of the extensions
 squash debug-container soloio/example-service2:v0.2.2 example-service2-bfdcd4cf-r4cww  example-service2 --namespace squash-debugger dlv --json
@@ -82,3 +70,49 @@ squash debug-container soloio/example-service2:v0.2.2 example-service2-bfdcd4cf-
 # you will see your debug port printed out in the watch's terminal
 
 dlv connect --headless localhost:32843
+
+
+# Detangle secure, unsecure, ide
+
+## vs code kubesquash extension:
+```
+let stdout = await exec(maybeKubeEnv() + `${squahspath} ${containerRepoArg} -machine -debug-server -pod ${selectedPod.metadata.name} -namespace ${selectedPod.metadata.namespace}`);
+```
+### flags:
+* -machine
+* -debug-server
+* -pod ${selectedPod.metadata.name}
+* -namespace ${selectedPod.metadata.namespace}
+
+### notes
+Since machine and debug server are passed together, we probably don't need both
+
+## vs code squash extension
+```
+let cmdline = `debug-container --namespace=${podnamespace} ${imgid} ${podname} ${container} ${dbgr}`
+```
+### flags:
+* --namespace=${podnamespace}
+### args (positional):
+1. debug-container
+2. ${imgid}
+3. ${podname}
+4. ${container}
+5. ${dbgr} # dlv, etc
+
+
+## Machine
+- default false
+- set true by vscode kubesquash
+- gates confirmation prompt
+
+## DebugServer
+- bool, default false
+- description is similar to "Machine"
+- set true by vscode kubesquash
+- redundant with Machine?
+
+## InCluster
+- made by mitch during refactor
+- gates interactive gathering
+- -replaced by Machine

@@ -6,13 +6,19 @@ import (
 	"strings"
 	"time"
 
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"k8s.io/client-go/kubernetes"
 )
 
 func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
-	kubeResClient, err := kubeutils.NewOutOfClusterKubeClientset()
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return v1.DebugAttachmentList{}, err
+	}
+	kubeResClient, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		return v1.DebugAttachmentList{}, err
 	}

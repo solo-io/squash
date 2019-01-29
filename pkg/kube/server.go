@@ -21,7 +21,7 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 		return errors.New("unknown debugger")
 	}
 
-	cmd, err := startDebuggerServer(ctx, cfg, pid, dbgInfo)
+	cmd, err := startDebuggerServer(ctx, pid, dbgInfo)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 	return <-errchan
 }
 
-func startDebuggerServer(ctx context.Context, cfg Config, pid int, dbgInfo *DebuggerInfo) (*exec.Cmd, error) {
+func startDebuggerServer(ctx context.Context, pid int, dbgInfo *DebuggerInfo) (*exec.Cmd, error) {
 	// TODO: use squash's interfaces for a debug server
 	cmd := exec.Command("dlv", dbgInfo.CmdlineGen(pid)...)
 	cmd.Stdout = os.Stdout

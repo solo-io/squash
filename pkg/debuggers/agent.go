@@ -8,19 +8,16 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/go-utils/contextutils"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.ContainerProcess) error {
+func RunSquashAgent(debugger func(string) Debugger) error {
 	log.SetLevel(log.DebugLevel)
-
-	// TODO(mitchdraft) make configurable
-	liteMode := true
-	inClusterMode := true
 
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
@@ -36,7 +33,11 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	kubeResClient, err := kubeutils.NewKubeClientset(inClusterMode)
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return err
+	}
+	kubeResClient, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
 		return err
 	}
@@ -45,14 +46,13 @@ func RunSquashAgent(debugger func(string) Debugger, conttopid platforms.Containe
 		return err
 	}
 
-	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger, conttopid, liteMode, inClusterMode).handleAttachments()
+	return NewDebugHandler(ctx, watchNamespaces, daClient, debugger).handleAttachments()
 }
 
 type DebugHandler struct {
 	ctx context.Context
 
 	debugger        func(string) Debugger
-	conttopid       platforms.ContainerProcess
 	debugController *DebugController
 	daClient        *v1.DebugAttachmentClient
 
@@ -62,17 +62,15 @@ type DebugHandler struct {
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger,
-	conttopid platforms.ContainerProcess, liteMode bool, inClusterMode bool) *DebugHandler {
+func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
 		debugger:        debugger,
-		conttopid:       conttopid,
 		watchNamespaces: watchNamespaces,
 	}
 
-	dbghandler.debugController = NewDebugController(ctx, debugger, daClient, conttopid, liteMode, inClusterMode)
+	dbghandler.debugController = NewDebugController(ctx, debugger, daClient)
 	return dbghandler
 }
 

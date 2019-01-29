@@ -19,11 +19,6 @@ var debuggerServer map[string]*DebuggerInfo
 const OutPort = "1236"
 const ListenHost = "127.0.0.1"
 
-func GetDebugServerAddress() string {
-	// TODO(mitchdraft) - should this be DebuggerPort?
-	return fmt.Sprintf("%v:%v", ListenHost, OutPort)
-}
-
 func init() {
 	debuggers = make(map[string]*DebuggerInfo)
 	debuggers["dlv"] = &DebuggerInfo{CmdlineGen: func(pid int) []string {

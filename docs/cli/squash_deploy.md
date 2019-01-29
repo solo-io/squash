@@ -27,7 +27,6 @@ deploy the squash agent or a demo microservice
       --machine                    machine mode input and output
       --namespace string           Namespace to debug
       --no-clean                   don't clean temporar pod when existing
-      --no-detect-pod              don't auto settigns based on skaffold configuration present in current folder
       --no-guess-debugger          don't auto detect debugger to use
       --no-guess-pod               don't auto detect pod to use
       --pod string                 Pod to debug

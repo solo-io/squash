@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Attachment v1.DebugAttachment
 	Debugger   string
-	Server     bool
 }
 
 func GetConfig() Config {
@@ -20,6 +19,5 @@ func GetConfig() Config {
 			Container:      os.Getenv("SQUASH_CONTAINER"),
 		},
 		Debugger: os.Getenv("DEBUGGER"),
-		Server:   os.Getenv("DEBUGGER_SERVER") == "1",
 	}
 }

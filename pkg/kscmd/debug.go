@@ -12,13 +12,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/config"
-	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/util"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	sqOpts "github.com/solo-io/squash/pkg/options"
-	yaml "gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	skaffkubeapi "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
 	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,12 +27,9 @@ type SquashConfig struct {
 	ChooseDebugger        bool
 	NoClean               bool
 	ChoosePod             bool
-	NoDetectSkaffold      bool
 	TimeoutSeconds        int
 	DebugContainerVersion string
 	DebugContainerRepo    string
-	DebugServer           bool
-	InCluster             bool
 	LiteMode              bool
 	LocalPort             int
 
@@ -50,7 +44,6 @@ type SquashConfig struct {
 }
 
 func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
-	// find the container from skaffold, or ask the user to chose one.
 
 	dp := DebugPrepare{
 		config: config,
@@ -58,18 +51,13 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 	podname, image := config.Pod, config.Container
-	if podname == "" && image == "" {
-		if !config.NoDetectSkaffold {
-			image, podname, _ = SkaffoldConfigToPod(sqOpts.DefaultSkaffoldFile)
-		}
-	}
 
 	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
 	if !config.Machine {
@@ -80,13 +68,13 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		}
 		survey.AskOne(prompt, &confirmed, nil)
 		if !confirmed {
-			return &v1.Pod{}, errors.New("user aborted")
+			return nil, errors.New("user aborted")
 		}
 	}
 
 	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 	debuggerPodNamespace := dp.config.Namespace
 	// create namespace. ignore errors as it most likely exists and will error
@@ -94,11 +82,10 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 
 	createdPod, err := dp.getClientSet().CoreV1().Pods(debuggerPodNamespace).Create(dbgpod)
 	if err != nil {
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
-	// TODO: we may be able to delete with DebugServer. see TODO below
-	if (!dp.config.DebugServer) && (!config.NoClean) {
+	if !config.NoClean {
 		// do not remove the pod on a debug server as it is waiting for a
 		// connection
 		defer dp.deletePod(createdPod)
@@ -110,53 +97,56 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 	cancel()
 	if err != nil {
 		dp.showLogs(err, createdPod)
-		return &v1.Pod{}, err
+		return nil, err
 	}
 
-	if dp.config.LiteMode || dp.config.DebugServer {
-		// TODO: do we want to delete the pod on successful completion?
-		// that would require us to track the lifetime of the session
-
-		// print the pod name and exit
-
-		if !dp.config.InCluster {
-			// Starting port forward in background.
-			portSpec := sqOpts.DebuggerPort
-			localConnectPort := sqOpts.DebuggerPort
-			if dp.config.LocalPort != 0 {
-				portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
-				localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
-			}
-			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
-			cmd1.Stdout = os.Stdout
-			cmd1.Stderr = os.Stderr
-			cmd1.Stdin = os.Stdin
-			err = cmd1.Start()
-			if err != nil {
-				dp.showLogs(err, createdPod)
-				return &v1.Pod{}, err
-			}
-
-			// Delaying to allow port forwarding to complete.
-			duration := time.Duration(5) * time.Second
-			time.Sleep(duration)
-
-			cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
-			cmd2.Stdout = os.Stdout
-			cmd2.Stderr = os.Stderr
-			cmd2.Stdin = os.Stdin
-			err = cmd2.Run()
-			if err != nil {
-				log.Warn("failed, printing logs")
-				log.Warn(err)
-				dp.showLogs(err, createdPod)
-				return &v1.Pod{}, err
-			}
-		}
-
+	if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
+		return nil, err
 	}
+
 	return createdPod, nil
 }
+
+func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.Pod) error {
+	if dp.config.Machine {
+		return nil
+	}
+	// Starting port forward in background.
+	portSpec := sqOpts.DebuggerPort
+	localConnectPort := sqOpts.DebuggerPort
+	if dp.config.LocalPort != 0 {
+		portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
+		localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
+	}
+	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
+	cmd1.Stdout = os.Stdout
+	cmd1.Stderr = os.Stderr
+	cmd1.Stdin = os.Stdin
+	err := cmd1.Start()
+	if err != nil {
+		dp.showLogs(err, createdPod)
+		return err
+	}
+
+	// Delaying to allow port forwarding to complete.
+	duration := time.Duration(5) * time.Second
+	time.Sleep(duration)
+
+	// TODO(mitchdraft) dlv only atm - check if dlv before doing this
+	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
+	cmd2.Stdin = os.Stdin
+	err = cmd2.Run()
+	if err != nil {
+		log.Warn("failed, printing logs")
+		log.Warn(err)
+		dp.showLogs(err, createdPod)
+		return err
+	}
+	return nil
+}
+
 func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
 	var options metav1.DeleteOptions
 	dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
@@ -240,59 +230,19 @@ type DebugPrepare struct {
 	config    SquashConfig
 }
 
-func GetSkaffoldConfig(filename string) (*config.SkaffoldConfig, error) {
-
-	buf, err := util.ReadConfiguration(filename)
-	if err != nil {
-		return nil, errors.Wrap(err, "read skaffold config")
-	}
-
-	apiVersion := &config.ApiVersion{}
-	if err := yaml.Unmarshal(buf, apiVersion); err != nil {
-		return nil, errors.Wrap(err, "parsing api version")
-	}
-
-	if apiVersion.Version != config.LatestVersion {
-		return nil, errors.New("Config version out of date.`")
-	}
-
-	cfg, err := config.GetConfig(buf, true, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing skaffold config")
-	}
-
-	// we already ensured that the versions match in the previous block,
-	// so this type assertion is safe.
-	latestConfig, ok := cfg.(*config.SkaffoldConfig)
-	if !ok {
-		return nil, errors.Wrap(err, "can't use skaffold config")
-	}
-	return latestConfig, nil
-}
-
-func SkaffoldConfigToPod(filename string) (string, string, error) {
-	latestConfig, err := GetSkaffoldConfig(filename)
-
-	if err != nil {
-		return "", "", err
-	}
-	if len(latestConfig.Build.Artifacts) == 0 {
-		return "", "", errors.New("no artifacts")
-	}
-	image := latestConfig.Build.Artifacts[0].ImageName
-	podname := "" //latestConfig.Deploy.Name
-	return image, podname, nil
-}
-
 func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
 	if dp.clientset != nil {
 		return dp.clientset
 	}
-	clientset, err := skaffkubeapi.GetClientset()
+	restCfg, err := gokubeutils.GetConfig("", "")
 	if err != nil {
 		panic(err)
 	}
-	dp.clientset = clientset
+	cs, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		panic(err)
+	}
+	dp.clientset = cs
 	return dp.clientset
 
 }
@@ -492,10 +442,6 @@ func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
 	const crisockvolume = "crisock"
-	isDebugServer := ""
-	if dp.config.DebugServer {
-		isDebugServer = "1"
-	}
 
 	// this is our convention for naming the container images that contain specific debuggers
 	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
@@ -540,9 +486,6 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 				}, {
 					Name:  "SQUASH_CONTAINER",
 					Value: containername,
-				}, {
-					Name:  "DEBUGGER_SERVER",
-					Value: fmt.Sprintf("%s", isDebugServer),
 				},
 				}},
 			},

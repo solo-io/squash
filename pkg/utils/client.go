@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
+	"github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
-	"github.com/solo-io/solo-kit/pkg/utils/kubeutils"
 	"github.com/solo-io/squash/pkg/api/v1"
 )
 

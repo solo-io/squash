@@ -115,9 +115,8 @@ func (p *E2eParams) SetupE2e() {
 			// replace squash server and client binaries with local binaries for easy debuggings
 			Must(p.kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-agent"))
 
-			// client is in host pid namespace, so can't write logs to pid 1. use the fact that the client has the pod name in the env.
-			clientscript := "SLEEPPID=$(for pid in $(pgrep sleep); do if grep --silent " + pod.ObjectMeta.Name + " /proc/$pid/environ; then echo $pid;fi; done) && "
-			clientscript += " /tmp/squash-agent  > /proc/$SLEEPPID/fd/1 2> /proc/$SLEEPPID/fd/2"
+			// client is not in host pid namespace, so we we know that our process has pid 1.
+			clientscript := " /tmp/squash-agent  > /proc/1/fd/1 2> /proc/1/fd/2"
 			Must(p.kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-agent", "sh", "-c", clientscript))
 			p.AgentPod[pod.Spec.NodeName] = &newpod
 		}
