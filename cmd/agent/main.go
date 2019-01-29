@@ -9,7 +9,6 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers/nodejs"
 	"github.com/solo-io/squash/pkg/debuggers/python"
 
-	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 	"github.com/solo-io/squash/pkg/version"
 )
@@ -22,18 +21,8 @@ func main() {
 
 	log.Infof("bridge started %v, %v", version.Version, version.TimeStamp)
 
-	var err error
-	var cp platforms.ContainerProcess
-
-	cp, err = kubernetes.NewContainerProcess()
-	if err != nil {
-		cp, err = kubernetes.NewCRIContainerProcessAlphaV1()
-		if err != nil {
-			log.WithError(err).Fatal("Cannot get container process locator")
-		}
-	}
-
-	err = debuggers.RunSquashAgent(getDebugger, cp)
+	mustGetContainerProcessLocator()
+	err := debuggers.RunSquashAgent(getDebugger)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }
@@ -59,5 +48,18 @@ func getDebugger(dbgtype string) debuggers.Debugger {
 		return &p
 	default:
 		return nil
+	}
+}
+
+// The debugging pod needs to be able to get a container process
+// This function is a way to fail early (from the squash pod) if the running
+// version of Kubernetes does not support the needed API.
+func mustGetContainerProcessLocator() {
+	_, err := kubernetes.NewContainerProcess()
+	if err != nil {
+		_, err := kubernetes.NewCRIContainerProcessAlphaV1()
+		if err != nil {
+			log.WithError(err).Fatal("Cannot get container process locator")
+		}
 	}
 }

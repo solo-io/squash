@@ -1,14 +1,10 @@
 
 # Before tagging a new release
 
-## Dev tasks
-- [ ] (P0) update makefile for new client/docker settings
+## General
 - [x] combine with Kube-squash
-- [ ] (P1) bring vscode extension code into this repo
 - [x] make it easier to deploy sample apps
 - [x] deployment manifest for go w/ java sample microservice
-
-# Zoom
 ## namespace update
 - [x] store squash in SquashCentralNamespace
 - [x] allow SquashCentralNamespace to be configured as a flag
@@ -48,6 +44,7 @@
 - [ ] (P1) non rbac mode
 
 ## Release tasks
+- [ ] (P0) update makefile for new client/docker settings
 - [ ] (P0) update the docs
   - [ ] (P0) no server required
   - [x] new cli flags
@@ -55,6 +52,11 @@
 - [ ] (P0) (small) tag a release update
 - [ ] (P0) (small) push a new image to dockerhub
 - [ ] (P0) (small) update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
+
+## Port from kubesquash
+- [ ] (P0) there are a few kubesquash commits that were contributed recently that we should port.
+- [ ] (P0) also port the CI process that releases everything automatically.
+- [ ] (P0) port and merge the extensions (i.e. port the download an version pinning from the kube squash extension)
 
 ## Other
 - delete this file

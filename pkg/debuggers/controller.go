@@ -10,15 +10,13 @@ import (
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/options"
-	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/version"
 )
 
 type DebugController struct {
-	debugger  func(string) Debugger
-	conttopid platforms.ContainerProcess
-	pidLock   sync.Mutex
-	pidMap    map[int]bool
+	debugger func(string) Debugger
+	pidLock  sync.Mutex
+	pidMap   map[int]bool
 
 	daClient *v1.DebugAttachmentClient
 	ctx      context.Context
@@ -34,11 +32,9 @@ type debugAttachmentData struct {
 
 func NewDebugController(ctx context.Context,
 	debugger func(string) Debugger,
-	daClient *v1.DebugAttachmentClient,
-	conttopid platforms.ContainerProcess) *DebugController {
+	daClient *v1.DebugAttachmentClient) *DebugController {
 	return &DebugController{
-		debugger:  debugger,
-		conttopid: conttopid,
+		debugger: debugger,
 
 		daClient: daClient,
 
