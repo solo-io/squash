@@ -13,25 +13,38 @@ import (
 // Note on use of config file:
 // - should implement a consistent way of reading all values
 // and harmonizing them with flags
-func (top *Options) determineUsageMode(rbacMode *bool) error {
+// func (top *Options) determineUsageMode(rbacMode *bool) error {
+
+// 	if err := top.prepareViperConfig(); err != nil {
+// 		return err
+// 	}
+
+// 	// TODO(mitchdraft) - allow config to be overriden by flags
+// 	*rbacMode = viper.GetBool("secure_mode")
+// 	return nil
+// }
+
+// func (top *Options) determineVerbosity(verbose *bool) error {
+
+// 	if err := top.prepareViperConfig(); err != nil {
+// 		return err
+// 	}
+
+// 	// TODO(mitchdraft) - allow config to be overriden by flags
+// 	*verbose = viper.GetBool("verbose")
+// 	return nil
+// }
+
+func (top *Options) readConfigValues(c *Config) error {
 
 	if err := top.prepareViperConfig(); err != nil {
 		return err
 	}
 
 	// TODO(mitchdraft) - allow config to be overriden by flags
-	*rbacMode = viper.GetBool("enable_rbac_mode")
-	return nil
-}
-
-func (top *Options) determineVerbosity(verbose *bool) error {
-
-	if err := top.prepareViperConfig(); err != nil {
-		return err
-	}
-
-	// TODO(mitchdraft) - allow config to be overriden by flags
-	*verbose = viper.GetBool("verbose")
+	c.verbose = viper.GetBool("verbose")
+	c.secureMode = viper.GetBool("secure_mode")
+	c.logCmds = viper.GetBool("log_commands")
 	return nil
 }
 
@@ -39,8 +52,9 @@ func writeDefaultConfigFile(fp string) error {
 	fmt.Printf("Squash config file not found. Writing default config to %v.\n", fp)
 	var defaultConfigYaml = []byte(`# Squash configuration file
 # The specification can be found at https://squash.solo.io
-enable_rbac_mode: false
+secure_mode: false
 verbose: true
+log_commands: false
 createdby: squash-initialization
 `)
 	if err := ioutil.WriteFile(fp, defaultConfigYaml, 0644); err != nil {
@@ -63,12 +77,10 @@ func (top *Options) prepareViperConfig() error {
 		top.printVerbosef("Reading squash config from %v\n", cfgFile)
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
+		squashDir, err := squashDir()
 		if err != nil {
 			return err
 		}
-		squashDir := filepath.Join(home, ".squash")
 		if err := os.MkdirAll(squashDir, 0755); err != nil {
 			return err
 		}
@@ -90,4 +102,13 @@ func (top *Options) prepareViperConfig() error {
 	}
 	top.Internal.ConfigLoaded = true
 	return nil
+}
+
+func squashDir() (string, error) {
+	// Find home directory.
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".squash"), nil
 }

@@ -116,3 +116,13 @@ let cmdline = `debug-container --namespace=${podnamespace} ${imgid} ${podname} $
 - made by mitch during refactor
 - gates interactive gathering
 - -replaced by Machine
+
+
+# Naming
+## Command line tools
+- squashctl - the command line tool that the user uses to initiate debug sessions
+## Pods
+- squash - watches for debug session requests (via DebugAttachment CRDs) and creates and removes squash-debugger pods
+- squash-debugger - a pod that runs a debugger process
+## Modes of operation
+- secure-mode - applies RBAC policy to debugging permissions

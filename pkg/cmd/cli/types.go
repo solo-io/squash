@@ -25,13 +25,16 @@ type Options struct {
 
 	DeployOptions DeployOptions
 
-	RbacMode bool
+	// RbacMode bool
 
 	// Verbose controls how much contextual information is printed
-	Verbose bool
+	// Verbose bool
 
 	// Internal contains cli-specific metadata
 	Internal Internal
+
+	// Config may be blended into other options
+	Config Config
 }
 
 type DebugContainer struct {
@@ -91,4 +94,10 @@ func defaultAgentOptions() AgentOptions {
 
 type Internal struct {
 	ConfigLoaded bool
+}
+
+type Config struct {
+	verbose    bool
+	secureMode bool
+	logCmds    bool
 }
