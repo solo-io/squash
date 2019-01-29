@@ -31,7 +31,6 @@ type SquashConfig struct {
 	DebugContainerVersion string
 	DebugContainerRepo    string
 	DebugServer           bool
-	InCluster             bool
 	LiteMode              bool
 	LocalPort             int
 
@@ -111,8 +110,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 }
 
 func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.Pod) error {
-	if dp.config.InCluster ||
-		(!dp.config.LiteMode && !dp.config.DebugServer) {
+	if dp.config.Machine {
 		return nil
 	}
 	// Starting port forward in background.
@@ -136,6 +134,7 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 	duration := time.Duration(5) * time.Second
 	time.Sleep(duration)
 
+	// TODO(mitchdraft) dlv only atm - check if dlv before doing this
 	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr

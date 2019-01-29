@@ -68,3 +68,49 @@ squash debug-container soloio/example-service2:v0.2.2 example-service2-bfdcd4cf-
 # you will see your debug port printed out in the watch's terminal
 
 dlv connect --headless localhost:32843
+
+
+# Detangle secure, unsecure, ide
+
+## vs code kubesquash extension:
+```
+let stdout = await exec(maybeKubeEnv() + `${squahspath} ${containerRepoArg} -machine -debug-server -pod ${selectedPod.metadata.name} -namespace ${selectedPod.metadata.namespace}`);
+```
+### flags:
+* -machine
+* -debug-server
+* -pod ${selectedPod.metadata.name}
+* -namespace ${selectedPod.metadata.namespace}
+
+### notes
+Since machine and debug server are passed together, we probably don't need both
+
+## vs code squash extension
+```
+let cmdline = `debug-container --namespace=${podnamespace} ${imgid} ${podname} ${container} ${dbgr}`
+```
+### flags:
+* --namespace=${podnamespace}
+### args (positional):
+1. debug-container
+2. ${imgid}
+3. ${podname}
+4. ${container}
+5. ${dbgr} # dlv, etc
+
+
+## Machine
+- default false
+- set true by vscode kubesquash
+- gates confirmation prompt
+
+## DebugServer
+- bool, default false
+- description is similar to "Machine"
+- set true by vscode kubesquash
+- redundant with Machine?
+
+## InCluster
+- made by mitch during refactor
+- gates interactive gathering
+- -replaced by Machine
