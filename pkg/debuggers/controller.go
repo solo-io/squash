@@ -150,6 +150,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	ksConfig := kscmd.SquashConfig{
 		TimeoutSeconds: 300,
 		Machine:        true,
+		NoClean:        true,
 
 		DebugContainerVersion: version.ImageVersion,
 		DebugContainerRepo:    version.ImageRepo,
