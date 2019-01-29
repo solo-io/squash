@@ -109,12 +109,6 @@ func initializeOptions(o *Options) error {
 }
 
 func (o *Options) runBaseCommand() error {
-	// if err := o.determineUsageMode(&o.RbacMode); err != nil {
-	// 	return err
-	// }
-	// if err := o.determineVerbosity(&o.Verbose); err != nil {
-	// 	return err
-	// }
 	o.printVerbose("Attaching debugger")
 
 	if o.Config.secureMode {

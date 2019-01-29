@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -23,44 +24,26 @@ import (
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
-type SquashConfig struct {
-	ChooseDebugger        bool
-	NoClean               bool
-	ChoosePod             bool
-	TimeoutSeconds        int
-	DebugContainerVersion string
-	DebugContainerRepo    string
-	LiteMode              bool
-	LocalPort             int
-
-	Debugger           string
-	Namespace          string
-	Pod                string
-	Container          string
-	Machine            bool
-	DebugServerAddress string
-
-	CRISock string
-}
-
-func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
+func StartDebugContainer(cfg config.Squash) (*v1.Pod, error) {
 
 	dp := DebugPrepare{
-		config: config,
+		config: cfg,
 	}
 
 	debugger, err := dp.chooseDebugger()
 	if err != nil {
 		return nil, err
 	}
-	podname, image := config.Pod, config.Container
+
+	podname := cfg.Pod
+	image := cfg.Container
 
 	dbg, err := dp.GetMissing(podname, image)
 	if err != nil {
 		return nil, err
 	}
 
-	if !config.Machine {
+	if !cfg.Machine {
 		confirmed := false
 		prompt := &survey.Confirm{
 			Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
@@ -85,14 +68,14 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	if !config.NoClean {
+	if !cfg.NoClean {
 		// do not remove the pod on a debug server as it is waiting for a
 		// connection
 		defer dp.deletePod(createdPod)
 	}
 
 	// wait for running state
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.TimeoutSeconds)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	err = <-dp.waitForPod(ctx, createdPod)
 	cancel()
 	if err != nil {
@@ -227,7 +210,7 @@ type Debugee struct {
 
 type DebugPrepare struct {
 	clientset kubernetes.Interface
-	config    SquashConfig
+	config    config.Squash
 }
 
 func (dp *DebugPrepare) getClientSet() kubernetes.Interface {

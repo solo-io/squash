@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/kscmd"
+	"github.com/solo-io/squash/pkg/config"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,7 +21,7 @@ type Options struct {
 	ctx          context.Context
 	Wait         Wait
 
-	LiteOptions kscmd.SquashConfig
+	LiteOptions config.Squash
 
 	DeployOptions DeployOptions
 
