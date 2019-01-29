@@ -1,4 +1,4 @@
-package cli
+package squashctl
 
 import (
 	"fmt"
@@ -21,9 +21,13 @@ in your .squash config file.
 
 func (top *Options) AgentCmd(o *Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "agent",
-		Short: "manage the squash agent",
-		Long:  squashAgentDescription,
+		Use:     "agent",
+		Short:   "manage the squash agent",
+		Example: "squash agent --wip sample",
+		Long:    squashAgentDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
 	}
 
 	cmd.AddCommand(

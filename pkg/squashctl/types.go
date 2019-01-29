@@ -1,10 +1,10 @@
-package cli
+package squashctl
 
 import (
 	"context"
 
 	"github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/kscmd"
+	"github.com/solo-io/squash/pkg/config"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,17 +21,20 @@ type Options struct {
 	ctx          context.Context
 	Wait         Wait
 
-	LiteOptions kscmd.SquashConfig
+	LiteOptions config.Squash
 
 	DeployOptions DeployOptions
 
-	RbacMode bool
+	// RbacMode bool
 
 	// Verbose controls how much contextual information is printed
-	Verbose bool
+	// Verbose bool
 
 	// Internal contains cli-specific metadata
 	Internal Internal
+
+	// Config may be blended into other options
+	Config Config
 }
 
 type DebugContainer struct {
@@ -90,5 +93,14 @@ func defaultAgentOptions() AgentOptions {
 }
 
 type Internal struct {
+	// ConfigLoaded should be set once the config has been loaded
 	ConfigLoaded bool
+	// ConfigRead should be set once the config has been read
+	ConfigRead bool
+}
+
+type Config struct {
+	verbose    bool
+	secureMode bool
+	logCmds    bool
 }

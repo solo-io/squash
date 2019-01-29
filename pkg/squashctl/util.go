@@ -1,8 +1,10 @@
-package cli
+package squashctl
 
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -10,6 +12,8 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -100,13 +104,73 @@ func RandKubeNameBytes(n int) string {
 }
 
 func (top *Options) printVerbose(msg string) {
-	if top.Verbose {
+	if top.Config.verbose {
 		fmt.Println(msg)
 	}
 }
 
-func (top *Options) printVerbosef(tmpl string, args ...string) {
-	if top.Verbose {
+func (top *Options) printVerbosef(tmpl string, args ...interface{}) {
+	if top.Config.verbose {
 		fmt.Printf(tmpl, args)
 	}
+}
+
+var logFileName = "cmd.log"
+
+func (top *Options) logCmd(cmd *cobra.Command, args []string) {
+	if !top.Config.logCmds {
+		return
+	}
+
+	cmdWithArgs := fmt.Sprintf("%v %v", cmd.CommandPath(), strings.Join(args, " "))
+	flagSpec := getFlagSpec(cmd)
+	cmdSpec := fmt.Sprintf("%v %v", cmdWithArgs, flagSpec)
+
+	squashDir, err := squashDir()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	f, err := os.OpenFile(filepath.Join(squashDir, logFileName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	content := fmt.Sprintf("%v, %v\n", time.Now(), cmdSpec)
+	if _, err := f.Write([]byte(content)); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := f.Close(); err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+func getChangedFlags(cmd *cobra.Command) map[string]pflag.Value {
+	setFlags := make(map[string]pflag.Value)
+	ff := func(f *pflag.Flag) {
+		if f.Changed {
+			fmt.Println("flag changed", f.Name)
+			setFlags[f.Name] = f.Value
+		}
+	}
+	cmd.Flags().VisitAll(ff)
+	return setFlags
+}
+
+func getFlagSpec(cmd *cobra.Command) string {
+	flagsChanged := getChangedFlags(cmd)
+	str := ""
+	for k, v := range flagsChanged {
+		switch v.Type() {
+		case "bool":
+			str += fmt.Sprintf("--%v ", k)
+		case "string":
+			fallthrough
+		default:
+			str += fmt.Sprintf("--%v \"%v\" ", k, v)
+		}
+	}
+	return str
 }

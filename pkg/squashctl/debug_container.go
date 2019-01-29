@@ -1,4 +1,4 @@
-package cli
+package squashctl
 
 import (
 	"encoding/json"

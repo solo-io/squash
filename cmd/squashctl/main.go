@@ -6,23 +6,15 @@ import (
 	"time"
 
 	check "github.com/solo-io/go-checkpoint"
-	"github.com/solo-io/squash/pkg/cmd/cli"
+	"github.com/solo-io/squash/pkg/squashctl"
 	"github.com/solo-io/squash/pkg/version"
 )
 
-var serverurl string
-var jsonoutput bool
-
-type Error struct {
-	Type string
-	Info string
-}
-
 func main() {
 	start := time.Now()
-	defer check.CallReport("squash", version.Version, start)
+	defer check.CallReport("squashctl", version.Version, start)
 
-	app, err := cli.App(version.Version)
+	app, err := squashctl.App(version.Version)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -32,5 +24,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 }

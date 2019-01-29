@@ -12,8 +12,8 @@ import (
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/squash/pkg/api/v1"
-	squashcli "github.com/solo-io/squash/pkg/cmd/cli"
 	sqOpts "github.com/solo-io/squash/pkg/options"
+	squashcli "github.com/solo-io/squash/pkg/squashctl"
 	"github.com/solo-io/squash/test/testutils"
 )
 

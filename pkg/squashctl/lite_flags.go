@@ -1,15 +1,15 @@
-package cli
+package squashctl
 
 import (
 	"fmt"
 
-	"github.com/solo-io/squash/pkg/kscmd"
+	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/version"
 	"github.com/spf13/pflag"
 )
 
-func applyLiteFlags(cfg *kscmd.SquashConfig, f *pflag.FlagSet) {
+func applyLiteFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	depBool := false // TODO(mitchdraft) update extension to not pass debug-server
 	f.BoolVar(&cfg.NoClean, "no-clean", false, "don't clean temporar pod when existing")
 	f.BoolVar(&cfg.ChooseDebugger, "no-guess-debugger", false, "don't auto detect debugger to use")
@@ -19,7 +19,6 @@ func applyLiteFlags(cfg *kscmd.SquashConfig, f *pflag.FlagSet) {
 	f.StringVar(&cfg.DebugContainerVersion, "container-version", version.ImageVersion, "debug container version to use")
 	f.StringVar(&cfg.DebugContainerRepo, "container-repo", version.ImageRepo, "debug container repo to use")
 
-	f.BoolVar(&cfg.LiteMode, "lite", true, "run in lite mode (default)")
 	f.IntVar(&cfg.LocalPort, "localport", 0, fmt.Sprintf("port to use to connect to debugger (defaults to %v)", sqOpts.DebuggerPort))
 
 	f.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")

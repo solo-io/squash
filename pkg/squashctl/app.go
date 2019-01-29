@@ -1,4 +1,4 @@
-package cli
+package squashctl
 
 import (
 	"context"
@@ -49,30 +49,34 @@ Find more information at https://solo.io
 `
 
 func App(version string) (*cobra.Command, error) {
-	opts := Options{}
+	opts := &Options{}
 	app := &cobra.Command{
-		Use:     "squash",
+		Use:     "squashctl",
 		Short:   "debug microservices with squash",
 		Long:    descriptionUsage,
 		Version: version,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			opts.readConfigValues(&opts.Config)
+			opts.logCmd(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// when no sub commands are specified, run w/wo RBAC according to settings
 			return opts.runBaseCommand()
 		},
 	}
 
-	if err := initializeOptions(&opts); err != nil {
+	if err := initializeOptions(opts); err != nil {
 		return &cobra.Command{}, err
 	}
 
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
-		DebugContainerCmd(&opts),
-		DebugRequestCmd(&opts),
-		ListCmd(&opts),
-		WaitAttCmd(&opts),
-		opts.DeployCmd(&opts),
-		opts.AgentCmd(&opts),
+		DebugContainerCmd(opts),
+		DebugRequestCmd(opts),
+		ListCmd(opts),
+		WaitAttCmd(opts),
+		opts.DeployCmd(opts),
+		opts.AgentCmd(opts),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
@@ -105,15 +109,9 @@ func initializeOptions(o *Options) error {
 }
 
 func (o *Options) runBaseCommand() error {
-	if err := o.determineUsageMode(&o.RbacMode); err != nil {
-		return err
-	}
-	if err := o.determineVerbosity(&o.Verbose); err != nil {
-		return err
-	}
 	o.printVerbose("Attaching debugger")
 
-	if o.RbacMode {
+	if o.Config.secureMode {
 		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
 		if err := o.runBaseCommandWithRbac(); err != nil {
 			return err

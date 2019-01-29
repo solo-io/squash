@@ -131,3 +131,30 @@ generatedocs:
 previewsite:
 	cd site && python3 -m http.server 0
 
+
+
+####
+# squashclt
+# builds squashctl for each os (linux and darwin), puts output in the target/ dir
+####
+
+.PHONY: squashctl
+squashctl: target/squashctl target/squashctl-osx target/squashctl-linux target/kubesquash-container/kubesquash-container
+	echo "Building all squashctl"
+
+# (convenience only) this one will will build squashctl for the builder's os
+target/squashctl: target $(SRCS)
+	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
+
+target/squashctl-osx: target $(SRCS)
+	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
+
+target/squashctl-linux: target $(SRCS)
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
+
+target/kubesquash-container/:
+	[ -d $@ ] || mkdir -p $@
+
+target/kubesquash-container/kubesquash-container: | target/kubesquash-container/
+target/kubesquash-container/kubesquash-container: $(SRCS)
+	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o $@ ./cmd/kubesquash-container/main.go
