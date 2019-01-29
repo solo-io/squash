@@ -33,7 +33,7 @@
 - [x] allow installation of squash agent from cli
 ## outstanding
 - [ ] (P0) interactive input for RBAC mode
-- [ ] (P0) decide what to call RBAC/Agent
+- [x] (P0) decide what to call RBAC/Agent
 - [ ] (P0) choose container in interactive mode
 - [ ] (P1, testing, docs) python support updates
 - [ ] (P1, testing, docs) java support updates

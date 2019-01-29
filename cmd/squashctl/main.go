@@ -10,17 +10,9 @@ import (
 	"github.com/solo-io/squash/pkg/version"
 )
 
-var serverurl string
-var jsonoutput bool
-
-type Error struct {
-	Type string
-	Info string
-}
-
 func main() {
 	start := time.Now()
-	defer check.CallReport("squash", version.Version, start)
+	defer check.CallReport("squashctl", version.Version, start)
 
 	app, err := cli.App(version.Version)
 	if err != nil {
@@ -32,5 +24,4 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
 }

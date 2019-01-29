@@ -93,7 +93,10 @@ func defaultAgentOptions() AgentOptions {
 }
 
 type Internal struct {
+	// ConfigLoaded should be set once the config has been loaded
 	ConfigLoaded bool
+	// ConfigRead should be set once the config has been read
+	ConfigRead bool
 }
 
 type Config struct {
