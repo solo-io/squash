@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/solo-io/squash/pkg/cmd/cli"
+	"github.com/solo-io/squash/pkg/squashctl"
 	"github.com/solo-io/squash/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 )
 
 func main() {
-	app, err := cli.App(version.Version)
+	app, err := squashctl.App(version.Version)
 	if err != nil {
 		log.Fatal(err)
 	}
