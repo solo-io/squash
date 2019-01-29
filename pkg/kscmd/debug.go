@@ -103,50 +103,53 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	if dp.config.LiteMode || dp.config.DebugServer {
-		// TODO: do we want to delete the pod on successful completion?
-		// that would require us to track the lifetime of the session
-
-		// print the pod name and exit
-
-		if !dp.config.InCluster {
-			// Starting port forward in background.
-			portSpec := sqOpts.DebuggerPort
-			localConnectPort := sqOpts.DebuggerPort
-			if dp.config.LocalPort != 0 {
-				portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
-				localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
-			}
-			cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
-			cmd1.Stdout = os.Stdout
-			cmd1.Stderr = os.Stderr
-			cmd1.Stdin = os.Stdin
-			err = cmd1.Start()
-			if err != nil {
-				dp.showLogs(err, createdPod)
-				return nil, err
-			}
-
-			// Delaying to allow port forwarding to complete.
-			duration := time.Duration(5) * time.Second
-			time.Sleep(duration)
-
-			cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
-			cmd2.Stdout = os.Stdout
-			cmd2.Stderr = os.Stderr
-			cmd2.Stdin = os.Stdin
-			err = cmd2.Run()
-			if err != nil {
-				log.Warn("failed, printing logs")
-				log.Warn(err)
-				dp.showLogs(err, createdPod)
-				return nil, err
-			}
-		}
-
+	if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
+		return nil, err
 	}
+
 	return createdPod, nil
 }
+
+func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.Pod) error {
+	if dp.config.InCluster ||
+		(!dp.config.LiteMode && !dp.config.DebugServer) {
+		return nil
+	}
+	// Starting port forward in background.
+	portSpec := sqOpts.DebuggerPort
+	localConnectPort := sqOpts.DebuggerPort
+	if dp.config.LocalPort != 0 {
+		portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
+		localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
+	}
+	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
+	cmd1.Stdout = os.Stdout
+	cmd1.Stderr = os.Stderr
+	cmd1.Stdin = os.Stdin
+	err := cmd1.Start()
+	if err != nil {
+		dp.showLogs(err, createdPod)
+		return err
+	}
+
+	// Delaying to allow port forwarding to complete.
+	duration := time.Duration(5) * time.Second
+	time.Sleep(duration)
+
+	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
+	cmd2.Stdin = os.Stdin
+	err = cmd2.Run()
+	if err != nil {
+		log.Warn("failed, printing logs")
+		log.Warn(err)
+		dp.showLogs(err, createdPod)
+		return err
+	}
+	return nil
+}
+
 func (dp *DebugPrepare) deletePod(createdPod *v1.Pod) {
 	var options metav1.DeleteOptions
 	dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
