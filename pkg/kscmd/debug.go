@@ -30,7 +30,6 @@ type SquashConfig struct {
 	TimeoutSeconds        int
 	DebugContainerVersion string
 	DebugContainerRepo    string
-	DebugServer           bool
 	LiteMode              bool
 	LocalPort             int
 
@@ -86,8 +85,7 @@ func StartDebugContainer(config SquashConfig) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	// TODO: we may be able to delete with DebugServer. see TODO below
-	if (!dp.config.DebugServer) && (!config.NoClean) {
+	if !config.NoClean {
 		// do not remove the pod on a debug server as it is waiting for a
 		// connection
 		defer dp.deletePod(createdPod)
@@ -444,10 +442,6 @@ func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
 	const crisockvolume = "crisock"
-	isDebugServer := ""
-	if dp.config.DebugServer {
-		isDebugServer = "1"
-	}
 
 	// this is our convention for naming the container images that contain specific debuggers
 	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
@@ -492,9 +486,6 @@ func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername s
 				}, {
 					Name:  "SQUASH_CONTAINER",
 					Value: containername,
-				}, {
-					Name:  "DEBUGGER_SERVER",
-					Value: fmt.Sprintf("%s", isDebugServer),
 				},
 				}},
 			},
