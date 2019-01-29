@@ -2,10 +2,9 @@
 # Before tagging a new release
 
 ## Dev tasks
-- [ ] update makefile for new client/docker settings
-- [ ] update the Makefile
+- [ ] (P0) update makefile for new client/docker settings
 - [x] combine with Kube-squash
-- [ ] bring vscode extension code into this repo
+- [ ] (P1) bring vscode extension code into this repo
 - [x] make it easier to deploy sample apps
 - [x] deployment manifest for go w/ java sample microservice
 
@@ -37,25 +36,25 @@
 - [x] allow in/out-of cluster to be configured as a flag - will not do
 - [x] allow installation of squash agent from cli
 ## outstanding
-- [ ] interactive input for RBAC mode
-- [ ] decide what to call RBAC/Agent
-- [ ] choose container in interactive mode
-- [ ] python support updates
-- [ ] java support updates
-- [ ] nodejs support updates
-- [ ] simplify DebugAttachment.State options
+- [ ] (P0) interactive input for RBAC mode
+- [ ] (P0) decide what to call RBAC/Agent
+- [ ] (P0) choose container in interactive mode
+- [ ] (P1, testing, docs) python support updates
+- [ ] (P1, testing, docs) java support updates
+- [ ] (P1, testing, docs) nodejs support updates
+- [ ] (P1, future) simplify DebugAttachment.State options
 ## e2e tests
-- [ ] rbac mode
-- [ ] non rbac mode
+- [x] rbac mode
+- [ ] (P1) non rbac mode
 
 ## Release tasks
-- [ ] update the docs
-  - [ ] no server required
+- [ ] (P0) update the docs
+  - [ ] (P0) no server required
   - [x] new cli flags
-  - [ ] caveats for each debugger/ide
-- [ ] tag a release update
-- [ ] push a new image to dockerhub
-- [ ] update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
+  - [ ] (P1) caveats for each debugger/ide
+- [ ] (P0) (small) tag a release update
+- [ ] (P0) (small) push a new image to dockerhub
+- [ ] (P0) (small) update the tag in `github.com/solo-io/squash/contrib/kubernetes/squash-client.yml`
 
 ## Other
 - delete this file
