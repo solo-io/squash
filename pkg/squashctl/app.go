@@ -85,7 +85,7 @@ func App(version string) (*cobra.Command, error) {
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
-	applyLiteFlags(&opts.LiteOptions, app.PersistentFlags())
+	applyLiteFlags(&opts.Squash, app.PersistentFlags())
 
 	return app, nil
 }
@@ -128,7 +128,7 @@ func (o *Options) runBaseCommand() error {
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
-		_, err := kscmd.StartDebugContainer(o.LiteOptions, o.Debugee)
+		_, err := kscmd.StartDebugContainer(o.Squash, o.Debugee)
 		return err
 	}
 
@@ -144,9 +144,9 @@ func (top *Options) runBaseCommandWithRbac() error {
 	// TODO(mitchdraft) - use kubernetes' generate name instead of making a dummy name
 	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
 
-	lo := top.LiteOptions
+	so := top.Squash
 
-	podSpec, err := top.KubeClient.Core().Pods(lo.Namespace).Get(lo.Pod, meta_v1.GetOptions{})
+	podSpec, err := top.KubeClient.Core().Pods(so.Namespace).Get(so.Pod, meta_v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -158,16 +158,17 @@ func (top *Options) runBaseCommandWithRbac() error {
 	// TODO(mitchdraft) - get these values interactively
 	_, err = uc.Attach(
 		daName,
-		lo.Namespace,
+		so.Namespace,
 		image,
-		lo.Pod,
-		lo.Container,
+		so.Pod,
+		so.Container,
 		"",
-		lo.Debugger)
+		so.Debugger)
 	return err
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
+	fmt.Println("ensuring")
 
 	if err := o.chooseDebugger(); err != nil {
 		return err
@@ -226,11 +227,15 @@ func (o *Options) GetMissing() error {
 
 	//	clientset.CoreV1().Namespace().
 	// see if namespace exist, and if not prompt for one.
+	fmt.Println("o.Squash.Namespace")
+	fmt.Println(o.Squash.Namespace)
 	if o.Squash.Namespace == "" {
-		if err := o.chooseNamespace(); err != nil {
+		if err := o.chooseAllowedNamespace(&(o.Squash.Namespace), "Select a namespace to debug"); err != nil {
 			return errors.Wrap(err, "choosing namespace")
 		}
 	}
+	fmt.Println("o.Squash.Namespace")
+	fmt.Println(o.Squash.Namespace)
 
 	if o.Squash.Pod == "" {
 		if err := o.choosePod(); err != nil {
@@ -300,11 +305,11 @@ func chooseContainer(o *Options) error {
 	return errors.New("selected container not found")
 }
 
-func (o *Options) chooseNamespace() error {
+func (o *Options) chooseAllowedNamespace(target *string, question string) error {
 
 	namespaces, err := o.KubeClient.CoreV1().Namespaces().List(meta_v1.ListOptions{})
 	if err != nil {
-		return errors.Wrap(err, "reading namesapces")
+		return errors.Wrap(err, "reading namespaces")
 	}
 	namespaceNames := make([]string, 0, len(namespaces.Items))
 	for _, ns := range namespaces.Items {
@@ -322,15 +327,15 @@ func (o *Options) chooseNamespace() error {
 	}
 
 	if len(namespaceNames) == 1 {
-		o.Squash.Namespace = namespaceNames[0]
+		*target = namespaceNames[0]
 		return nil
 	}
 
-	question := &survey.Select{
-		Message: "Select a namespace",
+	prompt := &survey.Select{
+		Message: question,
 		Options: namespaceNames,
 	}
-	if err := survey.AskOne(question, &o.Squash.Namespace, survey.Required); err != nil {
+	if err := survey.AskOne(prompt, target, survey.Required); err != nil {
 		return err
 	}
 	return nil

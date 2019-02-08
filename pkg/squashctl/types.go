@@ -22,9 +22,8 @@ type Options struct {
 	ctx          context.Context
 	Wait         Wait
 
-	LiteOptions config.Squash
-	Squash      config.Squash
-	Debugee     kscmd.Debugee
+	Squash  config.Squash
+	Debugee kscmd.Debugee
 
 	DeployOptions DeployOptions
 

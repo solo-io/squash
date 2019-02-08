@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var defaultDemoNamespace = "default"
+
 func (top *Options) DeployCmd(o *Options) *cobra.Command {
 	dOpts := &o.DeployOptions
 	cmd := &cobra.Command{
@@ -29,7 +31,7 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 		Use:   "demo",
 		Short: "deploy a demo microservice",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := ensureDemoDeployOpts(demoOpts); err != nil {
+			if err := top.ensureDemoDeployOpts(demoOpts); err != nil {
 				return err
 			}
 			switch demoOpts.DemoId {
@@ -48,14 +50,27 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&demoOpts.Namespace1, "demoNamespace1", "default", "namespace in which to install the sample app")
+	f.StringVar(&demoOpts.Namespace1, "demoNamespace1", "", "namespace in which to install the sample app")
 	f.StringVar(&demoOpts.Namespace2, "demoNamespace2", "", "(optional) ns for second app - defaults to 'namespace' flag's value")
 	f.StringVar(&demoOpts.DemoId, "demoId", "default", "which sample microservice to deploy. Options: go-go, go-java")
 	return cmd
 }
 
-func ensureDemoDeployOpts(dOpts *DemoOptions) error {
-	// TODO(mitchdraft) - interactive mode
+func (top *Options) ensureDemoDeployOpts(dOpts *DemoOptions) error {
+	if dOpts.Namespace1 == "" {
+		if top.Squash.Machine {
+			dOpts.Namespace1 = defaultDemoNamespace
+		} else {
+			top.chooseAllowedNamespace(&dOpts.Namespace1, "Select a namespace for service 1.")
+		}
+	}
+	if dOpts.Namespace2 == "" {
+		if top.Squash.Machine {
+			dOpts.Namespace2 = dOpts.Namespace1
+		} else {
+			top.chooseAllowedNamespace(&dOpts.Namespace2, "Select a namespace for service 2.")
+		}
+	}
 	return nil
 }
 
@@ -64,7 +79,7 @@ func (top *Options) deployAgentCmd(agentOpts *AgentOptions) *cobra.Command {
 		Use:   "agent",
 		Short: "deploy a squash agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := ensureAgentDeployOpts(agentOpts); err != nil {
+			if err := top.ensureAgentDeployOpts(agentOpts); err != nil {
 				return err
 			}
 			return install.InstallAgent(top.KubeClient, agentOpts.Namespace)
@@ -74,7 +89,7 @@ func (top *Options) deployAgentCmd(agentOpts *AgentOptions) *cobra.Command {
 	f.StringVar(&agentOpts.Namespace, "agentNamespace", install.DefaultNamespace, "namespace in which to install the sample app")
 	return cmd
 }
-func ensureAgentDeployOpts(dOpts *AgentOptions) error {
+func (top *Options) ensureAgentDeployOpts(dOpts *AgentOptions) error {
 	// TODO(mitchdraft) - interactive mode
 	return nil
 }
