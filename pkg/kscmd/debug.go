@@ -16,7 +16,6 @@ import (
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -27,29 +26,6 @@ func StartDebugContainer(cfg config.Squash, dbg Debugee) (*v1.Pod, error) {
 
 	dp := DebugPrepare{
 		config: cfg,
-	}
-
-	// debugger := cfg.Debugger
-	// chooseDebugger()
-
-	// podname := cfg.Pod
-	// image := cfg.Container
-
-	// dbg, err := dp.GetMissing(podname, image)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	if !cfg.Machine {
-		confirmed := false
-		prompt := &survey.Confirm{
-			Message: "Going to attach " + cfg.Debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
-			Default: true,
-		}
-		survey.AskOne(prompt, &confirmed, nil)
-		if !confirmed {
-			return nil, errors.New("user aborted")
-		}
 	}
 
 	dbgpod, err := dp.debugPodFor(cfg.Debugger, dbg.Pod, dbg.Container.Name)

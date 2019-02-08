@@ -172,7 +172,22 @@ func (o *Options) ensureMinimumSquashConfig() error {
 	if err := o.chooseDebugger(); err != nil {
 		return err
 	}
-	return o.GetMissing()
+	if err := o.GetMissing(); err != nil {
+		return err
+	}
+
+	if !o.Squash.Machine {
+		confirmed := false
+		prompt := &survey.Confirm{
+			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.Debugee.Pod.ObjectMeta.Name + ". continue?",
+			Default: true,
+		}
+		survey.AskOne(prompt, &confirmed, nil)
+		if !confirmed {
+			return errors.New("user aborted")
+		}
+	}
+	return nil
 }
 
 func (o *Options) chooseDebugger() error {
