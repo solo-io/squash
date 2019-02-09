@@ -56,8 +56,12 @@ func StartDebugContainer(cfg config.Squash, dbg Debugee) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
-		return nil, err
+	if cfg.Machine {
+		fmt.Printf("pod.name: %v", createdPod.Name)
+	} else {
+		if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
+			return nil, err
+		}
 	}
 
 	return createdPod, nil

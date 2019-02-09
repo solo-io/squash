@@ -10,7 +10,7 @@ import (
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -104,7 +104,7 @@ func RandKubeNameBytes(n int) string {
 }
 
 func (top *Options) printVerbose(msg string) {
-	if top.Config.verbose {
+	if top.Config.verbose && !top.Squash.Machine {
 		fmt.Println(msg)
 	}
 }
@@ -151,7 +151,6 @@ func getChangedFlags(cmd *cobra.Command) map[string]pflag.Value {
 	setFlags := make(map[string]pflag.Value)
 	ff := func(f *pflag.Flag) {
 		if f.Changed {
-			fmt.Println("flag changed", f.Name)
 			setFlags[f.Name] = f.Value
 		}
 	}
