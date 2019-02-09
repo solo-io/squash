@@ -7,7 +7,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/models"
 
 	"github.com/spf13/cobra"
@@ -57,7 +57,7 @@ func (o *Options) listattachments(name string) error {
 		if err != nil {
 			return err
 		}
-		if o.Json {
+		if !o.Json {
 			printDebugAttachments(das)
 		} else {
 			// TODO - update the ide plugins to use the new format then remove this
