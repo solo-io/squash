@@ -41,7 +41,7 @@ func StartDebugContainer(cfg config.Squash, dbg Debugee) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	if !cfg.NoClean {
+	if !cfg.Machine && !cfg.NoClean {
 		// do not remove the pod on a debug server as it is waiting for a
 		// connection
 		defer dp.deletePod(createdPod)
