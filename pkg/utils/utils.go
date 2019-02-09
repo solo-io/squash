@@ -3,12 +3,13 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
 	"github.com/solo-io/squash/pkg/install"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -65,4 +66,21 @@ func DeleteSquashDeployment(kc *kubernetes.Clientset, namespace, name string) er
 		return err
 	}
 	return nil
+}
+
+// FindAnyFreePort returns a random port that is not in use.
+// It does so by claiming a random open port, then closing it.
+func FindAnyFreePort(port *int) error {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return err
+	}
+
+	tmpListener, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	*port = tmpListener.Addr().(*net.TCPAddr).Port
+	return tmpListener.Close()
 }

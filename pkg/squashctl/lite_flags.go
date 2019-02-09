@@ -1,10 +1,7 @@
 package squashctl
 
 import (
-	"fmt"
-
 	"github.com/solo-io/squash/pkg/config"
-	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/version"
 	"github.com/spf13/pflag"
 )
@@ -19,7 +16,7 @@ func applyLiteFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.DebugContainerVersion, "container-version", version.ImageVersion, "debug container version to use")
 	f.StringVar(&cfg.DebugContainerRepo, "container-repo", version.ImageRepo, "debug container repo to use")
 
-	f.IntVar(&cfg.LocalPort, "localport", 0, fmt.Sprintf("port to use to connect to debugger (defaults to %v)", sqOpts.DebuggerPort))
+	f.IntVar(&cfg.LocalPort, "localport", 0, "local port to use to connect to debugger (defaults to random free port)")
 
 	f.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")
 	f.StringVar(&cfg.Debugger, "debugger", "dlv", "Debugger to use")

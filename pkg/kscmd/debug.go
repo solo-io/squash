@@ -14,6 +14,7 @@ import (
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
+	"github.com/solo-io/squash/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "k8s.io/api/core/v1"
@@ -68,12 +69,18 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 		return nil
 	}
 	// Starting port forward in background.
-	portSpec := sqOpts.DebuggerPort
-	localConnectPort := sqOpts.DebuggerPort
-	if dp.config.LocalPort != 0 {
-		portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
-		localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
+	activeLocalPort := dp.config.LocalPort
+	if activeLocalPort == 0 {
+		// In this case, user wants to use a random open port.
+		// We need to know the port so we can configure port-forwarding
+		// so rather than letting the os choose an unknown port we
+		// find a port that we know to be free.
+		if err := utils.FindAnyFreePort(&activeLocalPort); err != nil {
+			return err
+		}
 	}
+	portSpec := fmt.Sprintf("%v:%v", activeLocalPort, sqOpts.DebuggerPort)
+	localConnectPort := fmt.Sprintf("%v", activeLocalPort)
 	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
 	cmd1.Stdout = os.Stdout
 	cmd1.Stderr = os.Stderr
