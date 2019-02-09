@@ -144,22 +144,14 @@ func (top *Options) runBaseCommandWithRbac() error {
 	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
 
 	so := top.Squash
-
-	podSpec, err := top.KubeClient.Core().Pods(so.Namespace).Get(so.Pod, meta_v1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	// TODO(mitchdraft) - choose among images (rather than taking the first)
-	image := podSpec.Spec.Containers[0].Image
+	dbge := top.Debugee
 
 	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
-	// TODO(mitchdraft) - get these values interactively
 	_, err = uc.Attach(
 		daName,
 		so.Namespace,
-		image,
-		so.Pod,
+		dbge.Container.Image,
+		dbge.Pod.Name,
 		so.Container,
 		"",
 		so.Debugger)

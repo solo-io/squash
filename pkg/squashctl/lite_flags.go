@@ -8,7 +8,7 @@ import (
 
 func applyLiteFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	depBool := false // TODO(mitchdraft) update extension to not pass debug-server
-	f.BoolVar(&cfg.NoClean, "no-clean", false, "don't clean temporar pod when existing")
+	f.BoolVar(&cfg.NoClean, "no-clean", false, "don't clean temporary pod when existing")
 	f.BoolVar(&cfg.ChooseDebugger, "no-guess-debugger", false, "don't auto detect debugger to use")
 	f.BoolVar(&cfg.ChoosePod, "no-guess-pod", false, "don't auto detect pod to use")
 	f.BoolVar(&depBool, "debug-server", false, "[deprecated] start a debug server instead of an interactive session")
