@@ -85,7 +85,7 @@ func App(version string) (*cobra.Command, error) {
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
-	applyLiteFlags(&opts.Squash, app.PersistentFlags())
+	applySquashFlags(&opts.Squash, app.PersistentFlags())
 
 	return app, nil
 }
