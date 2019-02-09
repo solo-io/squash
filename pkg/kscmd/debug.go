@@ -83,6 +83,9 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 		dp.showLogs(err, createdPod)
 		return err
 	}
+	// kill the kubectl port-forward process on exit to free the port
+	// this defer must be called after Start() initializes Process
+	defer cmd1.Process.Kill()
 
 	// Delaying to allow port forwarding to complete.
 	duration := time.Duration(5) * time.Second
