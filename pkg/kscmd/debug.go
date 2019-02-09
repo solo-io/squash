@@ -78,6 +78,10 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 		if err := utils.FindAnyFreePort(&activeLocalPort); err != nil {
 			return err
 		}
+	} else {
+		if err := utils.ExpectPortToBeFree(activeLocalPort); err != nil {
+			return fmt.Errorf("Port %v already in use. Please choose a different port or remove the --localport flag for a free port to be chosen automatically.", activeLocalPort)
+		}
 	}
 	portSpec := fmt.Sprintf("%v:%v", activeLocalPort, sqOpts.DebuggerPort)
 	localConnectPort := fmt.Sprintf("%v", activeLocalPort)

@@ -75,12 +75,26 @@ func FindAnyFreePort(port *int) error {
 	if err != nil {
 		return err
 	}
+	return checkAddressAndGetPort(addr, port)
+}
 
+// IsPortFree checks if the given port is available for use
+func ExpectPortToBeFree(port int) error {
+	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%v", port))
+	if err != nil {
+		return err
+	}
+	return checkAddressAndGetPort(addr, nil)
+}
+
+// if passed an optional port, sets the value to the address's port
+func checkAddressAndGetPort(addr *net.TCPAddr, port *int) error {
 	tmpListener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return err
 	}
-
-	*port = tmpListener.Addr().(*net.TCPAddr).Port
+	if port != nil {
+		*port = tmpListener.Addr().(*net.TCPAddr).Port
+	}
 	return tmpListener.Close()
 }
