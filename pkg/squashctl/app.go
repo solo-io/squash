@@ -227,15 +227,11 @@ func (o *Options) GetMissing() error {
 
 	//	clientset.CoreV1().Namespace().
 	// see if namespace exist, and if not prompt for one.
-	fmt.Println("o.Squash.Namespace")
-	fmt.Println(o.Squash.Namespace)
 	if o.Squash.Namespace == "" {
 		if err := o.chooseAllowedNamespace(&(o.Squash.Namespace), "Select a namespace to debug"); err != nil {
 			return errors.Wrap(err, "choosing namespace")
 		}
 	}
-	fmt.Println("o.Squash.Namespace")
-	fmt.Println(o.Squash.Namespace)
 
 	if o.Squash.Pod == "" {
 		if err := o.choosePod(); err != nil {
