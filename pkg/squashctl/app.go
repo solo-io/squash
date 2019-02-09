@@ -116,7 +116,6 @@ func initializeOptions(o *Options) error {
 func (o *Options) runBaseCommand() error {
 	o.printVerbose("Attaching debugger")
 
-	// WIP - pausing for UI - this will gather the interactive stuff
 	if err := o.ensureMinimumSquashConfig(); err != nil {
 		return err
 	}
@@ -168,12 +167,14 @@ func (top *Options) runBaseCommandWithRbac() error {
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
-	fmt.Println("ensuring")
 
 	if err := o.chooseDebugger(); err != nil {
 		return err
 	}
 	if err := o.GetMissing(); err != nil {
+		return err
+	}
+	if err := o.ensureLocalPort(&o.Squash.LocalPort); err != nil {
 		return err
 	}
 
@@ -377,4 +378,24 @@ func (o *Options) choosePod() error {
 	}
 
 	return errors.New("pod not found")
+}
+
+func (o *Options) ensureLocalPort(port *int) error {
+	if port == nil {
+		return fmt.Errorf("Port must not be nil")
+	}
+	if *port == 0 {
+		// In this case, user wants to use a random open port.
+		// We need to know the port so we can configure port-forwarding
+		// so rather than letting the os choose an unknown port we
+		// find a port that we know to be free.
+		if err := utils.FindAnyFreePort(port); err != nil {
+			return err
+		}
+	} else {
+		if err := utils.ExpectPortToBeFree(*port); err != nil {
+			return fmt.Errorf("Port %v already in use. Please choose a different port or remove the --localport flag for a free port to be chosen automatically.", *port)
+		}
+	}
+	return nil
 }
