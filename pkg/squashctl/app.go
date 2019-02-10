@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,11 +14,14 @@ import (
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/kscmd"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
+	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/solo-io/squash/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
+	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -158,6 +162,10 @@ func (o *Options) runBaseCommand() error {
 }
 
 func (top *Options) runBaseCommandWithRbac() error {
+	if err := top.ensureSquashIsInCluster(); err != nil {
+		return err
+	}
+
 	uc, err := actions.NewUserController()
 	if err != nil {
 		return err
@@ -169,6 +177,11 @@ func (top *Options) runBaseCommandWithRbac() error {
 	so := top.Squash
 	dbge := top.Debugee
 
+	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	if err != nil {
+		return err
+	}
+
 	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
 	_, err = uc.Attach(
 		daName,
@@ -178,6 +191,26 @@ func (top *Options) runBaseCommandWithRbac() error {
 		so.Container,
 		"",
 		so.Debugger)
+	// wait until pod is created, print its name so the extension can connect
+
+	// TODO(mitchdraft) - add this to the configuration file
+	// 1 second was not long enough, status still pending, could not port-forward
+	// 3 seconds might be overkill
+	time.Sleep(3 * time.Second)
+	createdPod := &core_v1.Pod{}
+	if err := top.getCreatedPod(initialPods, createdPod); err != nil {
+		return err
+	}
+
+	if top.Squash.Machine {
+		fmt.Printf("pod.name: %v", createdPod.Name)
+	} else {
+		// TODO - bring connectUser into this scope (one way or another)
+		// if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
+		// 	return nil, err
+		// }
+	}
+
 	return err
 }
 
@@ -411,6 +444,50 @@ func (o *Options) ensureLocalPort(port *int) error {
 		if err := utils.ExpectPortToBeFree(*port); err != nil {
 			return fmt.Errorf("Port %v already in use. Please choose a different port or remove the --localport flag for a free port to be chosen automatically.", *port)
 		}
+	}
+	return nil
+}
+
+func (o *Options) ensureSquashIsInCluster() error {
+	nsList, err := squashkubeutils.GetNamespaces(o.KubeClient)
+	if err != nil {
+		return err
+	}
+	squashDeployments, err := utils.ListSquashDeployments(o.KubeClient, nsList)
+	if err != nil {
+		return err
+	}
+
+	if len(squashDeployments) == 0 {
+		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl agent deploy'.")
+	}
+
+	return nil
+}
+
+func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
+	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	if err != nil {
+		return err
+	}
+	// Make a set from the current pods
+	var lookup = make(map[string]core_v1.Pod)
+	for _, p := range currentPods.Items {
+		lookup[p.Name] = p
+	}
+	// Remove the initial pods
+	for _, p := range initialPods.Items {
+		delete(lookup, p.Name)
+	}
+	// Expect our newly created pod to be the only one left
+	matchCount := 0
+	for k, v := range lookup {
+		fmt.Println(k)
+		matchCount++
+		*createdPod = v
+	}
+	if matchCount != 1 {
+		return fmt.Errorf("Expected to find one newly created squash debug pod, found %v", matchCount)
 	}
 	return nil
 }
