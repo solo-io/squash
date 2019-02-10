@@ -7,13 +7,10 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/pkg/errors"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/pkg/config"
-	"github.com/solo-io/squash/pkg/kscmd"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
@@ -154,7 +151,7 @@ func (o *Options) runBaseCommand() error {
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
-		_, err := kscmd.StartDebugContainer(o.Squash, o.Debugee)
+		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
 		return err
 	}
 
@@ -175,7 +172,7 @@ func (top *Options) runBaseCommandWithRbac() error {
 	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
 
 	so := top.Squash
-	dbge := top.Debugee
+	dbge := top.DebugTarget
 
 	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
@@ -202,16 +199,7 @@ func (top *Options) runBaseCommandWithRbac() error {
 		return err
 	}
 
-	if top.Squash.Machine {
-		fmt.Printf("pod.name: %v", createdPod.Name)
-	} else {
-		// TODO - bring connectUser into this scope (one way or another)
-		// if err := dp.connectUser(debuggerPodNamespace, createdPod); err != nil {
-		// 	return nil, err
-		// }
-	}
-
-	return err
+	return top.Squash.ReportOrConnectToCreatedDebuggerPod(createdPod)
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -229,7 +217,7 @@ func (o *Options) ensureMinimumSquashConfig() error {
 	if !o.Squash.Machine {
 		confirmed := false
 		prompt := &survey.Confirm{
-			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.Debugee.Pod.ObjectMeta.Name + ". continue?",
+			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.DebugTarget.Pod.ObjectMeta.Name + ". continue?",
 			Default: true,
 		}
 		survey.AskOne(prompt, &confirmed, nil)
@@ -287,10 +275,8 @@ func (o *Options) GetMissing() error {
 			return errors.Wrap(err, "choosing pod")
 		}
 	} else {
-		var err error
-		o.Debugee.Pod, err = o.KubeClient.CoreV1().Pods(o.Squash.Namespace).Get(o.Squash.Pod, meta_v1.GetOptions{})
-		if err != nil {
-			return errors.Wrap(err, "fetching pod")
+		if err := o.Squash.GetDebugTargetPodFromSpec(&o.DebugTarget); err != nil {
+			return err
 		}
 	}
 
@@ -299,29 +285,21 @@ func (o *Options) GetMissing() error {
 			return errors.Wrap(err, "choosing container")
 		}
 	} else {
-		for _, podContainer := range o.Debugee.Pod.Spec.Containers {
-			log.Debug(podContainer.Image)
-			if strings.HasPrefix(podContainer.Image, o.Squash.Container) {
-				o.Debugee.Container = &podContainer
-				break
-			}
-		}
-		if o.Debugee.Container == nil {
-			// time.Sleep(555 * time.Second)
-			return errors.New(fmt.Sprintf("no such container image: %v", o.Squash.Container))
+		if err := o.Squash.GetDebugTargetContainerFromSpec(&o.DebugTarget); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func chooseContainer(o *Options) error {
-	pod := o.Debugee.Pod
+	pod := o.DebugTarget.Pod
 	if len(pod.Spec.Containers) == 0 {
 		return errors.New("no container to choose from")
 
 	}
 	if len(pod.Spec.Containers) == 1 {
-		o.Debugee.Container = &pod.Spec.Containers[0]
+		o.DebugTarget.Container = &pod.Spec.Containers[0]
 		return nil
 	}
 
@@ -342,7 +320,7 @@ func chooseContainer(o *Options) error {
 
 	for _, container := range pod.Spec.Containers {
 		if choice == container.Name {
-			o.Debugee.Container = &container
+			o.DebugTarget.Container = &container
 			return nil
 		}
 	}
@@ -420,7 +398,7 @@ func (o *Options) choosePod() error {
 	}
 	for _, pod := range pods.Items {
 		if choice == pod.ObjectMeta.Name {
-			o.Debugee.Pod = &pod
+			o.DebugTarget.Pod = &pod
 			return nil
 		}
 	}
