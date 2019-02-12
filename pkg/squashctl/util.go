@@ -14,6 +14,7 @@ import (
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"gopkg.in/AlecAivazis/survey.v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -172,4 +173,15 @@ func getFlagSpec(cmd *cobra.Command) string {
 		}
 	}
 	return str
+}
+
+func (top *Options) chooseString(message string, choice *string, options []string) error {
+	question := &survey.Select{
+		Message: message,
+		Options: options,
+	}
+	if err := survey.AskOne(question, choice, survey.Required); err != nil {
+		return err
+	}
+	return nil
 }

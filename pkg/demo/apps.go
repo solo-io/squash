@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -101,6 +101,7 @@ func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName s
 func int32Ptr(i int32) *int32 { return &i }
 
 func DeployGoGo(cs *kubernetes.Clientset, namespace, namespace2 string) error {
+	fmt.Println("deploying go-go sample microservice")
 	app1Name := GoApp1Name
 	template1Name := GoTemplate1Name
 
@@ -119,6 +120,7 @@ func DeployGoGo(cs *kubernetes.Clientset, namespace, namespace2 string) error {
 }
 
 func DeployGoJava(cs *kubernetes.Clientset, namespace, namespace2 string) error {
+	fmt.Println("deploying go-java sample microservice")
 
 	app1Name := GoApp1Name
 	template1Name := GoTemplate1Name
