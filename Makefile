@@ -1,6 +1,5 @@
 DOCKER_REPO ?= soloio
-# VERSION ?= $(shell git describe --tags)
-VERSION = "mkdev"
+VERSION ?= $(shell git describe --tags)
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
 IMAGE_VERSION ?= "v0.1.9" # TODO(mitchdraft) - replace with actual workflow
 
