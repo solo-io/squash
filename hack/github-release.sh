@@ -32,7 +32,7 @@ BODY=$(cat <<EOF
   "tag_name": "${tag}",
   "target_commitish": "master",
   "name": "${tag}",
-  "body": "${tag} release of kubesquash binaries",
+  "body": "${tag} release of squash binaries",
   "draft": false,
   "prerelease": false
 }

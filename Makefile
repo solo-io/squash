@@ -90,11 +90,11 @@ publish-extension: bump-extension-version ## (vscode) Publishes extension
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
-	cd extension/vscode && vsce package
+	cd editor/vscode && vsce package
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	cd extension/vscode && \
+	cd editor/vscode && \
 	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
 	mv package.json.tmp package.json && \
 	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum target/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum target/squashctl-osx|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
@@ -125,26 +125,3 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
-
-####
-# squashclt
-# builds squashctl for each os (linux and darwin), puts output in the target/ dir
-####
-
-# .PHONY: squashctl
-# squashctl: target/squashctl-osx target/squashctl-linux target/debugger-container/debugger-container
-# 	echo "Building all squashctl"
-
-# .PHONY: squashctldev
-# squashctldev: target/squashctl target/debugger-container/debugger-container
-# 	echo "just building for the default OS"
-
-# # (convenience only) this one will will build squashctl for the builder's os
-# target/squashctl: target $(SRCS)
-# 	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
-
-# target/squashctl-osx: target $(SRCS)
-# 	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
-
-# target/squashctl-linux: target $(SRCS)
-# 	GOOS=linux go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go

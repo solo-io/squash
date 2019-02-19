@@ -141,7 +141,6 @@ func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	}
 }
 
-// uses the kubesquash debug approach
 func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	s := config.Squash{
 		TimeoutSeconds: 300,
