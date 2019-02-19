@@ -107,7 +107,7 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.IntVar(&cfg.LocalPort, "localport", 0, "local port to use to connect to debugger (defaults to random free port)")
 
 	f.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")
-	f.StringVar(&cfg.Debugger, "debugger", "dlv", "Debugger to use")
+	f.StringVar(&cfg.Debugger, "debugger", "", "Debugger to use")
 	f.StringVar(&cfg.Namespace, "namespace", "", "Namespace to debug")
 	f.StringVar(&cfg.Pod, "pod", "", "Pod to debug")
 	f.StringVar(&cfg.Container, "container", "", "Container to debug")
@@ -229,17 +229,16 @@ func (o *Options) ensureMinimumSquashConfig() error {
 }
 
 func (o *Options) chooseDebugger() error {
-	if len(o.Squash.Debugger) != 0 {
+	if o.Squash.Debugger != "" {
 		return nil
 	}
 
-	availableDebuggers := []string{"dlv", "gdb"}
 	debugger := o.detectLang()
 
 	if debugger == "" {
 		question := &survey.Select{
 			Message: "Select a debugger",
-			Options: availableDebuggers,
+			Options: sqOpts.AvailableDebuggers,
 		}
 		var choice string
 		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
@@ -257,7 +256,7 @@ func (o *Options) detectLang() string {
 		return ""
 	}
 	// TODO: find some decent huristics to make this work
-	return "dlv"
+	return ""
 }
 
 func (o *Options) GetMissing() error {

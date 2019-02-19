@@ -20,4 +20,6 @@ var (
 	SquashLabelSelectorKey    = "squash"
 	SquashLabelSelectorValue  = ContainerName
 	SquashLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
+
+	AvailableDebuggers = []string{"dlv", "gdb", "java", "nodejs", "nodejs8", "python"}
 )

@@ -137,6 +137,10 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 		return nil
 	}
 	// Starting port forward in background.
+	// TODO(mitchdraft) - consider using the Proxied port (OutPort)
+	// - will need to use a pseudoterminal for the command line debuggers to work properly
+	// - otherwise control signals can be mistaken as disconnection requests.
+	// portSpec := fmt.Sprintf("%v:%v", s.LocalPort, sqOpts.OutPort)
 	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, sqOpts.DebuggerPort)
 	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", s.getDebuggerPodNamespace())
 	cmd1.Stdout = os.Stdout
@@ -261,11 +265,22 @@ func (s *Squash) getClientSet() kubernetes.Interface {
 
 }
 
+// Containers have a common name, suffixed by the particular debugger that they have installed
+// TODO(mitchdraft) - implement more specific debug containers (for example, bare containers for debuggers that don't need a specific process)
+// for now, default to the gdb variant
+func containerNameFromSpec(debugger string) string {
+	containerVariant := "gdb"
+	if debugger == "dlv" {
+		containerVariant = "dlv"
+	}
+	return fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, containerVariant)
+}
+
 func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
 	const crisockvolume = "crisock"
 
 	// this is our convention for naming the container images that contain specific debuggers
-	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
+	fullParticularContainerName := containerNameFromSpec(debugger)
 	// repoRoot/containerName:tag
 	targetImage := fmt.Sprintf("%v/%v:%v", s.DebugContainerRepo, fullParticularContainerName, s.DebugContainerVersion)
 	templatePod := &v1.Pod{
@@ -307,6 +322,9 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 				}, {
 					Name:  "SQUASH_CONTAINER",
 					Value: containername,
+				}, {
+					Name:  "DEBUGGER_NAME",
+					Value: s.Debugger,
 				},
 				}},
 			},
