@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/pkg/errors"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/pkg/config"
-	"github.com/solo-io/squash/pkg/kscmd"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
+	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/solo-io/squash/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
+	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -150,7 +151,7 @@ func (o *Options) runBaseCommand() error {
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
-		_, err := kscmd.StartDebugContainer(o.Squash, o.Debugee)
+		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
 		return err
 	}
 
@@ -158,6 +159,10 @@ func (o *Options) runBaseCommand() error {
 }
 
 func (top *Options) runBaseCommandWithRbac() error {
+	if err := top.ensureSquashIsInCluster(); err != nil {
+		return err
+	}
+
 	uc, err := actions.NewUserController()
 	if err != nil {
 		return err
@@ -167,7 +172,12 @@ func (top *Options) runBaseCommandWithRbac() error {
 	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
 
 	so := top.Squash
-	dbge := top.Debugee
+	dbge := top.DebugTarget
+
+	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	if err != nil {
+		return err
+	}
 
 	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
 	_, err = uc.Attach(
@@ -178,7 +188,18 @@ func (top *Options) runBaseCommandWithRbac() error {
 		so.Container,
 		"",
 		so.Debugger)
-	return err
+	// wait until pod is created, print its name so the extension can connect
+
+	// TODO(mitchdraft) - add this to the configuration file
+	// 1 second was not long enough, status still pending, could not port-forward
+	// 3 seconds might be overkill
+	time.Sleep(3 * time.Second)
+	createdPod := &core_v1.Pod{}
+	if err := top.getCreatedPod(initialPods, createdPod); err != nil {
+		return err
+	}
+
+	return top.Squash.ReportOrConnectToCreatedDebuggerPod(createdPod)
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -196,7 +217,7 @@ func (o *Options) ensureMinimumSquashConfig() error {
 	if !o.Squash.Machine {
 		confirmed := false
 		prompt := &survey.Confirm{
-			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.Debugee.Pod.ObjectMeta.Name + ". continue?",
+			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.DebugTarget.Pod.ObjectMeta.Name + ". continue?",
 			Default: true,
 		}
 		survey.AskOne(prompt, &confirmed, nil)
@@ -254,10 +275,8 @@ func (o *Options) GetMissing() error {
 			return errors.Wrap(err, "choosing pod")
 		}
 	} else {
-		var err error
-		o.Debugee.Pod, err = o.KubeClient.CoreV1().Pods(o.Squash.Namespace).Get(o.Squash.Pod, meta_v1.GetOptions{})
-		if err != nil {
-			return errors.Wrap(err, "fetching pod")
+		if err := o.Squash.GetDebugTargetPodFromSpec(&o.DebugTarget); err != nil {
+			return err
 		}
 	}
 
@@ -266,29 +285,21 @@ func (o *Options) GetMissing() error {
 			return errors.Wrap(err, "choosing container")
 		}
 	} else {
-		for _, podContainer := range o.Debugee.Pod.Spec.Containers {
-			log.Debug(podContainer.Image)
-			if strings.HasPrefix(podContainer.Image, o.Squash.Container) {
-				o.Debugee.Container = &podContainer
-				break
-			}
-		}
-		if o.Debugee.Container == nil {
-			// time.Sleep(555 * time.Second)
-			return errors.New(fmt.Sprintf("no such container image: %v", o.Squash.Container))
+		if err := o.Squash.GetDebugTargetContainerFromSpec(&o.DebugTarget); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func chooseContainer(o *Options) error {
-	pod := o.Debugee.Pod
+	pod := o.DebugTarget.Pod
 	if len(pod.Spec.Containers) == 0 {
 		return errors.New("no container to choose from")
 
 	}
 	if len(pod.Spec.Containers) == 1 {
-		o.Debugee.Container = &pod.Spec.Containers[0]
+		o.DebugTarget.Container = &pod.Spec.Containers[0]
 		return nil
 	}
 
@@ -309,7 +320,7 @@ func chooseContainer(o *Options) error {
 
 	for _, container := range pod.Spec.Containers {
 		if choice == container.Name {
-			o.Debugee.Container = &container
+			o.DebugTarget.Container = &container
 			return nil
 		}
 	}
@@ -387,7 +398,7 @@ func (o *Options) choosePod() error {
 	}
 	for _, pod := range pods.Items {
 		if choice == pod.ObjectMeta.Name {
-			o.Debugee.Pod = &pod
+			o.DebugTarget.Pod = &pod
 			return nil
 		}
 	}
@@ -411,6 +422,50 @@ func (o *Options) ensureLocalPort(port *int) error {
 		if err := utils.ExpectPortToBeFree(*port); err != nil {
 			return fmt.Errorf("Port %v already in use. Please choose a different port or remove the --localport flag for a free port to be chosen automatically.", *port)
 		}
+	}
+	return nil
+}
+
+func (o *Options) ensureSquashIsInCluster() error {
+	nsList, err := squashkubeutils.GetNamespaces(o.KubeClient)
+	if err != nil {
+		return err
+	}
+	squashDeployments, err := utils.ListSquashDeployments(o.KubeClient, nsList)
+	if err != nil {
+		return err
+	}
+
+	if len(squashDeployments) == 0 {
+		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl agent deploy'.")
+	}
+
+	return nil
+}
+
+func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
+	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	if err != nil {
+		return err
+	}
+	// Make a set from the current pods
+	var lookup = make(map[string]core_v1.Pod)
+	for _, p := range currentPods.Items {
+		lookup[p.Name] = p
+	}
+	// Remove the initial pods
+	for _, p := range initialPods.Items {
+		delete(lookup, p.Name)
+	}
+	// Expect our newly created pod to be the only one left
+	matchCount := 0
+	for k, v := range lookup {
+		fmt.Println(k)
+		matchCount++
+		*createdPod = v
+	}
+	if matchCount != 1 {
+		return fmt.Errorf("Expected to find one newly created squash debug pod, found %v", matchCount)
 	}
 	return nil
 }

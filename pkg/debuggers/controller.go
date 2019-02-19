@@ -7,9 +7,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
-	"github.com/solo-io/squash/pkg/kscmd"
 	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/version"
 )
@@ -142,9 +141,8 @@ func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	}
 }
 
-// uses the kubesquash debug approach
 func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
-	ksConfig := config.Squash{
+	s := config.Squash{
 		TimeoutSeconds: 300,
 		Machine:        true,
 		NoClean:        true,
@@ -159,7 +157,11 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		Pod:       da.Pod,
 		Container: da.Image,
 	}
-	debPod, err := kscmd.StartDebugContainer(ksConfig)
+	dbt := config.DebugTarget{}
+	if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
+		return err
+	}
+	debPod, err := config.StartDebugContainer(s, dbt)
 	if err != nil {
 		return err
 	}

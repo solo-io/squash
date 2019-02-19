@@ -35,13 +35,9 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 				return err
 			}
 			switch demoOpts.DemoId {
-			case "default":
-				fallthrough
 			case demo.DemoGoGo:
-				fmt.Println("using go-go")
 				return demo.DeployGoGo(top.KubeClient, demoOpts.Namespace1, demoOpts.Namespace2)
 			case demo.DemoGoJava:
-				fmt.Println("using go-java")
 				return demo.DeployGoJava(top.KubeClient, demoOpts.Namespace1, demoOpts.Namespace2)
 			default:
 				return fmt.Errorf("Please choose a valid demo option: %v", strings.Join(demo.DemoIds, ", "))
@@ -50,9 +46,9 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&demoOpts.Namespace1, "demoNamespace1", "", "namespace in which to install the sample app")
-	f.StringVar(&demoOpts.Namespace2, "demoNamespace2", "", "(optional) ns for second app - defaults to 'namespace' flag's value")
-	f.StringVar(&demoOpts.DemoId, "demoId", "default", "which sample microservice to deploy. Options: go-go, go-java")
+	f.StringVar(&demoOpts.Namespace1, "demo-namespace1", "", "namespace in which to install the sample app")
+	f.StringVar(&demoOpts.Namespace2, "demo-namespace2", "", "(optional) ns for second app - defaults to 'namespace' flag's value")
+	f.StringVar(&demoOpts.DemoId, "demo-id", "", "which sample microservice to deploy. Options: go-go, go-java")
 	return cmd
 }
 
@@ -69,6 +65,13 @@ func (top *Options) ensureDemoDeployOpts(dOpts *DemoOptions) error {
 			dOpts.Namespace2 = dOpts.Namespace1
 		} else {
 			top.chooseAllowedNamespace(&dOpts.Namespace2, "Select a namespace for service 2.")
+		}
+	}
+	if dOpts.DemoId == "" {
+		if top.Squash.Machine {
+			dOpts.DemoId = defaultDemoNamespace
+		} else {
+			top.chooseString("Choose a demo microservice to deploy", &dOpts.DemoId, demo.DemoIds)
 		}
 	}
 	return nil

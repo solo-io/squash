@@ -2,125 +2,119 @@ DOCKER_REPO ?= soloio
 VERSION ?= $(shell git describe --tags)
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
 IMAGE_VERSION ?= "v0.1.9" # TODO(mitchdraft) - replace with actual workflow
+
+.PHONY: all
+all: binaries containers ## (default) Builds binaries and containers
+
+.PHONY: help
+help:
+	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
+
+.PHONY: binaries
+binaries: target/debugger-container/debugger-container target/squashctl # Builds squashctl binaries in and places them in target/ folder
+
+RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
+
+.PHONY: release-binaries
+release-binaries: $(RELEASE_BINARIES)
+
+.PHONY: containers
+containers: target/debugger-container-dlv-container target/debugger-container-gdb-container ## Builds debug containers
+
+.PHONY: push-containers
+push-containers: target/debugger-container-dlv-pushed target/debugger-container-gdb-pushed ## Pushes debug containers to $(DOCKER_REPO)
+
+.PHONY: release
+release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
+
+.PHONY: upload-release
+upload-release: ## Uploads artifacts to GitHub releases
+	./hack/github-release.sh owner=solo-io repo=squash tag=$(VERSION)
+	@$(foreach BINARY,$(RELEASE_BINARIES),./hack/upload-github-release-asset.sh owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
+
+SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
+
+# Pass in build-time variables
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE) \
 -X github.com/solo-io/squash/pkg/version.ImageVersion=$(IMAGE_VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
-.PHONY: all
-all: binaries deployment
-
-.PHONY: binaries
-binaries: target/squash-client/squash-client target/squash
-
-RELEASE_BINARIES := target/squash-client/squash-client target/squash-linux target/squash-osx target/squash-windows
-
-.PHONY: release-binaries
-release-binaries: $(RELEASE_BINARIES)
-
-.PHONY: manifests
-manifests: deployment
-	cp -f target/kubernetes/squash-client.yml ./contrib/kubernetes
-
-.PHONY: upload-release
-upload-release: release-binaries manifests dist
-	./contrib/github-release.sh github_api_token=$(GITHUB_TOKEN) owner=solo-io repo=squash tag=$(VERSION)
-	@$(foreach BINARY,$(RELEASE_BINARIES),./contrib/upload-github-release-asset.sh github_api_token=$(GITHUB_TOKEN) owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
-
-.PHONY: containers
-containers: target/squash-client-container
-
-.PHONY: prep-containers
-prep-containers: target/squash-client/squash-client target/squash-client/Dockerfile
-
-
-SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
-
 target:
 	[ -d $@ ] || mkdir -p $@
 
-target/squash: target $(SRCS)
-	go build -o $@ ./cmd/squash-cli
+target/squashctl: target $(SRCS)
+	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/squash-linux: target $(SRCS)
-	GOOS=linux go build -o $@ ./cmd/squash-cli
+target/squashctl-osx: target $(SRCS)
+	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/squash-osx: target $(SRCS)
-	GOOS=darwin go build -o $@ ./cmd/squash-cli
+target/squashctl-linux: target $(SRCS)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/squash-windows: target $(SRCS)
-	GOOS=windows go build -o $@ ./cmd/squash-cli
-
-target/squash-client/: | target
-target/squash-client/:
+target/debugger-container/:
 	[ -d $@ ] || mkdir -p $@
 
-target/squash-client/squash-client: | target/squash-client/
-target/squash-client/squash-client: $(SRCS)
-	GOOS=linux CGO_ENABLED=0 go build -ldflags '-w' -o target/squash-client/squash-client ./cmd/squash-client/platforms/kubernetes
+target/debugger-container/debugger-container: | target/debugger-container/
+target/debugger-container/debugger-container: $(SRCS)
+	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/debugger-container/debugger-container ./cmd/debugger-container/
 
-target/squash-client/Dockerfile: | target/squash-client/
 
-target/squash-client/Dockerfile: ./cmd/squash-client/platforms/kubernetes/Dockerfile
-	cp -f ./cmd/squash-client/platforms/kubernetes/Dockerfile ./target/squash-client/Dockerfile
-
-target/squash-client-container: target/squash-client/squash-client target/squash-client/Dockerfile
-	docker build -t $(DOCKER_REPO)/squash-client:$(VERSION) ./target/squash-client/
+target/debugger-container/Dockerfile.dlv:    | target/debugger-container/
+target/debugger-container/Dockerfile.dlv: cmd/debugger-container/Dockerfile.dlv
+	cp cmd/debugger-container/Dockerfile.dlv target/debugger-container/Dockerfile.dlv
+target/debugger-container-dlv-container: ./target/debugger-container/debugger-container target/debugger-container/Dockerfile.dlv
+	docker build -f target/debugger-container/Dockerfile.dlv -t $(DOCKER_REPO)/debugger-container-dlv:$(VERSION) ./target/debugger-container/
 	touch $@
 
-target/squash-client-base-container:
-	docker build -t $(DOCKER_REPO)/squash-client-base -f cmd/squash-client/platforms/kubernetes/Dockerfile.base cmd/squash-client/platforms/kubernetes/
+target/debugger-container-dlv-pushed: target/debugger-container-dlv-container
+	docker push $(DOCKER_REPO)/debugger-container-dlv:$(VERSION)
 	touch $@
 
-.PHONY: push-client-base
-push-client-base:
-	docker push $(DOCKER_REPO)/squash-client-base
 
-target/%.yml : contrib/%.yml.tmpl
-	SQUASH_REPO=$(DOCKER_REPO) SQUASH_VERSION=$(VERSION) go run contrib/templategen.go $< > $@
 
-target/kubernetes/squash-client.yml: target/squash-client-container
+target/debugger-container/Dockerfile.gdb:    | target/debugger-container/
+target/debugger-container/Dockerfile.gdb: cmd/debugger-container/Dockerfile.gdb
+	cp cmd/debugger-container/Dockerfile.gdb target/debugger-container/Dockerfile.gdb
+target/debugger-container-gdb-container: ./target/debugger-container/debugger-container target/debugger-container/Dockerfile.gdb
+	docker build -f target/debugger-container/Dockerfile.gdb -t $(DOCKER_REPO)/debugger-container-gdb:$(VERSION) ./target/debugger-container/
+	touch $@
+target/debugger-container-gdb-pushed: target/debugger-container-gdb-container
+	docker push $(DOCKER_REPO)/debugger-container-gdb:$(VERSION)
+	touch $@
 
-target/kubernetes/:
-	[ -d $@ ] || mkdir -p $@
+.PHONY: publish-extension
+publish-extension: bump-extension-version ## (vscode) Publishes extension
+	./hack/publish-extension.sh
 
-deployment: | target/kubernetes/
-deployment: target/kubernetes/squash-client.yml
+.PHONY: package-extension
+package-extension: bump-extension-version ## (vscode) Packages extension
+	cd editor/vscode && vsce package
 
+.PHONY: bump-extension-version
+bump-extension-version:  ## (vscode) Bumps extension version
+	cd editor/vscode && \
+	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
+	mv package.json.tmp package.json && \
+	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum target/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum target/squashctl-osx|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
+	mv src/squash.json.tmp src/squash.json
 
 .PHONY: clean
-clean:
+clean: ## Deletes target folder
 	rm -rf target
 
-dist: target/squash-client-container
-	docker push $(DOCKER_REPO)/squash-client:$(VERSION)
+dist: target/debugger-container-gdb-pushed target/debugger-container-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
 
-# make the solo-kit-provided resources
-# do this on initialization and whenever the apichanges
-.PHONY: generate-sk
-generate-sk: docs-and-code/v1
 
-docs-and-code/v1:
-	go run cmd/generate-code/main.go
-
-# this will be removed when clis merge
-.PHONY: tmpkubesquash
-tmpkubesquash:
-	go build -o target/tmpks/tmpks cmd/kubesquash/main.go
-
-.PHONY: tmpagent
-tmpagent:
-	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash-agent cmd/agent/main.go
-
-.PHONY: runtest
-runtest: tmpagent
-	cd test/e2e/ && ginkgo -v .
-
+## Temp
 DEVVERSION="dev"
 .PHONY: devpush
 devpush:
 	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/agent/Dockerfile ./target/agent/
 	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)
+
+
+# Docs
 
 .PHONY: generatedocs
 generatedocs:
@@ -130,35 +124,3 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
-
-
-
-####
-# squashclt
-# builds squashctl for each os (linux and darwin), puts output in the target/ dir
-####
-
-.PHONY: squashctl
-squashctl: target/squashctl-osx target/squashctl-linux target/kubesquash-container/kubesquash-container
-	echo "Building all squashctl"
-
-.PHONY: squashctldev
-squashctldev: target/squashctl target/kubesquash-container/kubesquash-container
-	echo "just building for the default OS"
-
-# (convenience only) this one will will build squashctl for the builder's os
-target/squashctl: target $(SRCS)
-	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
-
-target/squashctl-osx: target $(SRCS)
-	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
-
-target/squashctl-linux: target $(SRCS)
-	GOOS=linux go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl/main.go
-
-target/kubesquash-container/:
-	[ -d $@ ] || mkdir -p $@
-
-target/kubesquash-container/kubesquash-container: | target/kubesquash-container/
-target/kubesquash-container/kubesquash-container: $(SRCS)
-	GOOS=linux CGO_ENABLED=0  go build -ldflags '-w' -o $@ ./cmd/kubesquash-container/main.go

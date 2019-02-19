@@ -8,7 +8,7 @@ var (
 	DebuggerPort = "1235"
 
 	// The name used inside of a pod spec to refer to the container that runs the debugger
-	ContainerName = "kubesquash-container"
+	ContainerName = "debugger-container"
 
 	// The root name (of the container image repo name) that will be shared among debugger-specific containers
 	// Examples of particular container names: <RootName>-dlv, <RootName>-gdb, etc.
