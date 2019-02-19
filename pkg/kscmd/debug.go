@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -17,45 +16,19 @@ import (
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	survey "gopkg.in/AlecAivazis/survey.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
-func StartDebugContainer(cfg config.Squash) (*v1.Pod, error) {
+func StartDebugContainer(cfg config.Squash, dbg Debugee) (*v1.Pod, error) {
 
 	dp := DebugPrepare{
 		config: cfg,
 	}
 
-	debugger, err := dp.chooseDebugger()
-	if err != nil {
-		return nil, err
-	}
-
-	podname := cfg.Pod
-	image := cfg.Container
-
-	dbg, err := dp.GetMissing(podname, image)
-	if err != nil {
-		return nil, err
-	}
-
-	if !cfg.Machine {
-		confirmed := false
-		prompt := &survey.Confirm{
-			Message: "Going to attach " + debugger + " to pod " + dbg.Pod.ObjectMeta.Name + ". continue?",
-			Default: true,
-		}
-		survey.AskOne(prompt, &confirmed, nil)
-		if !confirmed {
-			return nil, errors.New("user aborted")
-		}
-	}
-
-	dbgpod, err := dp.debugPodFor(debugger, dbg.Pod, dbg.Container.Name)
+	dbgpod, err := dp.debugPodFor(cfg.Debugger, dbg.Pod, dbg.Container.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -95,12 +68,7 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 		return nil
 	}
 	// Starting port forward in background.
-	portSpec := sqOpts.DebuggerPort
-	localConnectPort := sqOpts.DebuggerPort
-	if dp.config.LocalPort != 0 {
-		portSpec = fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
-		localConnectPort = fmt.Sprintf("%v", dp.config.LocalPort)
-	}
+	portSpec := fmt.Sprintf("%v:%v", dp.config.LocalPort, sqOpts.DebuggerPort)
 	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", debuggerPodNamespace)
 	cmd1.Stdout = os.Stdout
 	cmd1.Stderr = os.Stderr
@@ -110,13 +78,16 @@ func (dp *DebugPrepare) connectUser(debuggerPodNamespace string, createdPod *v1.
 		dp.showLogs(err, createdPod)
 		return err
 	}
+	// kill the kubectl port-forward process on exit to free the port
+	// this defer must be called after Start() initializes Process
+	defer cmd1.Process.Kill()
 
 	// Delaying to allow port forwarding to complete.
 	duration := time.Duration(5) * time.Second
 	time.Sleep(duration)
 
 	// TODO(mitchdraft) dlv only atm - check if dlv before doing this
-	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localConnectPort))
+	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", dp.config.LocalPort))
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	cmd2.Stdin = os.Stdin
@@ -228,199 +199,6 @@ func (dp *DebugPrepare) getClientSet() kubernetes.Interface {
 	dp.clientset = cs
 	return dp.clientset
 
-}
-
-func (dp *DebugPrepare) GetMissing(podname, image string) (*Debugee, error) {
-
-	//	clientset.CoreV1().Namespace().
-	// see if namespace exist, and if not prompt for one.
-	var options metav1.GetOptions
-	var debuggee Debugee
-	if dp.config.Namespace == "" {
-		var err error
-		(&dp.config).Namespace, err = dp.chooseNamespace()
-		if err != nil {
-			return nil, errors.Wrap(err, "choosing namespace")
-		}
-	}
-
-	if podname == "" {
-		var err error
-		debuggee.Pod, err = dp.choosePod(dp.config.Namespace, image)
-		if err != nil {
-			return nil, errors.Wrap(err, "choosing pod")
-		}
-	} else {
-		var err error
-		debuggee.Pod, err = dp.getClientSet().CoreV1().Pods(dp.config.Namespace).Get(podname, options)
-		if err != nil {
-			return nil, errors.Wrap(err, "fetching pod")
-		}
-	}
-
-	if image == "" {
-		var err error
-		debuggee.Container, err = dp.chooseContainer(debuggee.Pod)
-		if err != nil {
-			return nil, errors.Wrap(err, "choosing container")
-		}
-	} else {
-		for _, podContainer := range debuggee.Pod.Spec.Containers {
-			log.Debug(podContainer.Image)
-			if strings.HasPrefix(podContainer.Image, image) {
-				debuggee.Container = &podContainer
-				break
-			}
-		}
-		if debuggee.Container == nil {
-			// time.Sleep(555 * time.Second)
-			return nil, errors.New(fmt.Sprintf("no such container image: %v", image))
-		}
-	}
-	return &debuggee, nil
-}
-
-func (dp *DebugPrepare) chooseContainer(pod *v1.Pod) (*v1.Container, error) {
-	if len(pod.Spec.Containers) == 0 {
-		return nil, errors.New("no container to choose from")
-
-	}
-	if len(pod.Spec.Containers) == 1 {
-		return &pod.Spec.Containers[0], nil
-	}
-
-	containerNames := make([]string, 0, len(pod.Spec.Containers))
-	for _, container := range pod.Spec.Containers {
-		contname := container.Name
-		containerNames = append(containerNames, contname)
-	}
-
-	question := &survey.Select{
-		Message: "Select a container",
-		Options: containerNames,
-	}
-	var choice string
-	if err := survey.AskOne(question, &choice, survey.Required); err != nil {
-		return nil, err
-	}
-
-	for _, container := range pod.Spec.Containers {
-		if choice == container.Name {
-			return &container, nil
-		}
-	}
-
-	return nil, errors.New("selected container not found")
-}
-
-func (dp *DebugPrepare) detectLang() string {
-	if dp.config.ChooseDebugger {
-		// manual mode
-		return ""
-	}
-	// TODO: find some decent huristics to make this work
-	return "dlv"
-}
-
-func (dp *DebugPrepare) chooseDebugger() (string, error) {
-	if len(dp.config.Debugger) != 0 {
-		return dp.config.Debugger, nil
-	}
-
-	availableDebuggers := []string{"dlv", "gdb"}
-	debugger := dp.detectLang()
-
-	if debugger == "" {
-		question := &survey.Select{
-			Message: "Select a debugger",
-			Options: availableDebuggers,
-		}
-		var choice string
-		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
-			return "", err
-		}
-		return choice, nil
-	}
-	return debugger, nil
-}
-
-func (dp *DebugPrepare) chooseNamespace() (string, error) {
-
-	var options metav1.ListOptions
-	namespaces, err := dp.getClientSet().CoreV1().Namespaces().List(options)
-	if err != nil {
-		return "", errors.Wrap(err, "reading namesapces")
-	}
-	namespaceNames := make([]string, 0, len(namespaces.Items))
-	for _, ns := range namespaces.Items {
-		nsname := ns.ObjectMeta.Name
-		if nsname == "squash" {
-			continue
-		}
-		if strings.HasPrefix(nsname, "kube-") {
-			continue
-		}
-		namespaceNames = append(namespaceNames, nsname)
-	}
-	if len(namespaceNames) == 0 {
-		return "", errors.New("no namespaces available!")
-	}
-
-	if len(namespaceNames) == 1 {
-		return namespaceNames[0], nil
-	}
-
-	question := &survey.Select{
-		Message: "Select a namespace",
-		Options: namespaceNames,
-	}
-	var choice string
-	if err := survey.AskOne(question, &choice, survey.Required); err != nil {
-		return "", err
-	}
-	return choice, nil
-}
-
-func (dp *DebugPrepare) choosePod(ns, image string) (*v1.Pod, error) {
-
-	var options metav1.ListOptions
-	pods, err := dp.getClientSet().CoreV1().Pods(ns).List(options)
-	if err != nil {
-		return nil, errors.Wrap(err, "reading namesapces")
-	}
-	podName := make([]string, 0, len(pods.Items))
-	for _, pod := range pods.Items {
-		if dp.config.ChoosePod || image == "" {
-			podName = append(podName, pod.ObjectMeta.Name)
-		} else {
-			for _, podContainer := range pod.Spec.Containers {
-				if strings.HasPrefix(podContainer.Image, image) {
-					podName = append(podName, pod.ObjectMeta.Name)
-					break
-				}
-			}
-		}
-	}
-
-	var choice string
-	if len(podName) == 1 {
-		choice = podName[0]
-	} else {
-		question := &survey.Select{
-			Message: "Select a pod",
-			Options: podName,
-		}
-		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
-			return nil, err
-		}
-	}
-	for _, pod := range pods.Items {
-		if choice == pod.ObjectMeta.Name {
-			return &pod, nil
-		}
-	}
-
-	return nil, errors.New("pod not found")
 }
 
 func (dp *DebugPrepare) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {

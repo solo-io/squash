@@ -3,8 +3,9 @@ package squashctl
 import (
 	"context"
 
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
+	"github.com/solo-io/squash/pkg/kscmd"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,7 +22,8 @@ type Options struct {
 	ctx          context.Context
 	Wait         Wait
 
-	LiteOptions config.Squash
+	Squash  config.Squash
+	Debugee kscmd.Debugee
 
 	DeployOptions DeployOptions
 

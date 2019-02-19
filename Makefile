@@ -139,8 +139,12 @@ previewsite:
 ####
 
 .PHONY: squashctl
-squashctl: target/squashctl target/squashctl-osx target/squashctl-linux target/kubesquash-container/kubesquash-container
+squashctl: target/squashctl-osx target/squashctl-linux target/kubesquash-container/kubesquash-container
 	echo "Building all squashctl"
+
+.PHONY: squashctldev
+squashctldev: target/squashctl target/kubesquash-container/kubesquash-container
+	echo "just building for the default OS"
 
 # (convenience only) this one will will build squashctl for the builder's os
 target/squashctl: target $(SRCS)
