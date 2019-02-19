@@ -32,7 +32,14 @@ go run hack/monitor/main.go -namespaces stest-1,stest-2,stest-3,stest-4,stest-5,
 SERIALIZE_NAMESPACES=1 ginkgo -r
 ```
 
-## tmp - build kubesquash
+
+# Extensions
+## Visual Studio Code
+- install vsce
+```bash
+npm install -g vsce
 ```
-make -f Makefile_kubesquash
+- run `publish` from extension's root dir
+```bash
+vsce publish -p $VSCODE_TOKEN
 ```
