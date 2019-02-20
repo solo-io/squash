@@ -150,3 +150,20 @@ index 5e736cd..7602a60 100644
  }
  
 ```
+
+
+# Debugger notes
+
+## Java
+- use `jdb` to attach
+```bash
+jdb -attach localhost:<port> -sourcepath ~/path/to/src/main/java/
+```
+## Go
+- use 'dlv' to attach
+```bash
+dlv connect localhost:<port>
+```
+- how to specify source path
+  - init file TODO(mitchdraft)
+
