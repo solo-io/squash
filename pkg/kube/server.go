@@ -1,31 +1,42 @@
 package kube
 
 import (
-	"context"
+	"fmt"
 	"io"
 	"net"
-	"os"
-	"os/exec"
 
-	"github.com/pkg/errors"
-	"github.com/solo-io/go-utils/contextutils"
-	sqOpts "github.com/solo-io/squash/pkg/options"
-	"go.uber.org/zap"
+	"github.com/solo-io/squash/pkg/debuggers"
+	"github.com/solo-io/squash/pkg/debuggers/dlv"
+	"github.com/solo-io/squash/pkg/debuggers/gdb"
+	"github.com/solo-io/squash/pkg/debuggers/java"
+	"github.com/solo-io/squash/pkg/debuggers/nodejs"
+	"github.com/solo-io/squash/pkg/debuggers/python"
 )
 
-func startServer(ctx context.Context, cfg Config, pid int) error {
-	// we proxy so we can exit the debugger when disconnection occours
+func startDebugging(cfg Config, pid int) error {
 
-	dbgInfo := debuggerServer[cfg.Debugger]
-	if dbgInfo == nil {
-		return errors.New("unknown debugger")
-	}
-
-	cmd, err := startDebuggerServer(ctx, pid, dbgInfo)
+	particularDebugger := getParticularDebugger(cfg.Attachment.Debugger)
+	dbgServer, err := particularDebugger.Attach(pid)
 	if err != nil {
 		return err
 	}
 
+	if err := connectLocalPrepare(dbgServer); err != nil {
+		return err
+	}
+	if err := proxyConnection(dbgServer); err != nil {
+		return err
+	}
+	return nil
+}
+
+// we proxy so we can exit the debugger when disconnection occurs
+// and so that we don't need to know the port the debugger is using
+func proxyConnection(dbgServer debuggers.DebugServer) error {
+	// only proxy the debuggers that are called by this process
+	if dbgServer.Cmd() == nil {
+		return nil
+	}
 	errchan := make(chan error, 1)
 	reporterr := func(err error) {
 		select {
@@ -34,7 +45,7 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 		}
 	}
 	go func() {
-		reporterr(cmd.Wait())
+		reporterr(dbgServer.Cmd().Wait())
 	}()
 
 	conn, err := startLocalServer()
@@ -44,7 +55,7 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 	defer conn.Close()
 
 	// connect to debug server
-	conn2, err := net.Dial("tcp", ListenHost+":"+sqOpts.DebuggerPort)
+	conn2, err := net.Dial("tcp", fmt.Sprintf("%v:%v", ListenHost, dbgServer.Port()))
 	if err != nil {
 		return err
 	}
@@ -62,22 +73,21 @@ func startServer(ctx context.Context, cfg Config, pid int) error {
 	return <-errchan
 }
 
-func startDebuggerServer(ctx context.Context, pid int, dbgInfo *DebuggerInfo) (*exec.Cmd, error) {
-	// TODO: use squash's interfaces for a debug server
-	cmd := exec.Command("dlv", dbgInfo.CmdlineGen(pid)...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	logger := contextutils.LoggerFrom(ctx)
-	logger.Debugw("dlv command", "cmd", cmd, "args", cmd.Args)
+// TODO
+func connectLocalPrepare(dbgServer debuggers.DebugServer) error {
+	// Some debuggers work best when connected "locally"
+	// For these, we connect directly via `kubectl port-forward`
+	// We write the target port to a CRD to be read from squashctl
 
-	err := cmd.Start()
-	if err != nil {
-		logger.With(zap.Error(err)).Error("Failed to start dlv")
+	// get client
 
-		return nil, err
-	}
+	// try to find a pre-existing CRD for this debug activity
+	// create one if none exist
+	// findOrCreateDebugAttachmentCRD
 
-	return cmd, nil
+	// set port value
+
+	return nil
 }
 
 func startLocalServer() (net.Conn, error) {
@@ -89,4 +99,28 @@ func startLocalServer() (net.Conn, error) {
 	conn, err := l.Accept()
 	return conn, err
 
+}
+
+func getParticularDebugger(dbgtype string) debuggers.Debugger {
+	var g gdb.GdbInterface
+	var d dlv.DLV
+	var j java.JavaInterface
+	var p python.PythonInterface
+
+	switch dbgtype {
+	case "dlv":
+		return &d
+	case "gdb":
+		return &g
+	case "java":
+		return &j
+	case "nodejs":
+		return nodejs.NewNodeDebugger(nodejs.DebuggerPort)
+	case "nodejs8":
+		return nodejs.NewNodeDebugger(nodejs.InspectorPort)
+	case "python":
+		return &p
+	default:
+		return nil
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -37,6 +38,10 @@ func (d *ptvsdDebugServer) Port() int {
 
 func (d *ptvsdDebugServer) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeTarget
+}
+
+func (d *ptvsdDebugServer) Cmd() *exec.Cmd {
+	return nil
 }
 
 func (i *PythonInterface) Attach(pid int) (debuggers.DebugServer, error) {

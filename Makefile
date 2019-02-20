@@ -1,7 +1,8 @@
 DOCKER_REPO ?= soloio
-VERSION ?= $(shell git describe --tags)
+# VERSION ?= $(shell git describe --tags)
+VERSION ?= "mkdev2"
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
-IMAGE_VERSION ?= "v0.1.9" # TODO(mitchdraft) - replace with actual workflow
+IMAGE_VERSION ?= "mkdev" # TODO(mitchdraft) - replace with actual workflow
 
 .PHONY: all
 all: binaries containers ## (default) Builds binaries and containers
@@ -39,6 +40,10 @@ LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE) \
 -X github.com/solo-io/squash/pkg/version.ImageVersion=$(IMAGE_VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
+
+.PHONY: qdev
+qdev: target $(SRCS)
+	go build -ldflags=$(LDFLAGS) -o sq.out ./cmd/squashctl
 
 target:
 	[ -d $@ ] || mkdir -p $@

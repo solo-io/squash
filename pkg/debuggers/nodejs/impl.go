@@ -1,6 +1,7 @@
 package nodejs
 
 import (
+	"os/exec"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
@@ -32,6 +33,10 @@ func (g *nodejsDebugServer) Port() int {
 
 func (g *nodejsDebugServer) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeTarget
+}
+
+func (d *nodejsDebugServer) Cmd() *exec.Cmd {
+	return nil
 }
 
 func (g *nodejsDebugServer) Attach(pid int) (debuggers.DebugServer, error) {

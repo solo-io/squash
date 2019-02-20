@@ -1,7 +1,7 @@
-#! /bin/bash -x
+#! /bin/bash -x -e
 
 # this script is a helper for avoiding the trip to the container registry when iterating on processes that run in minikube
-Set the below args as you need
+# Set the below args as you need
 
 DOCKER_REPO="soloio"
 VERSION="mkdev2"

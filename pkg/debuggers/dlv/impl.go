@@ -18,6 +18,7 @@ type DLVLiveDebugSession struct {
 	client  *rpc1.RPCClient
 	port    int
 	process *os.Process
+	cmd     *exec.Cmd
 }
 
 func (d *DLVLiveDebugSession) Detach() error {
@@ -32,6 +33,10 @@ func (d *DLVLiveDebugSession) Port() int {
 
 func (d *DLVLiveDebugSession) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeClient
+}
+
+func (d *DLVLiveDebugSession) Cmd() *exec.Cmd {
+	return d.cmd
 }
 
 func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {

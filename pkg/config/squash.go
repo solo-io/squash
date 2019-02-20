@@ -6,11 +6,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/kr/pty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	sqOpts "github.com/solo-io/squash/pkg/options"
@@ -106,8 +110,11 @@ func (s *Squash) GetDebugTargetPodFromSpec(dbt *DebugTarget) error {
 }
 
 func (s *Squash) GetDebugTargetContainerFromSpec(dbt *DebugTarget) error {
+	fmt.Println("gdtcfs")
+	fmt.Println(dbt)
 	for _, podContainer := range dbt.Pod.Spec.Containers {
 		log.Debug(podContainer.Image)
+		log.Info(podContainer.Image)
 		if strings.HasPrefix(podContainer.Image, s.Container) {
 			dbt.Container = &podContainer
 			break
@@ -137,40 +144,104 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 		return nil
 	}
 	// Starting port forward in background.
-	// TODO(mitchdraft) - consider using the Proxied port (OutPort)
-	// - will need to use a pseudoterminal for the command line debuggers to work properly
-	// - otherwise control signals can be mistaken as disconnection requests.
-	// portSpec := fmt.Sprintf("%v:%v", s.LocalPort, sqOpts.OutPort)
-	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, sqOpts.DebuggerPort)
-	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", s.getDebuggerPodNamespace())
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	cmd1.Stdin = os.Stdin
-	err := cmd1.Start()
+	remoteDbgPort, err := s.getDebugPortFromCrd()
 	if err != nil {
+		return err
+	}
+	kubectlCmd := s.getPortForwardCmd(createdPod.ObjectMeta.Name, remoteDbgPort)
+	if err := kubectlCmd.Start(); err != nil {
 		s.showLogs(err, createdPod)
 		return err
 	}
 	// kill the kubectl port-forward process on exit to free the port
 	// this defer must be called after Start() initializes Process
-	defer cmd1.Process.Kill()
+	defer kubectlCmd.Process.Kill()
 
 	// Delaying to allow port forwarding to complete.
-	duration := time.Duration(5) * time.Second
-	time.Sleep(duration)
+	time.Sleep(5 * time.Second)
 
-	// TODO(mitchdraft) dlv only atm - check if dlv before doing this
-	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	cmd2.Stdin = os.Stdin
-	err = cmd2.Run()
-	if err != nil {
+	dbgCmd := s.getDebugCmd()
+	if err := dbgCmd.Run(); err != nil {
 		log.Warn("failed, printing logs")
 		log.Warn(err)
 		s.showLogs(err, createdPod)
 		return err
 	}
+	return nil
+}
+
+func (s *Squash) getPortForwardCmd(podName string, remotePort int) *exec.Cmd {
+	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, remotePort)
+	cmd := exec.Command("kubectl", "port-forward", podName, portSpec, "-n", s.getDebuggerPodNamespace())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd
+}
+
+func (s *Squash) getDebugCmd() *exec.Cmd {
+	cmd := &exec.Cmd{}
+	switch s.Debugger {
+	case "dlv":
+		cmd = exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
+	case "java":
+		cmd = exec.Command("jdb", "-attach", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
+	default:
+		log.Warn(fmt.Errorf("debugger not recognized %v", s.Debugger))
+		return nil
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd
+}
+
+func (s *Squash) getDebugPortFromCrd() (int, error) {
+	// TODO
+	// for now
+	port := 8000
+	if s.Debugger == "dlv" {
+		// TODO - replace
+		port = 1236 // 1236 for proxy
+	}
+	return port, nil
+}
+
+func ptyWrap(c *exec.Cmd) error {
+	// Create arbitrary command.
+	// c := exec.Command("bash")
+
+	// Start the command with a pty.
+	ptmx, err := pty.Start(c)
+	if err != nil {
+		return err
+	}
+	// Make sure to close the pty at the end.
+	defer func() { _ = ptmx.Close() }() // Best effort.
+
+	// Handle pty size.
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGWINCH)
+	go func() {
+		for range ch {
+			if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
+				log.Printf("error resizing pty: %s", err)
+			}
+		}
+	}()
+	ch <- syscall.SIGWINCH // Initial resize.
+
+	// Set stdin in raw mode.
+	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
+
+	// Copy stdin to the pty and the pty to stdout.
+	go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+	_, _ = io.Copy(os.Stdout, ptmx)
+
 	return nil
 }
 
@@ -297,8 +368,10 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeName:      in.Spec.NodeName,
 			Containers: []v1.Container{{
-				Name:      sqOpts.ContainerName,
-				Image:     targetImage,
+				Name:  sqOpts.ContainerName,
+				Image: targetImage,
+				// TODO - TEMP
+				// ImagePullPolicy: v1.PullAlways,
 				Stdin:     true,
 				StdinOnce: true,
 				TTY:       true,

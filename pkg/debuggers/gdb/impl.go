@@ -31,6 +31,10 @@ func (g *gdbDebugServer) HostType() debuggers.DebugHostType {
 	return debuggers.DebugHostTypeClient
 }
 
+func (d *gdbDebugServer) Cmd() *exec.Cmd {
+	return nil
+}
+
 func (g *GdbInterface) Attach(pid int) (debuggers.DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")

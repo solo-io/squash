@@ -1,5 +1,7 @@
 package debuggers
 
+import "os/exec"
+
 // DebugHostType - type of host to connect debugger
 type DebugHostType int
 
@@ -17,6 +19,8 @@ type DebugServer interface {
 	HostType() DebugHostType
 	/// Return the port that the debug server listens on.
 	Port() int
+	// Return the cmd representing the debugger process, if any
+	Cmd() *exec.Cmd
 }
 
 /// Debugger interface. implement this to add a new debugger support to squash.
