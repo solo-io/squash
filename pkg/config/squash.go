@@ -118,8 +118,6 @@ func (s *Squash) GetDebugTargetPodFromSpec(dbt *DebugTarget) error {
 }
 
 func (s *Squash) GetDebugTargetContainerFromSpec(dbt *DebugTarget) error {
-	fmt.Println("gdtcfs")
-	fmt.Println(dbt)
 	for _, podContainer := range dbt.Pod.Spec.Containers {
 		log.Debug(podContainer.Image)
 		log.Info(podContainer.Image)
@@ -182,8 +180,6 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 }
 
 func (s *Squash) getPortForwardCmd(dbgPodName string, dbgPodPort int) *exec.Cmd {
-	fmt.Println("s.Pod")
-	fmt.Println(s.Pod)
 	targetPodName, targetNamespace := "", ""
 	targetRemotePort := 0
 	switch s.Debugger {
@@ -203,9 +199,6 @@ func (s *Squash) getPortForwardCmd(dbgPodName string, dbgPodPort int) *exec.Cmd 
 	}
 	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, targetRemotePort)
 	cmd := exec.Command("kubectl", "port-forward", targetPodName, portSpec, "-n", targetNamespace)
-	fmt.Println("kubectl cmd")
-	fmt.Println(cmd.Path)
-	fmt.Println(cmd.Args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -223,9 +216,6 @@ func (s *Squash) getDebugCmd() *exec.Cmd {
 		log.Warn(fmt.Errorf("debugger not recognized %v", s.Debugger))
 		return nil
 	}
-	fmt.Println("dbug cmd")
-	fmt.Println(cmd.Path)
-	fmt.Println(cmd.Args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -244,8 +234,6 @@ func (s *Squash) getDebugPortFromCrd() (int, error) {
 }
 
 func ptyWrap(c *exec.Cmd) error {
-	// Create arbitrary command.
-	// c := exec.Command("bash")
 
 	// Start the command with a pty.
 	ptmx, err := pty.Start(c)
@@ -419,10 +407,8 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeName:      in.Spec.NodeName,
 			Containers: []v1.Container{{
-				Name:  sqOpts.ContainerName,
-				Image: targetImage,
-				// TODO - TEMP
-				// ImagePullPolicy: v1.PullAlways,
+				Name:      sqOpts.ContainerName,
+				Image:     targetImage,
 				Stdin:     true,
 				StdinOnce: true,
 				TTY:       true,
