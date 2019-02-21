@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/squash/pkg/kube"
@@ -20,7 +19,6 @@ func main() {
 	err := kube.Debug(ctx)
 	if err != nil {
 		fmt.Println(err)
-		time.Sleep(1000 * time.Second)
 		logger.With(zap.Error(err)).Fatal("debug failed!")
 
 	}

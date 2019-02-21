@@ -3,7 +3,6 @@ package kube
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/solo-io/squash/pkg/platforms"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
@@ -54,7 +53,6 @@ func Debug(ctx context.Context) error {
 	}
 
 	pid := info.Pids[0]
-	time.Sleep(10 * time.Second)
 	fmt.Println("about to serve")
 
 	return startDebugging(cfg, pid)

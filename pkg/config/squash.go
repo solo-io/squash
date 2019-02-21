@@ -161,7 +161,8 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 	time.Sleep(5 * time.Second)
 
 	dbgCmd := s.getDebugCmd()
-	if err := dbgCmd.Run(); err != nil {
+	if err := ptyWrap(dbgCmd); err != nil {
+		// if err := dbgCmd.Run(); err != nil {
 		log.Warn("failed, printing logs")
 		log.Warn(err)
 		s.showLogs(err, createdPod)
@@ -201,8 +202,8 @@ func (s *Squash) getDebugPortFromCrd() (int, error) {
 	// for now
 	port := 8000
 	if s.Debugger == "dlv" {
-		// TODO - replace
-		port = 1236 // 1236 for proxy
+		// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
+		port = 1236
 	}
 	return port, nil
 }

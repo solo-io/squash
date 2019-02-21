@@ -41,10 +41,6 @@ func (d *DLVLiveDebugSession) Cmd() *exec.Cmd {
 
 func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	cmd, port, err := startDebugServer(pid)
-
-	if cmd != nil {
-		go cmd.Wait()
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +50,8 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 		client:  client,
 		port:    port,
 		process: cmd.Process,
+		// store the cmd so we can Wait() for its compltion in the proxy
+		cmd: cmd,
 	}
 	return dls, nil
 }
