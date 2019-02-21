@@ -1,0 +1,15 @@
+steps:
+- name: 'gcr.io/$PROJECT_ID/dep'
+  args: ['ensure']
+  env:
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
+
+- name: 'gcr.io/$PROJECT_ID/go-make'
+  entrypoint: 'bash'
+  args: ['-c', 'tar -zvcf squash-dep.tar.gz ./gopath/pkg/dep']
+  env:
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
+  - 'GOPATH=/workspace/gopath'
+
+- name: gcr.io/cloud-builders/gsutil
+  args: ['cp', 'squash-dep.tar.gz', 'gs://solo-public-cache/squash']
