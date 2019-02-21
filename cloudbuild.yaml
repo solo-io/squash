@@ -6,7 +6,7 @@ steps:
 - name: 'gcr.io/$PROJECT_ID/dep'
   args: ['ensure']
   env:
-    - 'PROJECT_ROOT=github.com/solo-io/gloo'
+    - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GIT_SSH_CONFIG=FALSE'
   id: 'dep'
 
