@@ -1,4 +1,14 @@
 steps:
+  
+# Run dep to set up the project so it can be built and tested
+# Dep modifies workspace so that the code is moved into the PROJECT_ROOT
+# All steps after this must set GOPATH
+- name: 'gcr.io/$PROJECT_ID/dep'
+  args: ['ensure']
+  env:
+    - 'PROJECT_ROOT=github.com/solo-io/gloo'
+    - 'GIT_SSH_CONFIG=FALSE'
+  id: 'dep'
 
 - name: 'gcr.io/cloud-builders/go'
   env:
