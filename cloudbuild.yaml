@@ -12,26 +12,27 @@ steps:
 
 - name: 'gcr.io/cloud-builders/go'
   env:
-  - VERSION=$TAG_NAME
+  # - VERSION=$TAG_NAME
   entrypoint: make
-  args: ['binaries', 'release-binaries']
+  # args: ['binaries', 'release-binaries']
+  args: ['all']
 
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login --username soloiobot --password $$DOCKER_HUB_PASSWORD']
   secretEnv: ['DOCKER_HUB_PASSWORD']
 
-- name: 'gcr.io/cloud-builders/docker'
-  env:
-  - VERSION=$TAG_NAME
-  entrypoint: make
-  args: ['containers']
+# - name: 'gcr.io/cloud-builders/docker'
+#   env:
+#   # - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['containers']
 
-- name: 'gcr.io/$PROJECT_ID/vsce'
-  env:
-  - VERSION=$TAG_NAME
-  entrypoint: make
-  args: ['bump-extension-version']
+# - name: 'gcr.io/$PROJECT_ID/vsce'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['bump-extension-version']
 
 - name: node:10.10.0
   entrypoint: npm
@@ -41,19 +42,20 @@ steps:
 - name: 'gcr.io/$PROJECT_ID/vsce'
   args: ['package']
   dir: ./extension/vscode
-# publish
-- name: 'gcr.io/cloud-builders/docker'
-  env:
-  - VERSION=$TAG_NAME
-  entrypoint: make
-  args: ['push-containers']
 
-- name: 'gcr.io/$PROJECT_ID/go-make'
-  env:
-  - VERSION=$TAG_NAME
-  entrypoint: make
-  args: ['upload-release']
-  secretEnv: ['GITHUB_TOKEN']
+# # publish
+# - name: 'gcr.io/cloud-builders/docker'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['push-containers']
+
+# - name: 'gcr.io/$PROJECT_ID/go-make'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['upload-release']
+#   secretEnv: ['GITHUB_TOKEN']
 
   # TODO(mitchdraft) enable vscode publish
 #- name: 'gcr.io/$PROJECT_ID/vsce'
