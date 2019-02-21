@@ -12,7 +12,7 @@ steps:
 
 - name: 'gcr.io/cloud-builders/go'
   env:
-  # - VERSION=$TAG_NAME
+  - VERSION=$TAG_NAME
   entrypoint: make
   # args: ['binaries', 'release-binaries']
   args: ['all']
