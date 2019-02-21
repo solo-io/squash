@@ -20,7 +20,9 @@ import (
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -59,6 +61,12 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	// create namespace. ignore errors as it most likely exists and will error
 	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.getDebuggerPodNamespace()}})
 
+	// grant permissions required by debugger pod
+	if err := s.createPermissions(); err != nil {
+		return nil, err
+	}
+
+	// create debugger pod
 	createdPod, err := s.getClientSet().CoreV1().Pods(s.getDebuggerPodNamespace()).Create(dbgpod)
 	if err != nil {
 		return nil, err
@@ -159,6 +167,8 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 
 	// Delaying to allow port forwarding to complete.
 	time.Sleep(5 * time.Second)
+	fmt.Println("FOR DEBUGGING:")
+	s.printError(createdPod)
 
 	dbgCmd := s.getDebugCmd()
 	if err := ptyWrap(dbgCmd); err != nil {
@@ -171,9 +181,31 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 	return nil
 }
 
-func (s *Squash) getPortForwardCmd(podName string, remotePort int) *exec.Cmd {
-	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, remotePort)
-	cmd := exec.Command("kubectl", "port-forward", podName, portSpec, "-n", s.getDebuggerPodNamespace())
+func (s *Squash) getPortForwardCmd(dbgPodName string, dbgPodPort int) *exec.Cmd {
+	fmt.Println("s.Pod")
+	fmt.Println(s.Pod)
+	targetPodName, targetNamespace := "", ""
+	targetRemotePort := 0
+	switch s.Debugger {
+	case "dlv":
+		// for dlv, we proxy through the debug container
+		targetPodName = dbgPodName
+		targetRemotePort = dbgPodPort
+		targetNamespace = s.getDebuggerPodNamespace()
+	case "java":
+		// for java, we connect directly to the container we are debugging
+		targetPodName = s.Pod
+		targetRemotePort = 8000 // TODO -READ FROM CRD
+		targetNamespace = s.Namespace
+	default:
+		// TODO - log/error
+		fmt.Println("Unsupported debugger")
+	}
+	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, targetRemotePort)
+	cmd := exec.Command("kubectl", "port-forward", targetPodName, portSpec, "-n", targetNamespace)
+	fmt.Println("kubectl cmd")
+	fmt.Println(cmd.Path)
+	fmt.Println(cmd.Args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -191,6 +223,9 @@ func (s *Squash) getDebugCmd() *exec.Cmd {
 		log.Warn(fmt.Errorf("debugger not recognized %v", s.Debugger))
 		return nil
 	}
+	fmt.Println("dbug cmd")
+	fmt.Println(cmd.Path)
+	fmt.Println(cmd.Args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -285,6 +320,9 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 					errchan <- err
 					return
 				}
+				if !s.expectRunningPod() {
+					return
+				}
 				if createdPod.Status.Phase == v1.PodRunning {
 					return
 				}
@@ -301,6 +339,18 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 		}
 	}()
 	return errchan
+}
+
+func (s *Squash) expectRunningPod() bool {
+	switch s.Debugger {
+	case "dlv":
+		return true
+	case "java":
+		return false
+	default:
+		// TODO - remove this when debugger name validation is in place
+		return true
+	}
 }
 
 func (s *Squash) printError(pod *v1.Pod) error {
@@ -413,4 +463,36 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 		}}
 
 	return templatePod, nil
+}
+
+func (s *Squash) createPermissions() error {
+	namespace := s.Namespace
+	crbName := fmt.Sprintf("squash-sa-cluster-admin-%v", namespace)
+	fmt.Printf("Creating clusterRoleBinding %v\n", crbName)
+	existingCrb, _ := s.clientset.Rbac().ClusterRoleBindings().Get(crbName, meta_v1.GetOptions{})
+	if existingCrb != nil {
+		return nil
+	}
+	_, err := s.clientset.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: crbName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: "ServiceAccount",
+				// TODO(mitchdraft) create specific service account for squash
+				Name:      "default",
+				Namespace: namespace,
+			},
+		},
+		// TODO(mitchdraft) prune these permissions
+		RoleRef: rbacv1.RoleRef{
+			Name: "cluster-admin",
+			Kind: "ClusterRole",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

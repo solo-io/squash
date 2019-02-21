@@ -1,8 +1,10 @@
 package kube
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
@@ -12,11 +14,19 @@ type Config struct {
 }
 
 func GetConfig() Config {
+	debugNamespace := os.Getenv("SQUASH_NAMESPACE")
+	pod := os.Getenv("SQUASH_POD")
+	container := os.Getenv("SQUASH_CONTAINER")
+
 	return Config{
 		Attachment: v1.DebugAttachment{
-			DebugNamespace: os.Getenv("SQUASH_NAMESPACE"),
-			Pod:            os.Getenv("SQUASH_POD"),
-			Container:      os.Getenv("SQUASH_CONTAINER"),
+			Metadata: core.Metadata{
+				Name:      fmt.Sprintf("%v-%v", pod, container),
+				Namespace: debugNamespace,
+			},
+			DebugNamespace: debugNamespace,
+			Pod:            pod,
+			Container:      container,
 			// This is the debugger specified by the user
 			// options are dlv, gdb, java, nodejs, python, etc.
 			Debugger: os.Getenv("DEBUGGER_NAME"),

@@ -1,7 +1,6 @@
 package java
 
 import (
-	"fmt"
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -34,12 +33,8 @@ func (g *JavaInterface) Attach(pid int) (debuggers.DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	port, err := debuggers.GetPortOfJavaProcess(pid)
-	fmt.Println("just got port it is:")
-	fmt.Println(port)
 	if err != nil {
-		fmt.Println("err", err)
-		fmt.Println("can't get jsadebugd port")
-		log.WithField("err", err).Error("can't get jsadebugd port")
+		log.WithField("err", err).Error("can't get java debug port")
 		return nil, err
 	}
 

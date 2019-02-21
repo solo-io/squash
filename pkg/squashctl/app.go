@@ -398,6 +398,7 @@ func (o *Options) choosePod() error {
 	for _, pod := range pods.Items {
 		if choice == pod.ObjectMeta.Name {
 			o.DebugTarget.Pod = &pod
+			o.Squash.Pod = pod.ObjectMeta.Name
 			return nil
 		}
 	}

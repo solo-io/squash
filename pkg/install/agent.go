@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -129,11 +129,13 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
 		},
 		Subjects: []rbacv1.Subject{
 			{
-				Kind:      "ServiceAccount",
+				Kind: "ServiceAccount",
+				// TODO(mitchdraft) create specific service account for squash
 				Name:      "default",
 				Namespace: namespace,
 			},
 		},
+		// TODO(mitchdraft) prune these permissions
 		RoleRef: rbacv1.RoleRef{
 			Name: "cluster-admin",
 			Kind: "ClusterRole",
