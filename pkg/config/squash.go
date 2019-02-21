@@ -230,6 +230,7 @@ func (s *Squash) getDebugPortFromCrd() (int, error) {
 	if s.Debugger == "java" {
 		// Give debug container time to create the CRD
 		// TODO - reduce this sleep time
+
 		time.Sleep(5 * time.Second)
 		ctx := context.Background()
 		daClient, err := utils.GetDebugAttachmentClient(ctx)
