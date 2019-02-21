@@ -15,6 +15,7 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers/java"
 	"github.com/solo-io/squash/pkg/debuggers/nodejs"
 	"github.com/solo-io/squash/pkg/debuggers/python"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 )
 
@@ -81,7 +82,6 @@ func proxyConnection(dbgServer debuggers.DebugServer) error {
 	return <-errchan
 }
 
-// TODO
 func connectLocalPrepare(dbgServer debuggers.DebugServer, att v1.DebugAttachment) error {
 	// Some debuggers work best when connected "locally"
 	// For these, we connect directly via `kubectl port-forward`
@@ -112,12 +112,9 @@ func connectLocalPrepare(dbgServer debuggers.DebugServer, att v1.DebugAttachment
 }
 
 func findOrCreateDebugAttachmentCRD(ctx context.Context, daClient *v1.DebugAttachmentClient, att v1.DebugAttachment) (*v1.DebugAttachment, error) {
-	fmt.Println("att.Metadata")
-	fmt.Println(att.Metadata)
 	// don't need the error, just need to know if it exists
 	da, _ := (*daClient).Read(att.Metadata.Namespace, att.Metadata.Name, clients.ReadOpts{Ctx: ctx})
 	if da == nil {
-		fmt.Println("here2")
 		// need to create this debugAttachment
 		newDa := &v1.DebugAttachment{
 			Metadata: att.Metadata,
@@ -125,15 +122,14 @@ func findOrCreateDebugAttachmentCRD(ctx context.Context, daClient *v1.DebugAttac
 		var err error
 		da, err = (*daClient).Write(newDa, clients.WriteOpts{Ctx: ctx, OverwriteExisting: false})
 		if err != nil {
-			fmt.Println("here3")
-			return nil, err
+			return nil, fmt.Errorf("Could not write debug attachment %v in namespace %v: %v", att.Metadata.Name, att.Metadata.Namespace, err)
 		}
 	}
 	return da, nil
 }
 
 func startLocalServer() (net.Conn, error) {
-	l, err := net.Listen("tcp", ListenHost+":"+OutPort)
+	l, err := net.Listen("tcp", fmt.Sprintf("%v:%v", ListenHost, options.OutPort))
 	if err != nil {
 		return nil, err
 	}

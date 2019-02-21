@@ -5,10 +5,10 @@ import "fmt"
 var (
 	// The port where the debugger listens for remote connections
 	// ( This is a port on the container that runs the debugger )
-	DebuggerPort = "1235"
+	DebuggerPort = 1235
 	// OutPort is proxied by the debug-container process so that it can detect disconnections and terminate the debug session.
 	// TODO(mitchdraft) - import this value from a common place (across squash and its IDE extensions)
-	OutPort = "1236"
+	OutPort = 1236
 
 	// The name used inside of a pod spec to refer to the container that runs the debugger
 	ContainerName = "debugger-container"

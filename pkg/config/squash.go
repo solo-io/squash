@@ -17,8 +17,11 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
+	"github.com/solo-io/squash/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +72,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	// create debugger pod
 	createdPod, err := s.getClientSet().CoreV1().Pods(s.getDebuggerPodNamespace()).Create(dbgpod)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not create pod: %v", err)
 	}
 
 	if !s.Machine && !s.NoClean {
@@ -181,17 +184,15 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 
 func (s *Squash) getPortForwardCmd(dbgPodName string, dbgPodPort int) *exec.Cmd {
 	targetPodName, targetNamespace := "", ""
-	targetRemotePort := 0
+	targetRemotePort := dbgPodPort
 	switch s.Debugger {
 	case "dlv":
 		// for dlv, we proxy through the debug container
 		targetPodName = dbgPodName
-		targetRemotePort = dbgPodPort
 		targetNamespace = s.getDebuggerPodNamespace()
 	case "java":
 		// for java, we connect directly to the container we are debugging
 		targetPodName = s.Pod
-		targetRemotePort = 8000 // TODO -READ FROM CRD
 		targetNamespace = s.Namespace
 	default:
 		// TODO - log/error
@@ -223,12 +224,28 @@ func (s *Squash) getDebugCmd() *exec.Cmd {
 }
 
 func (s *Squash) getDebugPortFromCrd() (int, error) {
-	// TODO
-	// for now
-	port := 8000
-	if s.Debugger == "dlv" {
-		// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
-		port = 1236
+	// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
+	// TODO - should eventually just read all values from crd
+	port := sqOpts.OutPort
+	if s.Debugger == "java" {
+		// Give debug container time to create the CRD
+		// TODO - reduce this sleep time
+		time.Sleep(5 * time.Second)
+		ctx := context.Background()
+		daClient, err := utils.GetDebugAttachmentClient(ctx)
+		if err != nil {
+			log.WithField("err", err).Error("getting debug attachment client")
+			return 0, err
+		}
+		daName := squashv1.GenDebugAttachmentName(s.Pod, s.Container)
+		da, err := (*daClient).Read(s.Namespace, daName, clients.ReadOpts{Ctx: ctx})
+		if err != nil {
+			return 0, fmt.Errorf("Could not read debug attachment %v in namespace %v: %v", daName, s.Namespace, err)
+		}
+		port, err = da.GetPortFromDebugServerAddress()
+		if err != nil {
+			return 0, err
+		}
 	}
 	return port, nil
 }
@@ -455,11 +472,12 @@ func (s *Squash) createPermissions() error {
 	namespace := s.Namespace
 	crbName := fmt.Sprintf("squash-sa-cluster-admin-%v", namespace)
 	fmt.Printf("Creating clusterRoleBinding %v\n", crbName)
-	existingCrb, _ := s.clientset.Rbac().ClusterRoleBindings().Get(crbName, meta_v1.GetOptions{})
-	if existingCrb != nil {
+	_, err := s.clientset.Rbac().ClusterRoleBindings().Get(crbName, meta_v1.GetOptions{})
+	if err == nil {
+		fmt.Println("clusterRoleBinding already exists")
 		return nil
 	}
-	_, err := s.clientset.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+	_, err = s.clientset.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crbName,
 		},

@@ -8,7 +8,6 @@ import (
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 )
 
-const OutPort = "1236"
 const ListenHost = "127.0.0.1"
 
 func Debug(ctx context.Context) error {

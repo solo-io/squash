@@ -1,7 +1,6 @@
 package kube
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -17,11 +16,12 @@ func GetConfig() Config {
 	debugNamespace := os.Getenv("SQUASH_NAMESPACE")
 	pod := os.Getenv("SQUASH_POD")
 	container := os.Getenv("SQUASH_CONTAINER")
+	daName := v1.GenDebugAttachmentName(pod, container)
 
 	return Config{
 		Attachment: v1.DebugAttachment{
 			Metadata: core.Metadata{
-				Name:      fmt.Sprintf("%v-%v", pod, container),
+				Name:      daName,
 				Namespace: debugNamespace,
 			},
 			DebugNamespace: debugNamespace,

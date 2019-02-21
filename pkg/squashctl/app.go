@@ -299,6 +299,7 @@ func chooseContainer(o *Options) error {
 	}
 	if len(pod.Spec.Containers) == 1 {
 		o.DebugTarget.Container = &pod.Spec.Containers[0]
+		o.Squash.Container = pod.Spec.Containers[0].Name
 		return nil
 	}
 
@@ -320,6 +321,7 @@ func chooseContainer(o *Options) error {
 	for _, container := range pod.Spec.Containers {
 		if choice == container.Name {
 			o.DebugTarget.Container = &container
+			o.Squash.Container = container.Name
 			return nil
 		}
 	}
