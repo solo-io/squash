@@ -17,9 +17,8 @@ var (
 	GoApp2Name      = "example-service2"
 	GoTemplate2Name = "soloio/example-service2:v0.2.2"
 
-	JavaApp2Name = "example-service2-java"
-	// JavaTemplate2Name = "soloio/example-service2-java:v0.2.2"
-	JavaTemplate2Name = "soloio/example-service2-java:mkdev2"
+	JavaApp2Name      = "example-service2-java"
+	JavaTemplate2Name = "soloio/example-service2-java:v0.2.2"
 
 	DemoGoGo   = "go-go"
 	DemoGoJava = "go-java"
