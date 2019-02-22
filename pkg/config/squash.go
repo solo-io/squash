@@ -29,6 +29,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var (
+	plankServiceAccountName     = "squash-plank"
+	plankClusterRoleName        = "squash-plank-cr"
+	plankClusterRoleBindingName = "squash-plank-crb"
+)
+
 type Squash struct {
 	ChooseDebugger        bool
 	NoClean               bool
@@ -422,9 +428,10 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
 		},
 		Spec: v1.PodSpec{
-			HostPID:       true,
-			RestartPolicy: v1.RestartPolicyNever,
-			NodeName:      in.Spec.NodeName,
+			ServiceAccountName: plankServiceAccountName,
+			HostPID:            true,
+			RestartPolicy:      v1.RestartPolicyNever,
+			NodeName:           in.Spec.NodeName,
 			Containers: []v1.Container{{
 				Name:      sqOpts.ContainerName,
 				Image:     targetImage,
@@ -470,35 +477,73 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 	return templatePod, nil
 }
 
+// TODO - call this once from squashctl once during config instead of each time a pod is created
+// for now - just print errors since these resources may have already been created
+// we need them to exist in each namespace
 func (s *Squash) createPermissions() error {
 	namespace := s.Namespace
-	crbName := fmt.Sprintf("squash-sa-cluster-admin-%v", namespace)
-	fmt.Printf("Creating clusterRoleBinding %v\n", crbName)
-	_, err := s.clientset.Rbac().ClusterRoleBindings().Get(crbName, meta_v1.GetOptions{})
-	if err == nil {
-		fmt.Println("clusterRoleBinding already exists")
-		return nil
-	}
-	_, err = s.clientset.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+	cs := s.clientset
+
+	sa := v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: crbName,
+			Name: plankServiceAccountName,
+		},
+	}
+	if _, err := cs.CoreV1().ServiceAccounts(namespace).Create(&sa); err != nil {
+		fmt.Println(err)
+	}
+
+	cr := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: plankClusterRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "delete"},
+				Resources: []string{"pods"},
+				APIGroups: []string{""},
+			},
+			{
+				Verbs:     []string{"list"},
+				Resources: []string{"namespaces"},
+				APIGroups: []string{""},
+			},
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+				Resources: []string{"debugattachments"},
+				APIGroups: []string{"squash.solo.io"},
+			},
+			{
+				// TODO remove the register permission when solo-kit is updated
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Resources: []string{"customresourcedefinitions"},
+				APIGroups: []string{"apiextensions.k8s.io"},
+			},
+		},
+	}
+	if _, err := cs.Rbac().ClusterRoles().Create(cr); err != nil {
+		fmt.Println(err)
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      plankClusterRoleBindingName,
+			Namespace: namespace,
 		},
 		Subjects: []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				// TODO(mitchdraft) create specific service account for squash
-				Name:      "default",
+			rbacv1.Subject{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      plankServiceAccountName,
 				Namespace: namespace,
 			},
 		},
-		// TODO(mitchdraft) prune these permissions
 		RoleRef: rbacv1.RoleRef{
-			Name: "cluster-admin",
+			Name: plankClusterRoleName,
 			Kind: "ClusterRole",
 		},
-	})
-	if err != nil {
-		return err
+	}
+	if _, err := cs.Rbac().ClusterRoleBindings().Create(crb); err != nil {
+		fmt.Println(err)
 	}
 	return nil
 }

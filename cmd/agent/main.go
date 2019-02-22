@@ -19,7 +19,7 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Infof("bridge started %v, %v", version.Version, version.TimeStamp)
+	log.Infof("squash started %v, %v", version.Version, version.TimeStamp)
 
 	mustGetContainerProcessLocator()
 	err := debuggers.RunSquashAgent(getDebugger)

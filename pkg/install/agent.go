@@ -37,15 +37,12 @@ var (
 // Deployment - Squash itself
 func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) error {
 
-	// Squash ServiceAccount
 	sa := v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: squashServiceAccountName,
 		},
 	}
-	fmt.Println(sa)
 
-	// Squash ClusterRole
 	cr := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: squashClusterRoleName,
@@ -62,6 +59,11 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 				APIGroups: []string{""},
 			},
 			{
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+				Resources: []string{"debugattachments"},
+				APIGroups: []string{"squash.solo.io"},
+			},
+			{
 				// TODO remove the register permission when solo-kit is updated
 				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
 				Resources: []string{"customresourcedefinitions"},
@@ -69,13 +71,10 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 			},
 		},
 	}
-	fmt.Println(cr)
 
-	// Squash ClusterRoleBinding
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      squashClusterRoleBindingName,
-			Namespace: DefaultNamespace,
+			Name: squashClusterRoleBindingName,
 		},
 		Subjects: []rbacv1.Subject{
 			rbacv1.Subject{
@@ -90,9 +89,7 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 		},
 	}
 
-	// Squash Deployment
 	privileged := true
-
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: AgentName,
