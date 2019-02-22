@@ -1,8 +1,13 @@
 DOCKER_REPO ?= soloio
-# VERSION ?= $(shell git describe --tags)
-VERSION ?= "mkdev2"
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
-IMAGE_VERSION ?= "mkdev" # TODO(mitchdraft) - replace with actual workflow
+
+# produce a release if TAGGED_VERSION is set
+RELEASE := "true"
+ifeq ($(TAGGED_VERSION),)
+	TAGGED_VERSION := vdev
+	RELEASE := "false"
+endif
+VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
 .PHONY: all
 all: binaries containers ## (default) Builds binaries and containers
