@@ -168,8 +168,10 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 
 	// Delaying to allow port forwarding to complete.
 	time.Sleep(5 * time.Second)
-	fmt.Println("FOR DEBUGGING:")
-	s.printError(createdPod)
+	if os.Getenv("DEBUG_SELF") != "" {
+		fmt.Println("FOR DEBUGGING SQUASH'S DEBUGGER CONTAINER:")
+		s.printError(createdPod)
+	}
 
 	dbgCmd := s.getDebugCmd()
 	if err := ptyWrap(dbgCmd); err != nil {

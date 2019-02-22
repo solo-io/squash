@@ -22,10 +22,75 @@ var (
 	volumeName = "crisock"
 
 	DefaultNamespace = "squash-debugger"
+
+	squashServiceAccountName     = "squash"
+	squashClusterRoleName        = "squash-cr-pods"
+	squashClusterRoleBindingName = "squash-crb-pods"
 )
 
+// InstallAgent creates the resources needed for Squash to run in secure mode
+// If preview is set, it prints the configuration and does not apply it.
+// The created resources include:
+// ServiceAccount - for Squash
+// ClusterRole - enabling pod creation
+// ClusterRoleBinding - bind ClusterRole to Squash's ServiceAccount
+// Deployment - Squash itself
 func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) error {
 
+	// Squash ServiceAccount
+	sa := v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: squashServiceAccountName,
+		},
+	}
+	fmt.Println(sa)
+
+	// Squash ClusterRole
+	cr := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: squashClusterRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "delete"},
+				Resources: []string{"pods"},
+				APIGroups: []string{""},
+			},
+			{
+				Verbs:     []string{"list"},
+				Resources: []string{"namespaces"},
+				APIGroups: []string{""},
+			},
+			{
+				// TODO remove the register permission when solo-kit is updated
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Resources: []string{"customresourcedefinitions"},
+				APIGroups: []string{"apiextensions.k8s.io"},
+			},
+		},
+	}
+	fmt.Println(cr)
+
+	// Squash ClusterRoleBinding
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      squashClusterRoleBindingName,
+			Namespace: DefaultNamespace,
+		},
+		Subjects: []rbacv1.Subject{
+			rbacv1.Subject{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      squashServiceAccountName,
+				Namespace: DefaultNamespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name: squashClusterRoleName,
+			Kind: "ClusterRole",
+		},
+	}
+
+	// Squash Deployment
 	privileged := true
 
 	deployment := &appsv1.Deployment{
@@ -48,6 +113,7 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 					},
 				},
 				Spec: v1.PodSpec{
+					ServiceAccountName: squashServiceAccountName,
 					Containers: []v1.Container{
 						{
 							Name:  AgentName,
@@ -118,41 +184,37 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 	if preview {
 		// TODO - also include permissions etc
 		// TODO - use k8s printer to avoid printing null values
-		yml, err := yaml.Marshal(deployment)
-		if err != nil {
+		// TODO - produce valid yaml for `kubectl apply -f`
+		if err := simplePrinter(crb); err != nil {
 			return err
 		}
-		fmt.Println(string(yml))
+		if err := simplePrinter(deployment); err != nil {
+			return err
+		}
 		return nil
 	}
 
-	// create the namespace
+	// create the resources
 	fmt.Printf("Creating namespace %v\n", namespace)
 	_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	crbName := fmt.Sprintf("squash-sa-cluster-admin-%v", namespace)
-	fmt.Printf("Creating clusterRoleBinding %v\n", crbName)
-	_, err = cs.Rbac().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: crbName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				// TODO(mitchdraft) create specific service account for squash
-				Name:      "default",
-				Namespace: namespace,
-			},
-		},
-		// TODO(mitchdraft) prune these permissions
-		RoleRef: rbacv1.RoleRef{
-			Name: "cluster-admin",
-			Kind: "ClusterRole",
-		},
-	})
+	fmt.Printf("Creating service account %v\n", squashServiceAccountName)
+	_, err = cs.CoreV1().ServiceAccounts(namespace).Create(&sa)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Printf("Creating clusterRole %v\n", squashClusterRoleName)
+	_, err = cs.Rbac().ClusterRoles().Create(cr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Printf("Creating clusterRoleBinding %v\n", squashClusterRoleBindingName)
+	_, err = cs.Rbac().ClusterRoleBindings().Create(crb)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -160,7 +222,37 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 	fmt.Println("Creating squash agent deployment")
 	_, err = cs.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
+		cleanupDeployment(cs, namespace)
 		return err
 	}
 	return nil
+}
+
+func simplePrinter(val interface{}) error {
+	yml, err := yaml.Marshal(val)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(yml))
+	return nil
+}
+
+func cleanupDeployment(cs *kubernetes.Clientset, namespace string) {
+	delOp := &metav1.DeleteOptions{}
+
+	if err := cs.CoreV1().ServiceAccounts(namespace).Delete(squashServiceAccountName, delOp); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := cs.Rbac().ClusterRoles().Delete(squashClusterRoleName, delOp); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := cs.Rbac().ClusterRoleBindings().Delete(squashClusterRoleBindingName, delOp); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := cs.AppsV1().Deployments(namespace).Delete(AgentName, delOp); err != nil {
+		fmt.Println(err)
+	}
 }
