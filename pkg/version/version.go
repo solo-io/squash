@@ -8,3 +8,5 @@ var TimeStamp = "2019-01-25.08:59:24" // This will be overwritten by the linker
 var ImageVersion = "mkdev" // This will be overwritten by the linker
 
 var ImageRepo = "soloio" // This will be overwritten by the linker
+
+var AgentImageTag = "mkdev" // This will be overwritten by the linker

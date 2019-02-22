@@ -85,11 +85,12 @@ func (top *Options) deployAgentCmd(agentOpts *AgentOptions) *cobra.Command {
 			if err := top.ensureAgentDeployOpts(agentOpts); err != nil {
 				return err
 			}
-			return install.InstallAgent(top.KubeClient, agentOpts.Namespace)
+			return install.InstallAgent(top.KubeClient, agentOpts.Namespace, agentOpts.Preview)
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&agentOpts.Namespace, "agentNamespace", install.DefaultNamespace, "namespace in which to install the sample app")
+	f.StringVar(&agentOpts.Namespace, "agentNamespace", install.DefaultNamespace, "namespace in which to install Squash")
+	f.BoolVar(&agentOpts.Preview, "preview", false, "If set, prints Squash installation yaml without installing Squash.")
 	return cmd
 }
 func (top *Options) ensureAgentDeployOpts(dOpts *AgentOptions) error {

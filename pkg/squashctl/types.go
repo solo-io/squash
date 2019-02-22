@@ -85,6 +85,8 @@ func defaultDemoOptions() DemoOptions {
 
 type AgentOptions struct {
 	Namespace string
+	// Preview, if set prints a yaml description of the Squash installation without creating installing Squash
+	Preview bool
 }
 
 func defaultAgentOptions() AgentOptions {

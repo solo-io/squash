@@ -3,6 +3,8 @@ package install
 import (
 	"fmt"
 
+	"github.com/solo-io/squash/pkg/version"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -14,7 +16,6 @@ var (
 	AgentRepoName  = "soloio"
 	AgentName      = "squash-agent"
 	AgentImageName = "squash-agent"
-	AgentImageTag  = "dev"
 
 	ContainerPort = 1234
 
@@ -23,7 +24,7 @@ var (
 	DefaultNamespace = "squash-debugger"
 )
 
-func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
+func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) error {
 
 	privileged := true
 
@@ -50,7 +51,7 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
 					Containers: []v1.Container{
 						{
 							Name:  AgentName,
-							Image: fmt.Sprintf("%v/%v:%v", AgentRepoName, AgentImageName, AgentImageTag),
+							Image: fmt.Sprintf("%v/%v:%v", AgentRepoName, AgentImageName, version.AgentImageTag),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,
@@ -112,6 +113,17 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string) error {
 				},
 			},
 		},
+	}
+
+	if preview {
+		// TODO - also include permissions etc
+		// TODO - use k8s printer to avoid printing null values
+		yml, err := yaml.Marshal(deployment)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(yml))
+		return nil
 	}
 
 	// create the namespace

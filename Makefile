@@ -37,8 +37,9 @@ SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 
 # Pass in build-time variables
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.Timestamp=$(DATE) \
--X github.com/solo-io/squash/pkg/version.ImageVersion=$(IMAGE_VERSION) \
+-X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
+-X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.AgentImageTag=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
 .PHONY: qdev
@@ -129,3 +130,7 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
+
+.PHONY: tmpagent
+tmpagent:
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash-agent cmd/agent/main.go
