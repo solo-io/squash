@@ -3,13 +3,13 @@ package squashctl
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/actions"
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
@@ -168,11 +168,10 @@ func (top *Options) runBaseCommandWithRbac() error {
 		return err
 	}
 
-	// TODO(mitchdraft) - use kubernetes' generate name instead of making a dummy name
-	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
-
 	so := top.Squash
 	dbge := top.DebugTarget
+
+	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
 
 	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
