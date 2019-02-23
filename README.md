@@ -5,7 +5,7 @@
 </h1>
 
 
-<h4 align="center">Debug your microservices application running on container orchestration from IDE.</h4>
+<h4 align="center">Debug your microservice applications from your terminal or IDE <i>while</i> they run in Kubernetes.</h4>
 <BR>
 
 
@@ -73,7 +73,8 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
  
 ## Supported platforms:
  - [Kubernetes](docs/platforms/kubernetes.md)
- - [Istio](docs/platforms/istio.md)
+ - [OpenShift](https://www.openshift.com/)
+ - [Istio](docs/platforms/istio.md) (2019)
  
 ## Supported IDEs:
  - [VS Code](https://github.com/solo-io/squash-vscode)
