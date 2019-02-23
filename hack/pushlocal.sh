@@ -13,9 +13,9 @@ eval $(minikube docker-env)
 echo "running command $1"
 case $1 in
     "dc")
-GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/debugger-container/debugger-container ./cmd/debugger-container/
-docker build -f target/debugger-container/Dockerfile.dlv -t $DOCKER_REPO/debugger-container-dlv:$VERSION ./target/debugger-container/
-docker build -f target/debugger-container/Dockerfile.gdb -t $DOCKER_REPO/debugger-container-gdb:$VERSION ./target/debugger-container/
+GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/plank/plank ./cmd/plank/
+docker build -f target/plank/Dockerfile.dlv -t $DOCKER_REPO/plank-dlv:$VERSION ./target/plank/
+docker build -f target/plank/Dockerfile.gdb -t $DOCKER_REPO/plank-gdb:$VERSION ./target/plank/
 ;;
     "agent")
 # using Makefile to leverage its LDFLAGS spec

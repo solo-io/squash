@@ -10,5 +10,5 @@ FROM golang:1.10.1-stretch
 COPY --from=builder $GOPATH/bin/dlv $GOPATH/bin/
 
 ENV DEBUGGER=dlv
-COPY debugger-container /
-ENTRYPOINT ["/debugger-container"]
+COPY plank /
+ENTRYPOINT ["/plank"]

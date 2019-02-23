@@ -17,7 +17,7 @@ help:
 	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
 .PHONY: binaries
-binaries: target/debugger-container/debugger-container target/squashctl # Builds squashctl binaries in and places them in target/ folder
+binaries: target/plank/plank target/squashctl # Builds squashctl binaries in and places them in target/ folder
 
 RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
 
@@ -25,10 +25,10 @@ RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
 release-binaries: $(RELEASE_BINARIES)
 
 .PHONY: containers
-containers: target/debugger-container-dlv-container target/debugger-container-gdb-container ## Builds debug containers
+containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
 
 .PHONY: push-containers
-push-containers: target/debugger-container-dlv-pushed target/debugger-container-gdb-pushed ## Pushes debug containers to $(DOCKER_REPO)
+push-containers: target/plank-dlv-pushed target/plank-gdb-pushed ## Pushes debug containers to $(DOCKER_REPO)
 
 .PHONY: release
 release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
@@ -63,35 +63,35 @@ target/squashctl-osx: target $(SRCS)
 target/squashctl-linux: target $(SRCS)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/debugger-container/:
+target/plank/:
 	[ -d $@ ] || mkdir -p $@
 
-target/debugger-container/debugger-container: | target/debugger-container/
-target/debugger-container/debugger-container: $(SRCS)
-	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/debugger-container/debugger-container ./cmd/debugger-container/
+target/plank/plank: | target/plank/
+target/plank/plank: $(SRCS)
+	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/plank/plank ./cmd/plank/
 
 
-target/debugger-container/Dockerfile.dlv:    | target/debugger-container/
-target/debugger-container/Dockerfile.dlv: cmd/debugger-container/Dockerfile.dlv
-	cp cmd/debugger-container/Dockerfile.dlv target/debugger-container/Dockerfile.dlv
-target/debugger-container-dlv-container: ./target/debugger-container/debugger-container target/debugger-container/Dockerfile.dlv
-	docker build -f target/debugger-container/Dockerfile.dlv -t $(DOCKER_REPO)/debugger-container-dlv:$(VERSION) ./target/debugger-container/
+target/plank/Dockerfile.dlv:    | target/plank/
+target/plank/Dockerfile.dlv: cmd/plank/Dockerfile.dlv
+	cp cmd/plank/Dockerfile.dlv target/plank/Dockerfile.dlv
+target/plank-dlv-container: ./target/plank/plank target/plank/Dockerfile.dlv
+	docker build -f target/plank/Dockerfile.dlv -t $(DOCKER_REPO)/plank-dlv:$(VERSION) ./target/plank/
 	touch $@
 
-target/debugger-container-dlv-pushed: target/debugger-container-dlv-container
-	docker push $(DOCKER_REPO)/debugger-container-dlv:$(VERSION)
+target/plank-dlv-pushed: target/plank-dlv-container
+	docker push $(DOCKER_REPO)/plank-dlv:$(VERSION)
 	touch $@
 
 
 
-target/debugger-container/Dockerfile.gdb:    | target/debugger-container/
-target/debugger-container/Dockerfile.gdb: cmd/debugger-container/Dockerfile.gdb
-	cp cmd/debugger-container/Dockerfile.gdb target/debugger-container/Dockerfile.gdb
-target/debugger-container-gdb-container: ./target/debugger-container/debugger-container target/debugger-container/Dockerfile.gdb
-	docker build -f target/debugger-container/Dockerfile.gdb -t $(DOCKER_REPO)/debugger-container-gdb:$(VERSION) ./target/debugger-container/
+target/plank/Dockerfile.gdb:    | target/plank/
+target/plank/Dockerfile.gdb: cmd/plank/Dockerfile.gdb
+	cp cmd/plank/Dockerfile.gdb target/plank/Dockerfile.gdb
+target/plank-gdb-container: ./target/plank/plank target/plank/Dockerfile.gdb
+	docker build -f target/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) ./target/plank/
 	touch $@
-target/debugger-container-gdb-pushed: target/debugger-container-gdb-container
-	docker push $(DOCKER_REPO)/debugger-container-gdb:$(VERSION)
+target/plank-gdb-pushed: target/plank-gdb-container
+	docker push $(DOCKER_REPO)/plank-gdb:$(VERSION)
 	touch $@
 
 .PHONY: publish-extension
@@ -114,7 +114,7 @@ bump-extension-version:  ## (vscode) Bumps extension version
 clean: ## Deletes target folder
 	rm -rf target
 
-dist: target/debugger-container-gdb-pushed target/debugger-container-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
+dist: target/plank-gdb-pushed target/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
 
 
 ## Temp
