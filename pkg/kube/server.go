@@ -9,19 +9,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/debuggers"
-	"github.com/solo-io/squash/pkg/debuggers/dlv"
-	"github.com/solo-io/squash/pkg/debuggers/gdb"
-	"github.com/solo-io/squash/pkg/debuggers/java"
-	"github.com/solo-io/squash/pkg/debuggers/nodejs"
-	"github.com/solo-io/squash/pkg/debuggers/python"
+	"github.com/solo-io/squash/pkg/debuggers/remote"
 	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 )
 
 func startDebugging(cfg Config, pid int) error {
 
-	particularDebugger := getParticularDebugger(cfg.Attachment.Debugger)
+	particularDebugger := remote.GetParticularDebugger(cfg.Attachment.Debugger)
 	dbgServer, err := particularDebugger.Attach(pid)
 	if err != nil {
 		return err
@@ -38,14 +33,11 @@ func startDebugging(cfg Config, pid int) error {
 
 // we proxy so we can exit the debugger when disconnection occurs
 // and so that we don't need to know the port the debugger is using
-func proxyConnection(dbgServer debuggers.DebugServer) error {
+func proxyConnection(dbgServer remote.DebugServer) error {
 	// only proxy the debuggers that are called by this process
-	fmt.Println("proxy?")
 	if dbgServer.Cmd() == nil {
-		fmt.Println("proxy? - no")
 		return nil
 	}
-	fmt.Println("proxy? - yes")
 	errchan := make(chan error, 1)
 	reporterr := func(err error) {
 		select {
@@ -82,7 +74,7 @@ func proxyConnection(dbgServer debuggers.DebugServer) error {
 	return <-errchan
 }
 
-func connectLocalPrepare(dbgServer debuggers.DebugServer, att v1.DebugAttachment) error {
+func connectLocalPrepare(dbgServer remote.DebugServer, att v1.DebugAttachment) error {
 	// Some debuggers work best when connected "locally"
 	// For these, we connect directly via `kubectl port-forward`
 	// We write the target port to a CRD to be read from squashctl
@@ -137,28 +129,4 @@ func startLocalServer() (net.Conn, error) {
 	conn, err := l.Accept()
 	return conn, err
 
-}
-
-func getParticularDebugger(dbgtype string) debuggers.Debugger {
-	var g gdb.GdbInterface
-	var d dlv.DLV
-	var j java.JavaInterface
-	var p python.PythonInterface
-
-	switch dbgtype {
-	case "dlv":
-		return &d
-	case "gdb":
-		return &g
-	case "java":
-		return &j
-	case "nodejs":
-		return nodejs.NewNodeDebugger(nodejs.DebuggerPort)
-	case "nodejs8":
-		return nodejs.NewNodeDebugger(nodejs.InspectorPort)
-	case "python":
-		return &p
-	default:
-		return nil
-	}
 }

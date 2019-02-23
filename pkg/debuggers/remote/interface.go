@@ -1,6 +1,8 @@
-package debuggers
+package remote
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 // DebugHostType - type of host to connect debugger
 type DebugHostType int
@@ -24,7 +26,7 @@ type DebugServer interface {
 }
 
 /// Debugger interface. implement this to add a new debugger support to squash.
-type Debugger interface {
+type Remote interface {
 
 	/// Attach a debugger to pid and return the a debug server object
 	Attach(pid int) (DebugServer, error)

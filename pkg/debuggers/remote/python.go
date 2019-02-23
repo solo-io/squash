@@ -1,4 +1,4 @@
-package python
+package remote
 
 import (
 	"bufio"
@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/debuggers"
 )
 
 const (
@@ -36,15 +35,15 @@ func (d *ptvsdDebugServer) Port() int {
 	return d.port
 }
 
-func (d *ptvsdDebugServer) HostType() debuggers.DebugHostType {
-	return debuggers.DebugHostTypeTarget
+func (d *ptvsdDebugServer) HostType() DebugHostType {
+	return DebugHostTypeTarget
 }
 
 func (d *ptvsdDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (i *PythonInterface) Attach(pid int) (debuggers.DebugServer, error) {
+func (i *PythonInterface) Attach(pid int) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	port, err := getPtvsdPort(pid)

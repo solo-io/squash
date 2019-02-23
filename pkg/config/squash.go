@@ -17,11 +17,10 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
-	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/debuggers/local"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
-	"github.com/solo-io/squash/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,11 +158,21 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 		return nil
 	}
 	// Starting port forward in background.
-	remoteDbgPort, err := s.getDebugPortFromCrd()
+	daName := squashv1.GenDebugAttachmentName(s.Pod, s.Container)
+	remoteDbgPort, err := local.GetDebugPortFromCrd(daName, s.Namespace)
 	if err != nil {
 		return err
 	}
-	kubectlCmd := s.getPortForwardCmd(createdPod.ObjectMeta.Name, remoteDbgPort)
+	debugger := local.GetParticularDebugger(s.Debugger)
+	kubectlCmd := debugger.GetRemoteConnectionCmd(
+		createdPod.ObjectMeta.Name,
+		createdPod.ObjectMeta.Namespace,
+		s.Pod,
+		s.Namespace,
+		s.LocalPort,
+		remoteDbgPort,
+	)
+	// kubectlCmd := s.getPortForwardCmd(createdPod.ObjectMeta.Name, remoteDbgPort)
 	if err := kubectlCmd.Start(); err != nil {
 		s.showLogs(err, createdPod)
 		return err
@@ -190,30 +199,6 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 	return nil
 }
 
-func (s *Squash) getPortForwardCmd(dbgPodName string, dbgPodPort int) *exec.Cmd {
-	targetPodName, targetNamespace := "", ""
-	targetRemotePort := dbgPodPort
-	switch s.Debugger {
-	case "dlv":
-		// for dlv, we proxy through the debug container
-		targetPodName = dbgPodName
-		targetNamespace = s.getDebuggerPodNamespace()
-	case "java":
-		// for java, we connect directly to the container we are debugging
-		targetPodName = s.Pod
-		targetNamespace = s.Namespace
-	default:
-		// TODO - log/error
-		fmt.Println("Unsupported debugger")
-	}
-	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, targetRemotePort)
-	cmd := exec.Command("kubectl", "port-forward", targetPodName, portSpec, "-n", targetNamespace)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd
-}
-
 func (s *Squash) getDebugCmd() *exec.Cmd {
 	cmd := &exec.Cmd{}
 	switch s.Debugger {
@@ -229,33 +214,6 @@ func (s *Squash) getDebugCmd() *exec.Cmd {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	return cmd
-}
-
-func (s *Squash) getDebugPortFromCrd() (int, error) {
-	// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
-	// TODO - should eventually just read all values from crd
-	port := sqOpts.OutPort
-	if s.Debugger == "java" {
-		// Give debug container time to create the CRD
-		// TODO - reduce this sleep time
-		time.Sleep(5 * time.Second)
-		ctx := context.Background()
-		daClient, err := utils.GetDebugAttachmentClient(ctx)
-		if err != nil {
-			log.WithField("err", err).Error("getting debug attachment client")
-			return 0, err
-		}
-		daName := squashv1.GenDebugAttachmentName(s.Pod, s.Container)
-		da, err := (*daClient).Read(s.Namespace, daName, clients.ReadOpts{Ctx: ctx})
-		if err != nil {
-			return 0, fmt.Errorf("Could not read debug attachment %v in namespace %v: %v", daName, s.Namespace, err)
-		}
-		port, err = da.GetPortFromDebugServerAddress()
-		if err != nil {
-			return 0, err
-		}
-	}
-	return port, nil
 }
 
 func ptyWrap(c *exec.Cmd) error {
@@ -512,6 +470,11 @@ func (s *Squash) createPermissions() error {
 				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 				Resources: []string{"debugattachments"},
 				APIGroups: []string{"squash.solo.io"},
+			},
+			{
+				Verbs:     []string{"create"},
+				Resources: []string{"clusterrolebindings"},
+				APIGroups: []string{"rbac.authorization.k8s.io"},
 			},
 			{
 				// TODO remove the register permission when solo-kit is updated

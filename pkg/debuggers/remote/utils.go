@@ -1,4 +1,4 @@
-package debuggers
+package remote
 
 import (
 	"errors"
@@ -86,4 +86,28 @@ func checkAndParseArgument(arg string) (int, error) {
 		}
 	}
 	return 0, nil
+}
+
+func GetParticularDebugger(dbgtype string) Remote {
+	var g GdbInterface
+	var d DLV
+	var j JavaInterface
+	var p PythonInterface
+
+	switch dbgtype {
+	case "dlv":
+		return &d
+	case "gdb":
+		return &g
+	case "java":
+		return &j
+	case "nodejs":
+		return NewNodeDebugger(DebuggerPort)
+	case "nodejs8":
+		return NewNodeDebugger(InspectorPort)
+	case "python":
+		return &p
+	default:
+		return nil
+	}
 }

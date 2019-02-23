@@ -1,11 +1,10 @@
-package nodejs
+package remote
 
 import (
 	"os/exec"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/debuggers"
 )
 
 const (
@@ -31,15 +30,15 @@ func (g *nodejsDebugServer) Port() int {
 	return g.port
 }
 
-func (g *nodejsDebugServer) HostType() debuggers.DebugHostType {
-	return debuggers.DebugHostTypeTarget
+func (g *nodejsDebugServer) HostType() DebugHostType {
+	return DebugHostTypeTarget
 }
 
 func (d *nodejsDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (g *nodejsDebugServer) Attach(pid int) (debuggers.DebugServer, error) {
+func (g *nodejsDebugServer) Attach(pid int) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	err := syscall.Kill(pid, syscall.SIGUSR1)

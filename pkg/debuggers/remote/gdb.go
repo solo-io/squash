@@ -1,11 +1,10 @@
-package gdb
+package remote
 
 import (
 	"os/exec"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/debuggers"
 
 	"fmt"
 	"time"
@@ -27,22 +26,22 @@ func (g *gdbDebugServer) Port() int {
 	return g.port
 }
 
-func (g *gdbDebugServer) HostType() debuggers.DebugHostType {
-	return debuggers.DebugHostTypeClient
+func (g *gdbDebugServer) HostType() DebugHostType {
+	return DebugHostTypeClient
 }
 
 func (d *gdbDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (g *GdbInterface) Attach(pid int) (debuggers.DebugServer, error) {
+func (g *GdbInterface) Attach(pid int) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	cmd := exec.Command("gdbserver", "--attach", ":0", fmt.Sprintf("%d", pid))
 	cmd.Start()
 	log.Debug("starting gdbserver for user started, trying to get port")
 	time.Sleep(time.Second)
-	port, err := debuggers.GetPort(cmd.Process.Pid)
+	port, err := GetPort(cmd.Process.Pid)
 	if err != nil {
 		log.WithField("err", err).Error("can't get gdbserver port")
 		cmd.Process.Kill()

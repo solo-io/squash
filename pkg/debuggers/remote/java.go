@@ -1,10 +1,9 @@
-package java
+package remote
 
 import (
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/debuggers"
 )
 
 type JavaInterface struct{}
@@ -21,18 +20,18 @@ func (g *javaDebugServer) Port() int {
 	return g.port
 }
 
-func (g *javaDebugServer) HostType() debuggers.DebugHostType {
-	return debuggers.DebugHostTypeTarget
+func (g *javaDebugServer) HostType() DebugHostType {
+	return DebugHostTypeTarget
 }
 
 func (d *javaDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (g *JavaInterface) Attach(pid int) (debuggers.DebugServer, error) {
+func (g *JavaInterface) Attach(pid int) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
-	port, err := debuggers.GetPortOfJavaProcess(pid)
+	port, err := GetPortOfJavaProcess(pid)
 	if err != nil {
 		log.WithField("err", err).Error("can't get java debug port")
 		return nil, err

@@ -1,4 +1,4 @@
-package debuggers
+package squash
 
 import (
 	"context"
@@ -9,12 +9,13 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
+	"github.com/solo-io/squash/pkg/debuggers/remote"
 	"github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/version"
 )
 
 type DebugController struct {
-	debugger func(string) Debugger
+	debugger func(string) remote.Debugger
 	pidLock  sync.Mutex
 	pidMap   map[int]bool
 
@@ -31,7 +32,7 @@ type debugAttachmentData struct {
 }
 
 func NewDebugController(ctx context.Context,
-	debugger func(string) Debugger,
+	debugger func(string) remote.Debugger,
 	daClient *v1.DebugAttachmentClient) *DebugController {
 	return &DebugController{
 		debugger: debugger,

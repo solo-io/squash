@@ -5,7 +5,8 @@
 # Set the below args as you need
 
 DOCKER_REPO="soloio"
-VERSION="mkdev2"
+# VERSION="mkdev2"
+VERSION="dev"
 
 eval $(minikube docker-env)
 

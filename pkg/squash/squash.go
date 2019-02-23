@@ -1,4 +1,4 @@
-package debuggers
+package squash
 
 import (
 	"context"
@@ -10,13 +10,14 @@ import (
 	"github.com/solo-io/go-utils/contextutils"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/debuggers/remote"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquashAgent(debugger func(string) Debugger) error {
+func RunSquashAgent(debugger func(string) remote.Debugger) error {
 	log.SetLevel(log.DebugLevel)
 
 	customFormatter := new(log.TextFormatter)
@@ -52,7 +53,7 @@ func RunSquashAgent(debugger func(string) Debugger) error {
 type DebugHandler struct {
 	ctx context.Context
 
-	debugger        func(string) Debugger
+	debugger        func(string) remote.Debugger
 	debugController *DebugController
 	daClient        *v1.DebugAttachmentClient
 
@@ -62,7 +63,7 @@ type DebugHandler struct {
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) Debugger) *DebugHandler {
+func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) remote.Debugger) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,

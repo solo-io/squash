@@ -1,4 +1,4 @@
-package dlv
+package remote
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/derekparker/delve/service/rpc1"
 	log "github.com/sirupsen/logrus"
-	"github.com/solo-io/squash/pkg/debuggers"
 )
 
 type DLV struct {
@@ -31,8 +30,8 @@ func (d *DLVLiveDebugSession) Port() int {
 	return d.port
 }
 
-func (d *DLVLiveDebugSession) HostType() debuggers.DebugHostType {
-	return debuggers.DebugHostTypeClient
+func (d *DLVLiveDebugSession) HostType() DebugHostType {
+	return DebugHostTypeClient
 }
 
 func (d *DLVLiveDebugSession) Cmd() *exec.Cmd {
@@ -56,7 +55,7 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	return dls, nil
 }
 
-func (d *DLV) Attach(pid int) (debuggers.DebugServer, error) {
+func (d *DLV) Attach(pid int) (DebugServer, error) {
 	return d.attachTo(pid)
 }
 
@@ -76,7 +75,7 @@ func startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.Debug("starting headless dlv for user started, trying to get port")
 	time.Sleep(2 * time.Second)
-	port, err := debuggers.GetPort(cmd.Process.Pid)
+	port, err := GetPort(cmd.Process.Pid)
 	if err != nil {
 		log.WithField("err", err).Error("can't get headless dlv port")
 		cmd.Process.Kill()
