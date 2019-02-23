@@ -80,10 +80,6 @@ func App(version string) (*cobra.Command, error) {
 
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
-		DebugContainerCmd(opts),
-		DebugRequestCmd(opts),
-		ListCmd(opts),
-		WaitAttCmd(opts),
 		opts.DeployCmd(opts),
 		opts.AgentCmd(opts),
 	)
