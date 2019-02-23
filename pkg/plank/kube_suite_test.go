@@ -1,4 +1,4 @@
-package kube_test
+package plank_test
 
 import (
 	"testing"
