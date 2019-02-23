@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="https://i.imgur.com/gkTwlfO.png" alt="squash" width="200" height="248">
+    <img src="docs/squash.svg" alt="squash" width="200" height="248">
   <br>
   Debugger for microservices
 </h1>
@@ -17,7 +17,6 @@ Squash brings the power of modern popular debuggers to developers of microservic
 
 Squash is built to be easily extensible, allowing – and encouraging – adding support for more platforms, debuggers and IDEs.
 
-Squash integration with [Envoy](https://www.envoyproxy.io) is now live! Read about the Squash HTTP filter, now part of upstream Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html)
 
 To learn more about the motivation behind project squash, read our blog [post](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://medium.com/solo-io/technical-introduction-to-squash-399e0c0c54b).
 
@@ -36,7 +35,7 @@ To stay up-to-date with Squash, follow us [@GetSoloIO](https://twitter.com/GetSo
 
 ## Demo
 
-In the following demo we  debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The application is composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
+In the following demo we debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The application is composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
 
 <img src="images/squash-demo-2.gif" alt="Squash Demo" />
 
@@ -78,24 +77,22 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
  
 ## Supported IDEs:
  - [VS Code](https://github.com/solo-io/squash-vscode)
- - [Intellij](https://github.com/solo-io/squash-intellij) (currently Java/Kubernetes only)
+ - [Intellij](https://github.com/solo-io/squash-intellij)
 
-*We are looking for community help to add support for more debuggers, platforms and IDEs.*
+*We are looking for community help to add support for more debuggers and IDEs.*
 
 ## Roadmap:
-**debuggers**
- - [Python](https://docs.python.org/3/library/pdb.html)
+**Service Mesh**
+  - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
 
-**platforms**:
-  - [Mesos](http://mesos.apache.org)
-  - [Docker Swarm](https://github.com/docker/swarm)
-  - [Cloud Foundry](https://www.cloudfoundry.org)
-  
+**debuggers**
+ - [Python - pdb](https://docs.python.org/3/library/pdb.html)
+
 **IDEs**
   - [Eclipse](https://eclipse.org/ide/)
 
 
-Squash is still experimental! APIs and compatibility are subject to change. We are looking for community support to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
+Squash is under active development. APIs and compatibility are subject to change. We welcomd community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
 
 ---
 
