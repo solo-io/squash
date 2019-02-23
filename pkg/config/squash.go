@@ -188,7 +188,7 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 		s.printError(createdPod)
 	}
 
-	dbgCmd := s.getDebugCmd()
+	dbgCmd := debugger.GetDebugCmd(s.LocalPort)
 	if err := ptyWrap(dbgCmd); err != nil {
 		// if err := dbgCmd.Run(); err != nil {
 		log.Warn("failed, printing logs")
@@ -197,23 +197,6 @@ func (s *Squash) connectUser(createdPod *v1.Pod) error {
 		return err
 	}
 	return nil
-}
-
-func (s *Squash) getDebugCmd() *exec.Cmd {
-	cmd := &exec.Cmd{}
-	switch s.Debugger {
-	case "dlv":
-		cmd = exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
-	case "java":
-		cmd = exec.Command("jdb", "-attach", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
-	default:
-		log.Warn(fmt.Errorf("debugger not recognized %v", s.Debugger))
-		return nil
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	return cmd
 }
 
 func ptyWrap(c *exec.Cmd) error {
@@ -291,7 +274,8 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 					errchan <- err
 					return
 				}
-				if !s.expectRunningPod() {
+				// TODO - consider refactor such that GetParticularDebugger is only ever called once per session
+				if !local.GetParticularDebugger(s.Debugger).ExpectRunningPlank() {
 					return
 				}
 				if createdPod.Status.Phase == v1.PodRunning {
@@ -310,18 +294,6 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 		}
 	}()
 	return errchan
-}
-
-func (s *Squash) expectRunningPod() bool {
-	switch s.Debugger {
-	case "dlv":
-		return true
-	case "java":
-		return false
-	default:
-		// TODO - remove this when debugger name validation is in place
-		return true
-	}
 }
 
 func (s *Squash) printError(pod *v1.Pod) error {

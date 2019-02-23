@@ -10,3 +10,13 @@ func (g *NodeJsDebugger) GetRemoteConnectionCmd(plankName, plankNamespace, podNa
 	// TODO
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
+
+func (d *NodeJsDebugger) GetDebugCmd(localPort int) *exec.Cmd {
+	// TODO
+	return nil
+}
+
+func (d *NodeJsDebugger) ExpectRunningPlank() bool {
+	// TODO
+	return false
+}

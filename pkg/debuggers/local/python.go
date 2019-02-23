@@ -10,3 +10,13 @@ func (i *PythonInterface) GetRemoteConnectionCmd(plankName, plankNamespace, podN
 	// TODO
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
+
+func (d *PythonInterface) GetDebugCmd(localPort int) *exec.Cmd {
+	// TODO
+	return nil
+}
+
+func (d *PythonInterface) ExpectRunningPlank() bool {
+	// TODO
+	return false
+}

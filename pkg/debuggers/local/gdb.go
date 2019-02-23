@@ -10,3 +10,13 @@ func (g *GdbInterface) GetRemoteConnectionCmd(plankName, plankNamespace, podName
 	// proxy through the debug container
 	return GetPortForwardCmd(plankName, plankNamespace, localPort, remotePort)
 }
+
+func (d *GdbInterface) GetDebugCmd(localPort int) *exec.Cmd {
+	// TODO
+	return nil
+}
+
+func (d *GdbInterface) ExpectRunningPlank() bool {
+	// TODO
+	return false
+}
