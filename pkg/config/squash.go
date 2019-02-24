@@ -22,16 +22,8 @@ import (
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
 	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-)
-
-var (
-	plankServiceAccountName     = "squash-plank"
-	plankClusterRoleName        = "squash-plank-cr"
-	plankClusterRoleBindingName = "squash-plank-crb"
 )
 
 type Squash struct {
@@ -53,6 +45,8 @@ type Squash struct {
 	CRISock string
 
 	clientset kubernetes.Interface
+
+	SquashNamespace string
 }
 
 type DebugTarget struct {
@@ -67,15 +61,10 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 		return nil, err
 	}
 	// create namespace. ignore errors as it most likely exists and will error
-	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.getDebuggerPodNamespace()}})
-
-	// grant permissions required by debugger pod
-	if err := s.createPermissions(); err != nil {
-		return nil, err
-	}
+	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.SquashNamespace}})
 
 	// create debugger pod
-	createdPod, err := s.getClientSet().CoreV1().Pods(s.getDebuggerPodNamespace()).Create(dbgpod)
+	createdPod, err := s.getClientSet().CoreV1().Pods(s.SquashNamespace).Create(dbgpod)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create pod: %v", err)
 	}
@@ -318,23 +307,6 @@ func (s *Squash) printError(pod *v1.Pod) error {
 	return nil
 }
 
-func (s *Squash) getClientSet() kubernetes.Interface {
-	if s.clientset != nil {
-		return s.clientset
-	}
-	restCfg, err := gokubeutils.GetConfig("", "")
-	if err != nil {
-		panic(err)
-	}
-	cs, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		panic(err)
-	}
-	s.clientset = cs
-	return s.clientset
-
-}
-
 // Containers have a common name, suffixed by the particular debugger that they have installed
 // TODO(mitchdraft) - implement more specific debug containers (for example, bare containers for debuggers that don't need a specific process)
 // for now, default to the gdb variant
@@ -363,7 +335,7 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
 		},
 		Spec: v1.PodSpec{
-			ServiceAccountName: plankServiceAccountName,
+			ServiceAccountName: sqOpts.PlankServiceAccountName,
 			HostPID:            true,
 			RestartPolicy:      v1.RestartPolicyNever,
 			NodeName:           in.Spec.NodeName,
@@ -412,79 +384,19 @@ func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) 
 	return templatePod, nil
 }
 
-// TODO - call this once from squashctl once during config instead of each time a pod is created
-// for now - just print errors since these resources may have already been created
-// we need them to exist in each namespace
-func (s *Squash) createPermissions() error {
-	namespace := s.Namespace
-	cs := s.clientset
+func (s *Squash) getClientSet() kubernetes.Interface {
+	if s.clientset != nil {
+		return s.clientset
+	}
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		panic(err)
+	}
+	cs, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		panic(err)
+	}
+	s.clientset = cs
+	return s.clientset
 
-	sa := v1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: plankServiceAccountName,
-		},
-	}
-	if _, err := cs.CoreV1().ServiceAccounts(namespace).Create(&sa); err != nil {
-		fmt.Println(err)
-	}
-
-	cr := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: plankClusterRoleName,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{"get", "list", "watch", "create", "delete"},
-				Resources: []string{"pods"},
-				APIGroups: []string{""},
-			},
-			{
-				Verbs:     []string{"list"},
-				Resources: []string{"namespaces"},
-				APIGroups: []string{""},
-			},
-			{
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
-				Resources: []string{"debugattachments"},
-				APIGroups: []string{"squash.solo.io"},
-			},
-			// this should not be needed for plank
-			{
-				Verbs:     []string{"create"},
-				Resources: []string{"clusterrolebindings"},
-				APIGroups: []string{"rbac.authorization.k8s.io"},
-			},
-			{
-				// TODO remove the register permission when solo-kit is updated
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
-				Resources: []string{"customresourcedefinitions"},
-				APIGroups: []string{"apiextensions.k8s.io"},
-			},
-		},
-	}
-	if _, err := cs.Rbac().ClusterRoles().Create(cr); err != nil {
-		fmt.Println(err)
-	}
-
-	crb := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      plankClusterRoleBindingName,
-			Namespace: namespace,
-		},
-		Subjects: []rbacv1.Subject{
-			rbacv1.Subject{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      plankServiceAccountName,
-				Namespace: namespace,
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Name: plankClusterRoleName,
-			Kind: "ClusterRole",
-		},
-	}
-	if _, err := cs.Rbac().ClusterRoleBindings().Create(crb); err != nil {
-		fmt.Println(err)
-	}
-	return nil
 }

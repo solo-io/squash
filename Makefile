@@ -28,7 +28,7 @@ release-binaries: $(RELEASE_BINARIES)
 containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
 
 .PHONY: push-containers
-push-containers: target/plank-dlv-pushed target/plank-gdb-pushed target/agent-pushed ## Pushes debug containers to $(DOCKER_REPO)
+push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/agent-pushed ## Pushes debug containers to $(DOCKER_REPO)
 
 .PHONY: release
 release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
@@ -86,7 +86,7 @@ target/plank/:
 
 target/plank/plank: | target/plank/
 target/plank/plank: $(SRCS)
-	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w' -o ./target/plank/plank ./cmd/plank/
+	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o ./target/plank/plank ./cmd/plank/
 
 
 target/plank/Dockerfile.dlv:    | target/plank/

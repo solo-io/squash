@@ -22,4 +22,10 @@ var (
 	SquashLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
 
 	AvailableDebuggers = []string{"dlv", "gdb", "java", "nodejs", "nodejs8", "python"}
+
+	SquashNamespace = "squash-debugger"
+
+	PlankServiceAccountName     = "squash-plank"
+	PlankClusterRoleName        = "squash-plank-cr"
+	PlankClusterRoleBindingName = "squash-plank-crb"
 )

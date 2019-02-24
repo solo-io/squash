@@ -39,7 +39,7 @@ func (d *DLVLiveDebugSession) Cmd() *exec.Cmd {
 }
 
 func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
-	cmd, port, err := startDebugServer(pid)
+	cmd, port, err := d.startDebugServer(pid)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (d *DLV) Attach(pid int) (DebugServer, error) {
 	return d.attachTo(pid)
 }
 
-func startDebugServer(pid int) (*exec.Cmd, int, error) {
+func (d *DLV) startDebugServer(pid int) (*exec.Cmd, int, error) {
 
 	log.WithField("pid", pid).Debug("StartDebugServer called")
 	cmd := exec.Command("dlv", "attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:0", "--accept-multiclient=true", "--api-version=2", "--headless", "--log")

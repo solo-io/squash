@@ -98,6 +98,10 @@ message Intent {
   // NOT YET IMPLEMENTED
   // if a container has multiple processes and you do not want to debug the first process, this string is used to select a specific process
   string process_matcher = 4;
+
+  // Tells squash if this crd was created for use in secure mode.
+  // Helps avoid errors caused by alternating between default and secure modes.
+  bool secure_mode = 5;
 }
 
 // Describes the pod squash spawns for managing a particular debug session

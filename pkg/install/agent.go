@@ -64,6 +64,21 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 				APIGroups: []string{"squash.solo.io"},
 			},
 			{
+				Verbs:     []string{"create"},
+				Resources: []string{"clusterrolebindings"},
+				APIGroups: []string{"rbac.authorization.k8s.io"},
+			},
+			{
+				Verbs:     []string{"create"},
+				Resources: []string{"clusterrole"},
+				APIGroups: []string{"rbac.authorization.k8s.io"},
+			},
+			{
+				Verbs:     []string{"create"},
+				Resources: []string{"serviceaccount"},
+				APIGroups: []string{""},
+			},
+			{
 				// TODO remove the register permission when solo-kit is updated
 				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
 				Resources: []string{"customresourcedefinitions"},

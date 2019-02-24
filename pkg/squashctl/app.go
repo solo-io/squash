@@ -12,6 +12,7 @@ import (
 	"github.com/solo-io/squash/pkg/actions"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
+	"github.com/solo-io/squash/pkg/options"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
@@ -110,6 +111,7 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.Pod, "pod", "", "Pod to debug")
 	f.StringVar(&cfg.Container, "container", "", "Container to debug")
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
+	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resourcea will be deployed (default: %v)", options.SquashNamespace))
 }
 
 func initializeOptions(o *Options) error {
@@ -150,6 +152,9 @@ func (o *Options) runBaseCommand() error {
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
+		if err := o.createPlankPermissions(); err != nil {
+			return err
+		}
 		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
 		o.cleanupPostRun()
 		return err
@@ -163,6 +168,9 @@ func (top *Options) runBaseCommandWithRbac() error {
 	if err := top.ensureSquashIsInCluster(); err != nil {
 		return err
 	}
+	if err := top.createPlankPermissions(); err != nil {
+		return err
+	}
 
 	uc, err := actions.NewUserController()
 	if err != nil {
@@ -174,7 +182,7 @@ func (top *Options) runBaseCommandWithRbac() error {
 
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
 
-	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
 		return err
 	}
@@ -445,8 +453,9 @@ func (o *Options) ensureSquashIsInCluster() error {
 	return nil
 }
 
+// TODO - improve this, it tends to fail during the first image pull, should be on a timeout with retries
 func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
-	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
 		return err
 	}

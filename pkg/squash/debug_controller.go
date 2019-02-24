@@ -2,7 +2,6 @@ package squash
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -122,7 +121,7 @@ func (d *DebugController) deleteResource(namespace, name string) {
 	}
 }
 
-func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
+func (d *DebugController) markAsAttached(namespace, name string) {
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
@@ -130,7 +129,6 @@ func (d *DebugController) markAsAttached(namespace, name, debUrl string) {
 	}
 
 	da.State = v1.DebugAttachment_Attached
-	da.DebugServerAddress = debUrl
 
 	_, err = (*d.daClient).Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
@@ -157,16 +155,17 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		Namespace: da.Metadata.Namespace,
 		Pod:       da.Pod,
 		Container: da.Image,
+
+		SquashNamespace: options.SquashNamespace,
 	}
 	dbt := config.DebugTarget{}
 	if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
 		return err
 	}
-	debPod, err := config.StartDebugContainer(s, dbt)
+	_, err := config.StartDebugContainer(s, dbt)
 	if err != nil {
 		return err
 	}
-	debUrl := fmt.Sprintf("%v:%v", debPod.ObjectMeta.Name, options.DebuggerPort)
-	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name, debUrl)
+	d.markAsAttached(da.Metadata.Namespace, da.Metadata.Name)
 	return nil
 }
