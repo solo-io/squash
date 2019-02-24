@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/squash"
 
-	dbgutils "github.com/solo-io/squash/pkg/debuggers/utils"
+	"github.com/solo-io/squash/pkg/debuggers/remote"
 	"github.com/solo-io/squash/pkg/platforms/kubernetes"
 	"github.com/solo-io/squash/pkg/version"
 )
@@ -18,7 +18,7 @@ func main() {
 	log.Infof("squash started %v, %v", version.Version, version.TimeStamp)
 
 	mustGetContainerProcessLocator()
-	err := squash.RunSquashAgent(dbgutils.GetParticularDebugger)
+	err := squash.RunSquashAgent(remote.GetParticularDebugger)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }

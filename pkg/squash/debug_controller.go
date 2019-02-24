@@ -15,7 +15,7 @@ import (
 )
 
 type DebugController struct {
-	debugger func(string) remote.Debugger
+	debugger func(string) remote.Remote
 	pidLock  sync.Mutex
 	pidMap   map[int]bool
 
@@ -27,12 +27,12 @@ type DebugController struct {
 }
 
 type debugAttachmentData struct {
-	debugger DebugServer
+	debugger remote.DebugServer
 	pid      int
 }
 
 func NewDebugController(ctx context.Context,
-	debugger func(string) remote.Debugger,
+	debugger func(string) remote.Remote,
 	daClient *v1.DebugAttachmentClient) *DebugController {
 	return &DebugController{
 		debugger: debugger,

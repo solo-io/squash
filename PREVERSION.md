@@ -52,6 +52,8 @@
 - [ ] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
 - [ ] security: in secure mode only spawn planks in the squash-debugger namespace
 - [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
+- [ ] permissions: fix permissions on planks created in secure mode
+- [x] bug: agent deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
 
 
 ## Release tasks

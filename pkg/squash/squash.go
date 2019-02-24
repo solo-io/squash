@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquashAgent(debugger func(string) remote.Debugger) error {
+func RunSquashAgent(debugger func(string) remote.Remote) error {
 	log.SetLevel(log.DebugLevel)
 
 	customFormatter := new(log.TextFormatter)
@@ -53,7 +53,7 @@ func RunSquashAgent(debugger func(string) remote.Debugger) error {
 type DebugHandler struct {
 	ctx context.Context
 
-	debugger        func(string) remote.Debugger
+	debugger        func(string) remote.Remote
 	debugController *DebugController
 	daClient        *v1.DebugAttachmentClient
 
@@ -63,7 +63,7 @@ type DebugHandler struct {
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) remote.Debugger) *DebugHandler {
+func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) remote.Remote) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
@@ -127,12 +127,14 @@ func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 		return nil
 	case v1.DebugAttachment_RequestingDelete:
 		log.Debug("handling requesting delete")
-		log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
-		go func() { d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name) }()
+		// DO NOTHING - Will refactor this
+		// log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
+		// go func() { d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name) }()
 		return nil
 	case v1.DebugAttachment_PendingDelete:
 		log.Debug("handling pending delete")
-		d.debugController.deleteResource(da.Metadata.Namespace, da.Metadata.Name)
+		// DO NOTHING - Will refactor this
+		// d.debugController.deleteResource(da.Metadata.Namespace, da.Metadata.Name)
 		// do nothing, will transition out of this state according to the result of the RequestingDelete handler
 		return nil
 	default:

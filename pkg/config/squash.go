@@ -448,6 +448,7 @@ func (s *Squash) createPermissions() error {
 				Resources: []string{"debugattachments"},
 				APIGroups: []string{"squash.solo.io"},
 			},
+			// this should not be needed for plank
 			{
 				Verbs:     []string{"create"},
 				Resources: []string{"clusterrolebindings"},

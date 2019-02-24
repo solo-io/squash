@@ -17,7 +17,7 @@ help:
 	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
 .PHONY: binaries
-binaries: target/plank/plank target/squashctl # Builds squashctl binaries in and places them in target/ folder
+binaries: target/plank/plank target/squashctl target/agent # Builds squashctl binaries in and places them in target/ folder
 
 RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
 
@@ -28,7 +28,7 @@ release-binaries: $(RELEASE_BINARIES)
 containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
 
 .PHONY: push-containers
-push-containers: target/plank-dlv-pushed target/plank-gdb-pushed ## Pushes debug containers to $(DOCKER_REPO)
+push-containers: target/plank-dlv-pushed target/plank-gdb-pushed target/agent-pushed ## Pushes debug containers to $(DOCKER_REPO)
 
 .PHONY: release
 release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
@@ -54,6 +54,8 @@ qdev: target $(SRCS)
 target:
 	[ -d $@ ] || mkdir -p $@
 
+### Squashctl
+
 target/squashctl: target $(SRCS)
 	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
@@ -62,6 +64,22 @@ target/squashctl-osx: target $(SRCS)
 
 target/squashctl-linux: target $(SRCS)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+
+
+### Agent
+
+target/agent: target $(SRCS)
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash cmd/agent/main.go
+
+target/agent-container: ./target/agent
+	docker build -f cmd/agent/Dockerfile -t $(DOCKER_REPO)/squash-agent:$(VERSION) ./target/agent/
+	touch $@
+target/agent-pushed: target/agent-container
+	docker push $(DOCKER_REPO)/squash-agent:$(VERSION)
+	touch $@
+
+
+ ### Plank
 
 target/plank/:
 	[ -d $@ ] || mkdir -p $@
@@ -117,14 +135,6 @@ clean: ## Deletes target folder
 dist: target/plank-gdb-pushed target/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
 
 
-## Temp
-DEVVERSION="dev"
-.PHONY: devpush
-devpush:
-	docker build -t $(DOCKER_REPO)/squash-agent:$(DEVVERSION) -f cmd/agent/Dockerfile ./target/agent/
-	docker push $(DOCKER_REPO)/squash-agent:$(DEVVERSION)
-
-
 # Docs
 
 .PHONY: generatedocs
@@ -135,7 +145,3 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
-
-.PHONY: tmpagent
-tmpagent:
-	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash-agent cmd/agent/main.go

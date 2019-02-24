@@ -32,3 +32,7 @@
 
 ./sq.out # (interactive) java, demo, service2, yes, stop in io.solo.squash.service2.Service2:23
 # kgp - expect to see a plank being created
+
+### Repeat, in secure mode
+
+# ./sq.out deploy agent
