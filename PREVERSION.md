@@ -46,14 +46,17 @@
 - [x] squashctl: wait for pod to be created before expecting crd
 - [x] clean up artifacts: (auto) delete debug attachment crd on exit
 - [ ] clean up artifacts: (prompted) delete permissions
-- [ ] check for existence of permissions before creating them
-- [ ] only notify when newly creating permissions
+- [x] check for existence of permissions before creating them
+- [x] only notify when newly creating permissions
 - [ ] handle error where user tries to create a second debug attachment on a single process
 - [ ] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
-- [ ] security: in secure mode only spawn planks in the squash-debugger namespace
+- [x] security: in secure mode only spawn planks in the squash-debugger namespace
 - [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
-- [ ] permissions: fix permissions on planks created in secure mode
+- [x] permissions: fix permissions on planks created in secure mode
 - [x] bug: agent deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
+- [ ] stability: rework squashctl.getCreatedPod, make it debugger-specific
+- [ ] use labels to select plank pods now that they are all in the same namespace
+- [ ] (P1) implement simplified API
 
 
 ## Release tasks
