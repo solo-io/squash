@@ -49,6 +49,10 @@
 - [ ] check for existence of permissions before creating them
 - [ ] only notify when newly creating permissions
 - [ ] handle error where user tries to create a second debug attachment on a single process
+- [ ] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
+- [ ] security: in secure mode only spawn planks in the squash-debugger namespace
+- [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
+
 
 ## Release tasks
 - [x] (P0) update makefile for new client/docker settings
