@@ -82,6 +82,7 @@ func App(version string) (*cobra.Command, error) {
 	app.AddCommand(
 		opts.DeployCmd(opts),
 		opts.AgentCmd(opts),
+		opts.UtilsCmd(opts),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")

@@ -48,6 +48,7 @@
 - [ ] clean up artifacts: (prompted) delete permissions
 - [ ] check for existence of permissions before creating them
 - [ ] only notify when newly creating permissions
+- [ ] handle error where user tries to create a second debug attachment on a single process
 
 ## Release tasks
 - [x] (P0) update makefile for new client/docker settings
