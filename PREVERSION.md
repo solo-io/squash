@@ -32,9 +32,9 @@
 - [x] allow in/out-of cluster to be configured as a flag - will not do
 - [x] allow installation of squash agent from cli
 ## outstanding
-- [ ] (P0) interactive input for RBAC mode
+- [x] (P0) interactive input for RBAC mode
 - [x] (P0) decide what to call RBAC/Agent
-- [ ] (P0) choose container in interactive mode
+- [x] (P0) choose container in interactive mode
 - [ ] (P1, testing, docs) python support updates
 - [ ] (P1, testing, docs) java support updates
 - [ ] (P1, testing, docs) nodejs support updates
@@ -42,6 +42,12 @@
 ## e2e tests
 - [x] rbac mode
 - [ ] (P1) non rbac mode
+## Wrap up
+- [x] squashctl: wait for pod to be created before expecting crd
+- [ ] clean up artifacts: (auto) delete debug attachment crd on exit
+- [ ] clean up artifacts: (prompted) delete permissions
+- [ ] check for existence of permissions before creating them
+- [ ] only notify when newly creating permissions
 
 ## Release tasks
 - [x] (P0) update makefile for new client/docker settings

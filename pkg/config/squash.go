@@ -270,6 +270,11 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 				options.ResourceVersion = createdPod.ResourceVersion
 				var err error
 				createdPod, err = s.getClientSet().CoreV1().Pods(s.Namespace).Get(name, options)
+
+				if createdPod.Status.Phase == v1.PodPending {
+					fmt.Println("Pod creating")
+					continue
+				}
 				if err != nil {
 					errchan <- err
 					return
