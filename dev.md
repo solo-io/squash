@@ -38,7 +38,7 @@
 - squashclt waits for debug session to end
 - user interacts with debugger and eventually closes it
 - squashctl terminates pod (not implemented explicitly as this currently happens upon ending the debug session - may want to add a check w/ explicit delete in the future in order to ensure the old pod is removed)
-- [TODO] squashctl deletes the old debugattachment crd
+- squashctl deletes the old debugattachment crd
 
 # Improved API outline
 

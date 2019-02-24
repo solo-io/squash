@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
@@ -144,13 +145,16 @@ func (o *Options) runBaseCommand() error {
 	if o.Config.secureMode {
 		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
 		if err := o.runBaseCommandWithRbac(); err != nil {
+			o.cleanupPostRun()
 			return err
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
 		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
+		o.cleanupPostRun()
 		return err
 	}
+	o.cleanupPostRun()
 
 	return nil
 }
@@ -466,4 +470,13 @@ func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v
 		return fmt.Errorf("Expected to find one newly created squash debug pod, found %v", matchCount)
 	}
 	return nil
+}
+
+func (o *Options) cleanupPostRun() error {
+	// TODO - consider explicitly ensuring that pod has been deleted (tends to be deleted by default)
+
+	// remove crd
+	so := o.Squash
+	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
+	return (*o.daClient).Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
 }

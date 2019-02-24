@@ -44,7 +44,7 @@
 - [ ] (P1) non rbac mode
 ## Wrap up
 - [x] squashctl: wait for pod to be created before expecting crd
-- [ ] clean up artifacts: (auto) delete debug attachment crd on exit
+- [x] clean up artifacts: (auto) delete debug attachment crd on exit
 - [ ] clean up artifacts: (prompted) delete permissions
 - [ ] check for existence of permissions before creating them
 - [ ] only notify when newly creating permissions
