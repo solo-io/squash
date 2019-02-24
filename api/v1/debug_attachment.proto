@@ -62,7 +62,6 @@ message DebugAttachment {
     PendingDelete = 4;
   }
 
-  State state = 10;
 
   // From cli debug-container (possibly redundant)
 
@@ -71,4 +70,53 @@ message DebugAttachment {
   string container = 12;
 
   string debug_namespace = 13;
+
+  //// ALL PRIOR FIELDS ARE DEPRECATED
+
+  State state = 20;
+
+  /* Future API:
+  Intent intent = 21;
+
+  Plank plank = 22;
+
+  PortSpec port_spec = 23;
+  */
+}
+
+// Describes the user's debug intentions
+message Intent {
+  // type of debugger to use
+  string debugger = 1;
+  
+  // pod to debug
+  core.solo.io.ResourceRef pod = 2;
+
+  // name of container to debug
+  string container_name = 3;
+
+  // NOT YET IMPLEMENTED
+  // if a container has multiple processes and you do not want to debug the first process, this string is used to select a specific process
+  string process_matcher = 4;
+}
+
+// Describes the pod squash spawns for managing a particular debug session
+message Plank {
+  // plank pod reference
+  core.solo.io.ResourceRef pod = 1;
+
+  // indicates when plank has completed the debugger-specify preparation
+  bool ready_for_connect = 2;
+}
+
+// Contains all port information needed to connect or find a debugger
+message PortSpec {
+  // the local port to which the debugger is port-forwarded
+  uint32 local = 1;
+
+  // the relevant debug port on the plank pod (if any)
+  uint32 plank = 2;
+
+  // the relevant debug port on the target pod (if any)
+  uint32 target = 3;
 }
