@@ -2,19 +2,19 @@
 
 # minikuberestart
 
-# kubectl create ns demo
+ # kubectl create ns demo
 
-# sleep 200
+ sleep 2
 
-./sq.out -h
+squashctl -h
 
-./sq.out deploy demo \
+squashctl deploy demo \
 --demo-id go-java \
 --demo-namespace1 demo \
 --demo-namespace2 demo
 
-
-./sq.out # (interactive) dlv, demo, service1, yes
+squashctl deploy agent
+squashctl # (interactive) dlv, demo, service1, yes
 # kgp - expect to see a plank being created
 
 # (interactive squashctl) funcs
@@ -30,7 +30,7 @@
 ## expect new line, no content
 
 
-./sq.out # (interactive) java, demo, service2, yes, stop in io.solo.squash.service2.Service2:23
+# ./sq.out # (interactive) java, demo, service2, yes, stop in io.solo.squash.service2.Service2:23
 # kgp - expect to see a plank being created
 
 ### Repeat, in secure mode

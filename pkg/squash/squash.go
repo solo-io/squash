@@ -114,7 +114,7 @@ func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error
 func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
 	switch da.State {
 	case v1.DebugAttachment_RequestingAttachment:
-		log.Debug("handling requesting attachment")
+		log.Debugf("handling requesting attachment %v", da)
 		go d.debugController.handleAttachmentRequest(da)
 		return nil
 	case v1.DebugAttachment_PendingAttachment:

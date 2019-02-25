@@ -49,13 +49,11 @@ func GetParticularDebugger(dbgtype string) Local {
 
 func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
 	// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
-	// Give debug container time to create the CRD
-	// TODO - reduce this sleep time
-	time.Sleep(5 * time.Second)
 	da, err := waitForDebugServerAddress(daName, daNamespace)
 	if err != nil {
 		return 0, fmt.Errorf("Could not read debug attachment %v in namespace %v: %v", daName, daNamespace, err)
 	}
+	fmt.Println("deb, this is the da: %v", da)
 	port, err := da.GetPortFromDebugServerAddress()
 	if err != nil {
 		return 0, err
@@ -72,29 +70,34 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 	}
 	dac, errc, err := (*daClient).Watch(daNamespace, clients.WatchOpts{Ctx: ctx})
 	if err != nil {
-		return &v1.DebugAttachment{}, nil
+		return &v1.DebugAttachment{}, err
 	}
 	var cancel context.CancelFunc = func() {}
 	defer cancel()
 	for {
 		select {
 		case err, _ := <-errc:
+			fmt.Println("deb 111")
 			return &v1.DebugAttachment{}, err
 		case <-time.After(10 * time.Second):
+			fmt.Println("deb 112")
 			// TODO - make timeout configurable, better error message
 			return &v1.DebugAttachment{}, fmt.Errorf("Could not find debug spec in the allotted time.")
 		case das, ok := <-dac:
 			if !ok {
+				fmt.Println("deb 113")
 				return &v1.DebugAttachment{}, fmt.Errorf("could not read watch channel")
 			}
 			cancel()
 
 			if len(das) == 0 {
+				fmt.Println("deb 115")
 				continue
 			}
 
 			da := checkDebugAttachmentsForAddress(das, daName)
 			if da != nil {
+				fmt.Println("deb 114")
 				return da, nil
 			}
 		}
@@ -104,8 +107,9 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 func checkDebugAttachmentsForAddress(das v1.DebugAttachmentList, daName string) *v1.DebugAttachment {
 	for _, da := range das {
 		if da.Metadata.Name == daName && da.DebugServerAddress != "" {
+			fmt.Printf("deb got dsa: %v\n", da.DebugServerAddress)
 			return da
 		}
 	}
-	return &v1.DebugAttachment{}
+	return nil
 }

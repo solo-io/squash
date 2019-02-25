@@ -182,7 +182,7 @@ func (top *Options) runBaseCommandWithRbac() error {
 
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
 
-	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	// initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
 		return err
 	}
@@ -202,12 +202,12 @@ func (top *Options) runBaseCommandWithRbac() error {
 	// 1 second was not long enough, status still pending, could not port-forward
 	// 3 seconds might be overkill
 	time.Sleep(3 * time.Second)
-	createdPod := &core_v1.Pod{}
-	if err := top.getCreatedPod(initialPods, createdPod); err != nil {
-		return err
-	}
+	// createdPod := &core_v1.Pod{}
+	// if err := top.getCreatedPod(initialPods, createdPod); err != nil {
+	// 	return err
+	// }
 
-	return top.Squash.ReportOrConnectToCreatedDebuggerPod(createdPod)
+	return top.Squash.ReportOrConnectToCreatedDebuggerPod()
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {

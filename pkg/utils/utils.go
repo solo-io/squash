@@ -115,3 +115,17 @@ func ListDebugAttachments(ctx context.Context, daClient *squashv1.DebugAttachmen
 	}
 	return allDas, nil
 }
+
+func GetAllDebugAttachments(ctx context.Context, daClient *squashv1.DebugAttachmentClient, nsList []string) (squashv1.DebugAttachmentList, error) {
+	allDas := squashv1.DebugAttachmentList{}
+	for _, ns := range nsList {
+		das, err := (*daClient).List(ns, clients.ListOpts{Ctx: ctx})
+		if err != nil {
+			return squashv1.DebugAttachmentList{}, err
+		}
+		for _, da := range das {
+			allDas = append(allDas, da)
+		}
+	}
+	return allDas, nil
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
@@ -96,6 +97,8 @@ func connectLocalPrepare(dbgServer remote.DebugServer, att v1.DebugAttachment) e
 
 	// set port value
 	da.DebugServerAddress = fmt.Sprintf("inferfrompod:%v", dbgServer.Port())
+	// write own plank pod name
+	da.Attachment = os.Getenv("HOSTNAME")
 	if _, err := (*daClient).Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true}); err != nil {
 		return err
 	}

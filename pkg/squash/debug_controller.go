@@ -159,9 +159,9 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		SquashNamespace: options.SquashNamespace,
 	}
 	dbt := config.DebugTarget{}
-	if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
-		return err
-	}
+	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
+	// 	return err
+	// }
 	_, err := config.StartDebugContainer(s, dbt)
 	if err != nil {
 		return err

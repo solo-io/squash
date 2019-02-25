@@ -1,21 +1,35 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
 // Attach creates a DebugAttachment with a state of PendingAttachment
-func (uc *UserController) Attach(name, namespace, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+func (uc *UserController) Attach(daName, namespace, image, podName, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+	di := v1.Intent{
+		Debugger: dbgger,
+		Pod: &core.ResourceRef{
+			Name:      podName,
+			Namespace: namespace,
+		},
+		ContainerName: container,
+	}
+	attachlabels := di.GenerateLabels()
+	fmt.Println("attachlabels")
+	fmt.Println(attachlabels)
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      name,
+			Name:      daName,
 			Namespace: namespace,
+			Labels:    attachlabels,
 		},
 		Debugger:       dbgger,
 		Image:          image,
-		Pod:            pod,
+		Pod:            podName,
 		Container:      container,
 		DebugNamespace: namespace,
 		State:          v1.DebugAttachment_RequestingAttachment,

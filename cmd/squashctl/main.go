@@ -14,7 +14,8 @@ func main() {
 	start := time.Now()
 	defer check.CallReport("squashctl", version.Version, start)
 
-	app, err := squashctl.App(version.Version)
+	longVersion := fmt.Sprintf("%v, created %v", version.Version, version.TimeStamp)
+	app, err := squashctl.App(longVersion)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashutils "github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (top *Options) UtilsCmd(o *Options) *cobra.Command {
@@ -21,6 +25,9 @@ func (top *Options) UtilsCmd(o *Options) *cobra.Command {
 
 	cmd.AddCommand(
 		top.listAttachmentsCmd(),
+		top.deletePermissionsCmd(),
+		top.deletePlankPodsCmd(),
+		top.deleteAttachmentsCmd(),
 	)
 
 	return cmd
@@ -50,4 +57,108 @@ func (top *Options) listAttachmentsCmd() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+func (top *Options) deleteAttachmentsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete-attachments",
+		Short: "delete all existing debug attachments and plank pods",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			nsList, err := kubeutils.GetNamespaces(top.KubeClient)
+			if err != nil {
+				return err
+			}
+			das, err := squashutils.GetAllDebugAttachments(top.ctx, top.daClient, nsList)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Found %v debug attachments\n", len(das))
+			if err := top.deleteAttachmentList(das, true); err != nil {
+				fmt.Println(err)
+			}
+			return top.deletePlankPods()
+		},
+	}
+	return cmd
+}
+
+func (top *Options) deleteAttachmentList(das v1.DebugAttachmentList, continueOnError bool) error {
+	for _, da := range das {
+		if err := (*top.daClient).Delete(da.Metadata.Namespace, da.Metadata.Name, clients.DeleteOpts{}); err != nil {
+			if continueOnError {
+				fmt.Println(err)
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (top *Options) deletePermissionsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete-permissions",
+		Short: "remove all service accounts, roles, and role bindings created by Squash.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return top.deleteSquashPermissions()
+		},
+	}
+	return cmd
+}
+
+func (o *Options) deleteSquashPermissions() error {
+	cs := o.KubeClient
+	namespace := o.Squash.SquashNamespace
+
+	if err := cs.CoreV1().ServiceAccounts(namespace).Delete(sqOpts.PlankServiceAccountName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+	if err := cs.Rbac().ClusterRoles().Delete(sqOpts.PlankClusterRoleName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+	if err := cs.Rbac().ClusterRoleBindings().Delete(sqOpts.PlankClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+
+	if err := cs.CoreV1().ServiceAccounts(namespace).Delete(sqOpts.SquashServiceAccountName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+	if err := cs.Rbac().ClusterRoles().Delete(sqOpts.SquashClusterRoleName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+	if err := cs.Rbac().ClusterRoleBindings().Delete(sqOpts.SquashClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err)
+	}
+	return nil
+}
+
+func (top *Options) deletePlankPodsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete-planks",
+		Short: "remove all plank debugger pods created by Squash.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return top.deletePlankPods()
+		},
+	}
+	return cmd
+}
+
+func (o *Options) deletePlankPods() error {
+	cs := o.KubeClient
+	namespace := o.Squash.SquashNamespace
+	planks, err := cs.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Found %v plank pods in namespace %v\n", len(planks.Items), namespace)
+	for _, plank := range planks.Items {
+		name := plank.ObjectMeta.Name
+		if err := cs.CoreV1().Pods(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		fmt.Printf("Deleted plank pod %v.\n", name)
+	}
+
+	return nil
 }

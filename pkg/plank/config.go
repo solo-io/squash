@@ -19,6 +19,7 @@ func GetConfig() Config {
 	daName := v1.GenDebugAttachmentName(pod, container)
 
 	return Config{
+		// TODO(mitchdraft) - read these values from k8s, don't re-generate them
 		Attachment: v1.DebugAttachment{
 			Metadata: core.Metadata{
 				Name:      daName,
@@ -29,7 +30,8 @@ func GetConfig() Config {
 			Container:      container,
 			// This is the debugger specified by the user
 			// options are dlv, gdb, java, nodejs, python, etc.
-			Debugger: os.Getenv("DEBUGGER_NAME"),
+			Debugger:   os.Getenv("DEBUGGER_NAME"),
+			Attachment: os.Getenv("HOSTNAME"),
 		},
 		// This is the debugger installed in the container
 		// Options are dlv or gdb

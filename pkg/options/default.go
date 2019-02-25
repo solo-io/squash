@@ -25,6 +25,12 @@ var (
 
 	SquashNamespace = "squash-debugger"
 
+	// squash permissions
+	SquashServiceAccountName     = "squash"
+	SquashClusterRoleName        = "squash-cr-pods"
+	SquashClusterRoleBindingName = "squash-crb-pods"
+
+	// plank permissions
 	PlankServiceAccountName     = "squash-plank"
 	PlankClusterRoleName        = "squash-plank-cr"
 	PlankClusterRoleBindingName = "squash-plank-crb"
