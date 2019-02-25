@@ -77,27 +77,22 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 	for {
 		select {
 		case err, _ := <-errc:
-			fmt.Println("deb 111")
 			return &v1.DebugAttachment{}, err
 		case <-time.After(10 * time.Second):
-			fmt.Println("deb 112")
 			// TODO - make timeout configurable, better error message
 			return &v1.DebugAttachment{}, fmt.Errorf("Could not find debug spec in the allotted time.")
 		case das, ok := <-dac:
 			if !ok {
-				fmt.Println("deb 113")
 				return &v1.DebugAttachment{}, fmt.Errorf("could not read watch channel")
 			}
 			cancel()
 
 			if len(das) == 0 {
-				fmt.Println("deb 115")
 				continue
 			}
 
 			da := checkDebugAttachmentsForAddress(das, daName)
 			if da != nil {
-				fmt.Println("deb 114")
 				return da, nil
 			}
 		}

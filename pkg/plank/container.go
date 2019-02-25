@@ -11,9 +11,11 @@ import (
 const ListenHost = "127.0.0.1"
 
 func Debug(ctx context.Context) error {
-	cfg := GetConfig()
+	cfg, err := GetConfig(ctx)
+	if err != nil {
+		return err
+	}
 
-	var err error
 	var containerProcess platforms.ContainerProcess
 
 	containerProcess, err = kubernetes.NewContainerProcess()

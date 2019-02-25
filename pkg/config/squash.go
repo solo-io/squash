@@ -49,6 +49,8 @@ type Squash struct {
 	clientset kubernetes.Interface
 
 	SquashNamespace string
+	// The name of the debug attachment CRD that pertains to this session
+	DebugAttachmentName string
 }
 
 type DebugTarget struct {
@@ -346,8 +348,8 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 			APIVersion: "v1",
 		},
 		ObjectMeta: meta_v1.ObjectMeta{
-			GenerateName: sqOpts.ContainerName,
-			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
+			GenerateName: sqOpts.PlankContainerName,
+			Labels:       sqOpts.GeneratePlankLabels(pod),
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: sqOpts.PlankServiceAccountName,
@@ -355,7 +357,7 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 			RestartPolicy:      v1.RestartPolicyNever,
 			NodeName:           in.Spec.NodeName,
 			Containers: []v1.Container{{
-				Name:      sqOpts.ContainerName,
+				Name:      sqOpts.PlankContainerName,
 				Image:     targetImage,
 				Stdin:     true,
 				StdinOnce: true,
@@ -372,15 +374,25 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 					},
 				},
 				Env: []v1.EnvVar{{
+					// Deprecated - use SQUASH_DEBUG_ATTACHMENT_NAMESPACE
 					Name:  "SQUASH_NAMESPACE",
 					Value: pod.Namespace,
 				}, {
+					Name:  sqOpts.PlankEnvDebugAttachmentNamespace,
+					Value: pod.Namespace,
+				}, {
+					Name:  sqOpts.PlankEnvDebugAttachmentName,
+					Value: s.DebugAttachmentName,
+				}, {
+					// Deprecated - read from CRD
 					Name:  "SQUASH_POD",
 					Value: pod.Name,
 				}, {
+					// Deprecated - read from CRD
 					Name:  "SQUASH_CONTAINER",
 					Value: containername,
 				}, {
+					// Deprecated - read from CRD
 					Name:  "DEBUGGER_NAME",
 					Value: s.Debugger,
 				},

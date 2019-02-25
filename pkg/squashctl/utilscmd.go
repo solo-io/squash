@@ -144,6 +144,7 @@ func (top *Options) deletePlankPodsCmd() *cobra.Command {
 	return cmd
 }
 
+// TODO(mitchdraft) - should exclude squash pod from this, add labels to squash and plank pods so they can be distinguished
 func (o *Options) deletePlankPods() error {
 	cs := o.KubeClient
 	namespace := o.Squash.SquashNamespace

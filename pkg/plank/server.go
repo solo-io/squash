@@ -15,7 +15,7 @@ import (
 	"github.com/solo-io/squash/pkg/utils"
 )
 
-func startDebugging(cfg Config, pid int) error {
+func startDebugging(cfg *Config, pid int) error {
 
 	particularDebugger := remote.GetParticularDebugger(cfg.Attachment.Debugger)
 	dbgServer, err := particularDebugger.Attach(pid)
@@ -23,7 +23,7 @@ func startDebugging(cfg Config, pid int) error {
 		return err
 	}
 
-	if err := connectLocalPrepare(dbgServer, cfg.Attachment); err != nil {
+	if err := connectLocalPrepare(cfg.ctx, dbgServer, cfg.Attachment); err != nil {
 		return err
 	}
 	if err := proxyConnection(dbgServer); err != nil {
@@ -75,13 +75,12 @@ func proxyConnection(dbgServer remote.DebugServer) error {
 	return <-errchan
 }
 
-func connectLocalPrepare(dbgServer remote.DebugServer, att v1.DebugAttachment) error {
+func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att v1.DebugAttachment) error {
 	// Some debuggers work best when connected "locally"
 	// For these, we connect directly via `kubectl port-forward`
 	// We write the target port to a CRD to be read from squashctl
 
 	// get client
-	ctx := context.Background()
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
 	if err != nil {
 		log.WithField("err", err).Error("getting debug attachment client")

@@ -96,6 +96,8 @@ func (d *DebugController) setState(namespace, name string, state v1.DebugAttachm
 	}
 }
 func (d *DebugController) markForDeletion(namespace, name string) {
+	log.Debug("called mark for deletion from squash - skipping for now")
+	return
 	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
 	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
@@ -157,6 +159,8 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 		Container: da.Image,
 
 		SquashNamespace: options.SquashNamespace,
+
+		DebugAttachmentName: da.Metadata.Name,
 	}
 	dbt := config.DebugTarget{}
 	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {

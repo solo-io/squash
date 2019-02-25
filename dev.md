@@ -74,6 +74,37 @@ Squash requires the following information:
   - local port
   - plank port
   - target port
+  
+## How to associate the target pod, plank pod, and debug attachment CRD
+- target pod
+  - lifecycle:
+    - pre-existing
+  - name: any name, prexisting
+- debug attachment crd
+  - lifecycle:
+    - created by squashctl before anything else happens
+    - updated by squash and/or plank as plank is created and as plank establishes the debug session
+  - name: randomly generated
+  - labels:
+    - pod_name (target pod)
+	- pod_namespace (target pod)
+	- container_name (target container)
+  - fields:
+    - Attachment: name of plank pod (plank is in a known ns so this fully identifies plank)
+      - set by plank when plank is created
+- plank pod
+  - lifecycle:
+    - default mode:
+      - created by squashctl
+    - secure mode:
+      - created by squash
+    - both modes
+      - removed: TODO - by squashctl
+  - name: randomly generated
+  - labels:
+    - debug_attachment_name
+    - debug_attachment_namespace
+
 
 
 # Dev workflow notes
