@@ -76,10 +76,10 @@ func DebugAttachmentClientTest(namespace string, client DebugAttachmentClient) {
 	Expect(r1.Node).To(Equal(input.Node))
 	Expect(r1.MatchRequest).To(Equal(input.MatchRequest))
 	Expect(r1.DebugServerAddress).To(Equal(input.DebugServerAddress))
-	Expect(r1.State).To(Equal(input.State))
 	Expect(r1.Pod).To(Equal(input.Pod))
 	Expect(r1.Container).To(Equal(input.Container))
 	Expect(r1.DebugNamespace).To(Equal(input.DebugNamespace))
+	Expect(r1.State).To(Equal(input.State))
 
 	_, err = client.Write(input, clients.WriteOpts{
 		OverwriteExisting: true,
