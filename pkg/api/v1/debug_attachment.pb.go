@@ -72,8 +72,9 @@ func (DebugAttachment_State) EnumDescriptor() ([]byte, []int) {
 //
 //Attachments store the information needed for squash to coordinate a debugging session
 type DebugAttachment struct {
-	Metadata             core.Metadata         `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata"`
-	Status               core.Status           `protobuf:"bytes,2,opt,name=status,proto3" json:"status" testdiff:"ignore"`
+	Metadata core.Metadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata"`
+	Status   core.Status   `protobuf:"bytes,2,opt,name=status,proto3" json:"status" testdiff:"ignore"`
+	// Currently overloading this with the name of the plank pod
 	Attachment           string                `protobuf:"bytes,3,opt,name=attachment,proto3" json:"attachment,omitempty"`
 	Debugger             string                `protobuf:"bytes,4,opt,name=debugger,proto3" json:"debugger,omitempty"`
 	Image                string                `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`

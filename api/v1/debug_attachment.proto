@@ -25,7 +25,8 @@ message DebugAttachment {
 
   // From github.com/solo-io/squash/pkg/models.DebugAttachmentSpec
 
-  string attachment = 3; // TODO - make this work with the existing go interface{} implementation
+  // Currently overloading this with the name of the plank pod
+  string attachment = 3;
 
   string debugger = 4;
 
