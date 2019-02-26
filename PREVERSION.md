@@ -49,14 +49,15 @@
 - [x] check for existence of permissions before creating them
 - [x] only notify when newly creating permissions
 - [ ] handle error where user tries to create a second debug attachment on a single process
-- [ ] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
+- [x] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
 - [x] security: in secure mode only spawn planks in the squash-debugger namespace
 - [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
 - [x] permissions: fix permissions on planks created in secure mode
 - [x] bug: agent deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
 - [ ] stability: rework squashctl.getCreatedPod, make it debugger-specific
-- [ ] use labels to select plank pods now that they are all in the same namespace
+- [x] use labels to select plank pods now that they are all in the same namespace
 - [ ] (P1) implement simplified API
+- [x] ux: shell completion
 
 
 ## Release tasks
@@ -139,6 +140,6 @@ let cmdline = `debug-container --namespace=${podnamespace} ${imgid} ${podname} $
 - squashctl - the command line tool that the user uses to initiate debug sessions
 ## Pods
 - squash - watches for debug session requests (via DebugAttachment CRDs) and creates and removes squash-debugger pods
-- squash-debugger - a pod that runs a debugger process
+- plank - a pod that runs a debugger process - it "bridges" a connection to your pods
 ## Modes of operation
 - secure-mode - applies RBAC policy to debugging permissions
