@@ -29,8 +29,6 @@ func (m *DebugAttachment) GetPortFromDebugServerAddress() (int, error) {
 // For a given debug Intent, finds the corresponding DebugAttachment, if any
 func (di *Intent) GetDebugAttachment(daClient *DebugAttachmentClient) (*DebugAttachment, error) {
 	labels := di.GenerateLabels()
-	fmt.Println("labels")
-	fmt.Println(labels)
 	das, err := (*daClient).List(di.Pod.Namespace, clients.ListOpts{Selector: labels})
 	if err != nil {
 		return nil, err
