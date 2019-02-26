@@ -51,7 +51,7 @@ func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
 func (o *Options) getNamedDebugAttachment(name string) (*v1.DebugAttachment, error) {
 	das, err := o.getAllDebugAttachments()
 	if err != nil {
-		return &v1.DebugAttachment{}, err
+		return nil, err
 	}
 
 	namedDas := v1.DebugAttachmentList{}
@@ -62,10 +62,10 @@ func (o *Options) getNamedDebugAttachment(name string) (*v1.DebugAttachment, err
 	}
 	if len(namedDas) > 1 {
 		// TODO(mitchdraft) - make this impossible by explicitly specifying the namespace
-		return &v1.DebugAttachment{}, fmt.Errorf("multiple debug attachments with the same name found")
+		return nil, fmt.Errorf("multiple debug attachments with the same name found")
 	}
 	if len(namedDas) == 0 {
-		return &v1.DebugAttachment{}, fmt.Errorf("Debug attachment %v not found", name)
+		return nil, fmt.Errorf("Debug attachment %v not found", name)
 	}
 	return namedDas[0], nil
 }
@@ -206,7 +206,7 @@ func (o *Options) createPlankPermissions() error {
 	// create namespace. ignore errors as it most likely exists and will error
 	cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 
-	existingSA, err := cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{})
+	_, err = cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{})
 	if err == nil {
 		// service account already exists, no need to create it
 		return nil
