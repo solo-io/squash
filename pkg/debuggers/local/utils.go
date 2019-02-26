@@ -64,6 +64,7 @@ func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
 }
 
 func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment, error) {
+	// TODO(mitchdraft) - pass this (and all ctx's from startup)
 	ctx := context.Background()
 	daClient, err := utils.GetDebugAttachmentClient(ctx)
 	if err != nil {
@@ -74,20 +75,20 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 	if err != nil {
 		return &v1.DebugAttachment{}, err
 	}
-	var cancel context.CancelFunc = func() {}
+
+	// TODO - make timeout configurable
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	for {
 		select {
 		case err, _ := <-errc:
 			return &v1.DebugAttachment{}, err
-		case <-time.After(10 * time.Second):
-			// TODO - make timeout configurable, better error message
+		case <-ctx.Done():
 			return &v1.DebugAttachment{}, fmt.Errorf("Could not find debug spec in the allotted time.")
 		case das, ok := <-dac:
 			if !ok {
 				return &v1.DebugAttachment{}, fmt.Errorf("could not read watch channel")
 			}
-			cancel()
 
 			if len(das) == 0 {
 				continue
