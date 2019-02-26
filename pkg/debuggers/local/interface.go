@@ -14,14 +14,3 @@ type Local interface {
 	// ExpectRunningPod indicates if this local debugger should be paired with an active plank pod
 	ExpectRunningPlank() bool
 }
-
-// candidate alternative:
-type PortSpec struct {
-	PlankName      string
-	PlankNamespace string
-	PodName        string
-	PodNamespace   string
-	LocalPort      int
-	PlankPort      int
-	PodPort        int
-}

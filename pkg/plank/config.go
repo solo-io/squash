@@ -49,7 +49,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	if err := validateDebugAttachmentForPlankInit(da); err != nil {
 		return nil, err
 	}
-	da.Attachment = plankName
+	da.PlankName = plankName
 	da, err = (*daClient).Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 	if err != nil {
 		return nil, err

@@ -69,7 +69,7 @@ func DebugAttachmentClientTest(namespace string, client DebugAttachmentClient) {
 	Expect(r1.Metadata.ResourceVersion).NotTo(Equal(input.Metadata.ResourceVersion))
 	Expect(r1.Metadata.Ref()).To(Equal(input.Metadata.Ref()))
 	Expect(r1.Status).To(Equal(input.Status))
-	Expect(r1.Attachment).To(Equal(input.Attachment))
+	Expect(r1.PlankName).To(Equal(input.PlankName))
 	Expect(r1.Debugger).To(Equal(input.Debugger))
 	Expect(r1.Image).To(Equal(input.Image))
 	Expect(r1.ProcessName).To(Equal(input.ProcessName))

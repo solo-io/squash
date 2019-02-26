@@ -97,7 +97,7 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 	// set port value
 	da.DebugServerAddress = fmt.Sprintf("inferfrompod:%v", dbgServer.Port())
 	// write own plank pod name
-	da.Attachment = os.Getenv("HOSTNAME")
+	da.PlankName = os.Getenv("HOSTNAME")
 	if _, err := (*daClient).Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true}); err != nil {
 		return err
 	}

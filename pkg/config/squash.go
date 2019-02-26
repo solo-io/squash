@@ -143,10 +143,17 @@ func (s *Squash) getDebuggerPodNamespace() string {
 
 func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
 	if s.Machine {
-		// fmt.Printf("pod.name: %v", createdPod.Name)
-	} else {
-		return s.connectUser()
+		return s.printEditorExtensionData()
 	}
+	return s.connectUser()
+}
+
+func (s *Squash) printEditorExtensionData() error {
+	da, err := s.getDebugAttachment()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("pod.name: %v", da.PlankName)
 	return nil
 }
 
@@ -162,18 +169,21 @@ func (s *Squash) getIntent() squashv1.Intent {
 	}
 }
 
-func (s *Squash) connectUser() error {
-	if s.Machine {
-		return nil
-	}
-	debugger := local.GetParticularDebugger(s.Debugger)
+func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	// Refactor - eventually Intent will be created during config/user entry
 	intent := s.getIntent()
 	daClient, err := utils.GetDebugAttachmentClient(context.Background())
 	if err != nil {
-		return err
+		return &squashv1.DebugAttachment{}, err
 	}
-	da, err := intent.GetDebugAttachment(daClient)
+	return intent.GetDebugAttachment(daClient)
+}
+
+func (s *Squash) connectUser() error {
+	if s.Machine {
+		return nil
+	}
+	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
@@ -181,8 +191,9 @@ func (s *Squash) connectUser() error {
 	if err != nil {
 		return err
 	}
+	debugger := local.GetParticularDebugger(s.Debugger)
 	kubectlCmd := debugger.GetRemoteConnectionCmd(
-		da.Attachment,
+		da.PlankName,
 		s.SquashNamespace,
 		s.Pod,
 		s.Namespace,

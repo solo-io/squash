@@ -52,10 +52,8 @@ target:
 
 ### Squashctl
 
-target/squashctl: target $(SRCS)
-	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/squashctl-osx: target $(SRCS)
+target/squashctl-osx: target $(SRCS) target/squashctl
 	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
 target/squashctl-linux: target $(SRCS)
@@ -64,7 +62,7 @@ target/squashctl-linux: target $(SRCS)
 
 ### Squash
 
-target/squash: target $(SRCS)
+target/squash: target $(SRCS) generatecode
 	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/squash/squash cmd/squash/main.go
 
 target/squash-container: ./target/squash
@@ -77,7 +75,7 @@ target/squash-pushed: target/squash-container
 
  ### Plank
 
-target/plank/:
+target/plank/: generatecode
 	[ -d $@ ] || mkdir -p $@
 
 target/plank/plank: | target/plank/
@@ -130,6 +128,10 @@ clean: ## Deletes target folder
 
 dist: target/plank-gdb-pushed target/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
 
+# Generated code
+.PHONY: generatecode
+generatecode:
+	go run cmd/generate-code/main.go
 
 # Docs
 

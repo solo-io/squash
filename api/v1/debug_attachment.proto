@@ -25,8 +25,7 @@ message DebugAttachment {
 
   // From github.com/solo-io/squash/pkg/models.DebugAttachmentSpec
 
-  // Currently overloading this with the name of the plank pod
-  string attachment = 3;
+  string plank_name = 3;
 
   string debugger = 4;
 
@@ -99,10 +98,6 @@ message Intent {
   // NOT YET IMPLEMENTED
   // if a container has multiple processes and you do not want to debug the first process, this string is used to select a specific process
   string process_matcher = 4;
-
-  // Tells squash if this crd was created for use in secure mode.
-  // Helps avoid errors caused by alternating between default and secure modes.
-  bool secure_mode = 5;
 }
 
 // Describes the pod squash spawns for managing a particular debug session
@@ -114,14 +109,13 @@ message Plank {
   bool ready_for_connect = 2;
 }
 
-// Contains all port information needed to connect or find a debugger
+// Contains port information needed to connect or find a debugger
 message PortSpec {
-  // the local port to which the debugger is port-forwarded
-  uint32 local = 1;
-
-  // the relevant debug port on the plank pod (if any)
-  uint32 plank = 2;
-
-  // the relevant debug port on the target pod (if any)
-  uint32 target = 3;
+  oneof port_location {
+    // the relevant debug port on the plank pod
+    string plank = 1;
+  
+    // the relevant debug port on the target pod
+    string target = 2;
+  }
 }
