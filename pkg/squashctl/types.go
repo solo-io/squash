@@ -38,6 +38,11 @@ type Options struct {
 	Config Config
 }
 
+func NewOptions() *Options {
+	o := &Options{}
+	o.Squash = config.NewSquashConfig()
+}
+
 type DebugContainer struct {
 	Name         string
 	Namespace    string

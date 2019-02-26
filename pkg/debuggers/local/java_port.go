@@ -15,6 +15,7 @@ func (g *JavaPortInterface) GetRemoteConnectionCmd(plankName, plankNamespace, po
 
 func (d *JavaPortInterface) GetDebugCmd(localPort int) *exec.Cmd {
 	fmt.Printf("Java debug port available on local port %v.\n", localPort)
+	// TODO(mitchdraft) - do this in a less hacky way
 	cmd := exec.Command("sleep", "200000")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

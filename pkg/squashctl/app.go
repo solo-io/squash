@@ -59,7 +59,7 @@ Find more information at https://solo.io
 `
 
 func App(version string) (*cobra.Command, error) {
-	opts := &Options{}
+	opts := NewOptions()
 	app := &cobra.Command{
 		Use:     "squashctl",
 		Short:   "debug microservices with squash",
@@ -198,9 +198,6 @@ func (top *Options) runBaseCommandWithRbac() error {
 func (o *Options) writeDebugAttachment() error {
 	so := o.Squash
 	dbge := o.DebugTarget
-
-	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
-	o.Squash.DebugAttachmentName = daName
 
 	uc, err := actions.NewUserController()
 	if err != nil {

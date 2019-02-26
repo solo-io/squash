@@ -143,25 +143,23 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 }
 
 func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
-	s := config.Squash{
-		TimeoutSeconds: 300,
-		Machine:        true,
-		NoClean:        true,
+	s := config.NewSquashConfig()
+	s.TimeoutSeconds = 300
+	s.Machine = true
+	s.NoClean = true
 
-		DebugContainerVersion: version.ImageVersion,
-		DebugContainerRepo:    version.ImageRepo,
+	s.DebugContainerVersion = version.ImageVersion
+	s.DebugContainerRepo = version.ImageRepo
 
-		CRISock: "/var/run/dockershim.sock",
+	s.CRISock = "/var/run/dockershim.sock"
 
-		Debugger:  da.Debugger,
-		Namespace: da.Metadata.Namespace,
-		Pod:       da.Pod,
-		Container: da.Image,
+	s.Debugger = da.Debugger
+	s.Namespace = da.Metadata.Namespace
+	s.Pod = da.Pod
+	s.Container = da.Image
 
-		SquashNamespace: options.SquashNamespace,
+	s.SquashNamespace = options.SquashNamespace
 
-		DebugAttachmentName: da.Metadata.Name,
-	}
 	dbt := config.DebugTarget{}
 	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
 	// 	return err

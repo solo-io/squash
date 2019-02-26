@@ -49,8 +49,12 @@ type Squash struct {
 	clientset kubernetes.Interface
 
 	SquashNamespace string
-	// The name of the debug attachment CRD that pertains to this session
-	DebugAttachmentName string
+}
+
+func NewSquashConfig() Squash {
+	s := Squash{}
+	s.clientset = s.getClientSet()
+	return s
 }
 
 type DebugTarget struct {
@@ -60,8 +64,7 @@ type DebugTarget struct {
 
 func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 
-	it := s.getIntent()
-	dbgpod, err := s.debugPodFor(it.Debugger, it.Pod, it.ContainerName)
+	dbgpod, err := s.debugPodFor()
 	if err != nil {
 		return nil, err
 	}
@@ -342,15 +345,26 @@ func containerNameFromSpec(debugger string) string {
 	return fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, containerVariant)
 }
 
-func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containername string) (*v1.Pod, error) {
+func (s *Squash) debugPodFor() (*v1.Pod, error) {
+	it := s.getIntent()
 	const crisockvolume = "crisock"
-	in, err := s.getClientSet().CoreV1().Pods(pod.Namespace).Get(pod.Name, meta_v1.GetOptions{})
+	targetPod, err := s.getClientSet().CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// get debugAttachment name so Plank knows where to find it
+	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	da, err := it.GetDebugAttachment(daClient)
 	if err != nil {
 		return nil, err
 	}
 
 	// this is our convention for naming the container images that contain specific debuggers
-	fullParticularContainerName := containerNameFromSpec(debugger)
+	fullParticularContainerName := containerNameFromSpec(it.Debugger)
 	// repoRoot/containerName:tag
 	targetImage := fmt.Sprintf("%v/%v:%v", s.DebugContainerRepo, fullParticularContainerName, s.DebugContainerVersion)
 	templatePod := &v1.Pod{
@@ -360,13 +374,13 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 		},
 		ObjectMeta: meta_v1.ObjectMeta{
 			GenerateName: sqOpts.PlankContainerName,
-			Labels:       sqOpts.GeneratePlankLabels(pod),
+			Labels:       sqOpts.GeneratePlankLabels(it.Pod),
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: sqOpts.PlankServiceAccountName,
 			HostPID:            true,
 			RestartPolicy:      v1.RestartPolicyNever,
-			NodeName:           in.Spec.NodeName,
+			NodeName:           targetPod.Spec.NodeName,
 			Containers: []v1.Container{{
 				Name:      sqOpts.PlankContainerName,
 				Image:     targetImage,
@@ -386,10 +400,10 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 				},
 				Env: []v1.EnvVar{{
 					Name:  sqOpts.PlankEnvDebugAttachmentNamespace,
-					Value: pod.Namespace,
+					Value: it.Pod.Namespace,
 				}, {
 					Name:  sqOpts.PlankEnvDebugAttachmentName,
-					Value: s.DebugAttachmentName,
+					Value: da.Metadata.Name,
 				},
 				}},
 			},
