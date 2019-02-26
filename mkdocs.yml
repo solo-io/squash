@@ -21,6 +21,11 @@ nav:
   - Java: debuggers/java.md
   - NodeJs: debuggers/nodejs.md
   - Python: debuggers/python_vscode.md
+- Secure Mode:
+  - Overview: secure_mode/overview.md
+  - Users: secure_mode/user.md
+  - Admins: secure_mode/admin.md
+  - Architecture: secure_mode/architecture.md
 - Install:
   - Overview: install/README.md
   - Kubernetes: install/kubernetes.md

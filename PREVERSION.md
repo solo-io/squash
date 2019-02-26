@@ -51,7 +51,7 @@
 - [ ] handle error where user tries to create a second debug attachment on a single process
 - [x] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
 - [x] security: in secure mode only spawn planks in the squash-debugger namespace
-- [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
+- [x] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
 - [x] permissions: fix permissions on planks created in secure mode
 - [x] bug: Squash deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
 - [x] stability: rework squashctl.getCreatedPod, make it debugger-specific

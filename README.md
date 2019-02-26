@@ -93,7 +93,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
   - [Eclipse](https://eclipse.org/ide/)
 
 
-Squash is under active development. APIs and compatibility are subject to change. We welcomd community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
+Squash is under active development. APIs and compatibility are subject to change. We welcome community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
 
 ---
 
