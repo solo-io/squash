@@ -25,7 +25,9 @@ var (
 	SquashLabelSelectorValue  = PlankContainerName
 	SquashLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
 
-	AvailableDebuggers = []string{"dlv", "gdb", "java", "nodejs", "nodejs8", "python"}
+	// TODO(mitchdraft) - enable these debuggers
+	// AvailableDebuggers = []string{"dlv", "gdb", "java", "java-port", "nodejs", "nodejs8", "python"}
+	AvailableDebuggers = []string{"dlv", "java", "java-port"}
 
 	SquashNamespace = "squash-debugger"
 

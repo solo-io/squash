@@ -26,6 +26,7 @@ func GetParticularDebugger(dbgtype string) Local {
 	var g GdbInterface
 	var d DLV
 	var j JavaInterface
+	var jp JavaPortInterface
 	var p PythonInterface
 	var n NodeJsDebugger
 
@@ -36,6 +37,8 @@ func GetParticularDebugger(dbgtype string) Local {
 		return &g
 	case "java":
 		return &j
+	case "java-port":
+		return &jp
 	case "nodejs":
 		return &n
 	case "nodejs8":

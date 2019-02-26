@@ -101,6 +101,8 @@ func GetParticularDebugger(dbgtype string) Remote {
 		return &g
 	case "java":
 		return &j
+	case "java-port":
+		return &j
 	case "nodejs":
 		return NewNodeDebugger(DebuggerPort)
 	case "nodejs8":

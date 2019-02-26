@@ -74,6 +74,7 @@ func App(version string) (*cobra.Command, error) {
 			// when no sub commands are specified, run w/wo RBAC according to settings
 			return opts.runBaseCommand()
 		},
+		SuggestionsMinimumDistance: 1,
 	}
 
 	if err := initializeOptions(opts); err != nil {
@@ -85,6 +86,7 @@ func App(version string) (*cobra.Command, error) {
 		opts.DeployCmd(opts),
 		opts.AgentCmd(opts),
 		opts.UtilsCmd(opts),
+		completionCmd(),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
