@@ -155,6 +155,12 @@ func (o *Options) runBaseCommand() error {
 		if err := o.createPlankPermissions(); err != nil {
 			return err
 		}
+		// TODO - replace sleeps with watches on CRD
+		time.Sleep(200 * time.Millisecond)
+		if err := o.writeDebugAttachment(); err != nil {
+			return err
+		}
+		time.Sleep(200 * time.Millisecond)
 		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
 		o.cleanupPostRun()
 		return err
@@ -168,21 +174,34 @@ func (top *Options) runBaseCommandWithRbac() error {
 	if err := top.ensureSquashIsInCluster(); err != nil {
 		return err
 	}
+
 	if err := top.createPlankPermissions(); err != nil {
 		return err
 	}
 
-	uc, err := actions.NewUserController()
-	if err != nil {
+	if err := top.writeDebugAttachment(); err != nil {
 		return err
 	}
 
-	so := top.Squash
-	dbge := top.DebugTarget
+	// wait until pod is created, print its name so the extension can connect
+
+	// TODO(mitchdraft) - add this to the configuration file
+	// 1 second was not long enough, status still pending, could not port-forward
+	// 3 seconds might be overkill
+	// TODO(mitchdraft) - replace with watch on cmd stream
+	time.Sleep(3 * time.Second)
+
+	return top.Squash.ReportOrConnectToCreatedDebuggerPod()
+}
+
+func (o *Options) writeDebugAttachment() error {
+	so := o.Squash
+	dbge := o.DebugTarget
 
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
+	o.Squash.DebugAttachmentName = daName
 
-	// initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
+	uc, err := actions.NewUserController()
 	if err != nil {
 		return err
 	}
@@ -196,18 +215,8 @@ func (top *Options) runBaseCommandWithRbac() error {
 		so.Container,
 		"",
 		so.Debugger)
-	// wait until pod is created, print its name so the extension can connect
 
-	// TODO(mitchdraft) - add this to the configuration file
-	// 1 second was not long enough, status still pending, could not port-forward
-	// 3 seconds might be overkill
-	time.Sleep(3 * time.Second)
-	// createdPod := &core_v1.Pod{}
-	// if err := top.getCreatedPod(initialPods, createdPod); err != nil {
-	// 	return err
-	// }
-
-	return top.Squash.ReportOrConnectToCreatedDebuggerPod()
+	return nil
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -457,7 +466,7 @@ func (o *Options) ensureSquashIsInCluster() error {
 func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
 	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not find pod by label: %v", err)
 	}
 	// Make a set from the current pods
 	var lookup = make(map[string]core_v1.Pod)
@@ -488,4 +497,5 @@ func (o *Options) cleanupPostRun() error {
 	so := o.Squash
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
 	return (*o.daClient).Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
+	return nil
 }

@@ -1,8 +1,6 @@
 package actions
 
 import (
-	"fmt"
-
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
@@ -19,8 +17,6 @@ func (uc *UserController) Attach(daName, namespace, image, podName, container, p
 		ContainerName: container,
 	}
 	attachlabels := di.GenerateLabels()
-	fmt.Println("attachlabels")
-	fmt.Println(attachlabels)
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
 			Name:      daName,

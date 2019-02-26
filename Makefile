@@ -48,6 +48,8 @@ LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
 .PHONY: qdev
+# qdev: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
+# qdev: target $(SRCS) target/plank-dlv-pushed
 qdev: target $(SRCS)
 	go build -ldflags=$(LDFLAGS) -o sq.out ./cmd/squashctl
 

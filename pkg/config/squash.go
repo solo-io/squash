@@ -81,14 +81,15 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	// wait for running state
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	err = <-s.waitForPod(ctx, createdPod)
 	cancel()
 	// ctx, cancel = context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
 	// err <-s.waitForDebugAttachment(ctx)
 	if err != nil {
 		// s.printError(createdPodName)
-		return nil, err
+		return nil, fmt.Errorf("Waiting for pod: %v", err)
 	}
 
 	if err := s.ReportOrConnectToCreatedDebuggerPod(); err != nil {
@@ -165,7 +166,6 @@ func (s *Squash) connectUser() error {
 	if s.Machine {
 		return nil
 	}
-	fmt.Println("trying to connect")
 	debugger := local.GetParticularDebugger(s.Debugger)
 	// Refactor - eventually Intent will be created during config/user entry
 	intent := s.getIntent()
@@ -271,14 +271,14 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 				var options meta_v1.GetOptions
 				options.ResourceVersion = createdPod.ResourceVersion
 				var err error
-				createdPod, err = s.getClientSet().CoreV1().Pods(s.Namespace).Get(name, options)
+				createdPod, err = s.getClientSet().CoreV1().Pods(s.SquashNamespace).Get(name, options)
 
 				if createdPod.Status.Phase == v1.PodPending {
 					fmt.Println("Pod creating")
 					continue
 				}
 				if err != nil {
-					errchan <- err
+					errchan <- errors.Wrap(err, "Error during read")
 					return
 				}
 				// TODO - consider refactor such that GetParticularDebugger is only ever called once per session

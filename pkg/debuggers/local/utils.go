@@ -53,7 +53,6 @@ func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("Could not read debug attachment %v in namespace %v: %v", daName, daNamespace, err)
 	}
-	fmt.Println("deb, this is the da: %v", da)
 	port, err := da.GetPortFromDebugServerAddress()
 	if err != nil {
 		return 0, err
@@ -102,7 +101,6 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 func checkDebugAttachmentsForAddress(das v1.DebugAttachmentList, daName string) *v1.DebugAttachment {
 	for _, da := range das {
 		if da.Metadata.Name == daName && da.DebugServerAddress != "" {
-			fmt.Printf("deb got dsa: %v\n", da.DebugServerAddress)
 			return da
 		}
 	}

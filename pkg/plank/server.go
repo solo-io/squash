@@ -89,7 +89,7 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 
 	// try to find a pre-existing CRD for this debug activity
 	// create one if none exist
-	da, err := findOrCreateDebugAttachmentCRD(ctx, daClient, att)
+	da, err := (*daClient).Read(att.Metadata.Namespace, att.Metadata.Name, clients.ReadOpts{Ctx: ctx})
 	if err != nil {
 		return err
 	}
@@ -103,23 +103,6 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 	}
 
 	return nil
-}
-
-func findOrCreateDebugAttachmentCRD(ctx context.Context, daClient *v1.DebugAttachmentClient, att v1.DebugAttachment) (*v1.DebugAttachment, error) {
-	// don't need the error, just need to know if it exists
-	da, _ := (*daClient).Read(att.Metadata.Namespace, att.Metadata.Name, clients.ReadOpts{Ctx: ctx})
-	if da == nil {
-		// need to create this debugAttachment
-		newDa := &v1.DebugAttachment{
-			Metadata: att.Metadata,
-		}
-		var err error
-		da, err = (*daClient).Write(newDa, clients.WriteOpts{Ctx: ctx, OverwriteExisting: false})
-		if err != nil {
-			return nil, fmt.Errorf("Could not write debug attachment %v in namespace %v: %v", att.Metadata.Name, att.Metadata.Namespace, err)
-		}
-	}
-	return da, nil
 }
 
 func startLocalServer() (net.Conn, error) {
