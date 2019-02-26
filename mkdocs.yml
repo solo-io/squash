@@ -2,17 +2,19 @@ site_name: Squash
 nav:
 - Index: index.md
 - CLI reference:
-  - root: cli/squash.md
-  - debug-container: cli/squash_debug-container.md
-  - debug-request: cli/squash_debug-request.md
-  - list: cli/squash_list.md
-  - wait: cli/squash_wait.md
-  - agent: cli/squash_agent.md
-  - agent status: cli/squash_agent_status.md
-  - agent delete: cli/squash_agent_delete.md
-  - deploy: cli/squash_deploy.md
-  - deploy agent: cli/squash_deploy_agent.md
-  - deploy demo: cli/squash_deploy_demo.md
+  - root: cli/squashctl.md
+  - completion: cli/squashctl_completion.md
+  - deploy: cli/squashctl_deploy.md
+  - deploy demo: cli/squashctl_deploy_demo.md
+  - deploy squash: cli/squashctl_deploy_squash.md
+  - squash: cli/squashctl_squash.md
+  - squash delete: cli/squashctl_squash_delete.md
+  - squash status: cli/squashctl_squash_status.md
+  - utils: cli/squashctl_utils.md
+  - utils delete-attachments: cli/squashctl_utils_delete-attachments.md
+  - utils delete-permissions: cli/squashctl_utils_delete-permissions.md
+  - utils delete-planks: cli/squashctl_utils_delete-planks.md
+  - utils list-attachments: cli/squashctl_utils_list-attachments.md
 - Getting Started: getting-started.md
 - Debuggers:
   - overview: debuggers.md
