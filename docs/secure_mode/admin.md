@@ -318,18 +318,10 @@ metadata:
 spec:
   containers:
   - env:
-    - name: SQUASH_NAMESPACE
-      value: my-namespace
     - name: SQUASH_DEBUG_ATTACHMENT_NAMESPACE
       value: my-namespace
     - name: SQUASH_DEBUG_ATTACHMENT_NAME
       value: example-service1-8499d97885-bgh59-example-service1
-    - name: SQUASH_POD
-      value: example-service1-8499d97885-bgh59
-    - name: SQUASH_CONTAINER
-      value: example-service1
-    - name: DEBUGGER_NAME
-      value: dlv
     image: soloio/plank-dlv:dev
     imagePullPolicy: IfNotPresent
     name: plank

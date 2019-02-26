@@ -385,27 +385,11 @@ func (s *Squash) debugPodFor(debugger string, pod *core.ResourceRef, containerna
 					},
 				},
 				Env: []v1.EnvVar{{
-					// Deprecated - use SQUASH_DEBUG_ATTACHMENT_NAMESPACE
-					Name:  "SQUASH_NAMESPACE",
-					Value: pod.Namespace,
-				}, {
 					Name:  sqOpts.PlankEnvDebugAttachmentNamespace,
 					Value: pod.Namespace,
 				}, {
 					Name:  sqOpts.PlankEnvDebugAttachmentName,
 					Value: s.DebugAttachmentName,
-				}, {
-					// Deprecated - read from CRD
-					Name:  "SQUASH_POD",
-					Value: pod.Name,
-				}, {
-					// Deprecated - read from CRD
-					Name:  "SQUASH_CONTAINER",
-					Value: containername,
-				}, {
-					// Deprecated - read from CRD
-					Name:  "DEBUGGER_NAME",
-					Value: s.Debugger,
 				},
 				}},
 			},
