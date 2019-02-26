@@ -85,7 +85,7 @@ func (top *Options) deleteAttachmentsCmd() *cobra.Command {
 
 func (top *Options) deleteAttachmentList(das v1.DebugAttachmentList, continueOnError bool) error {
 	for _, da := range das {
-		if err := (*top.daClient).Delete(da.Metadata.Namespace, da.Metadata.Name, clients.DeleteOpts{}); err != nil {
+		if err := top.daClient.Delete(da.Metadata.Namespace, da.Metadata.Name, clients.DeleteOpts{}); err != nil {
 			if continueOnError {
 				fmt.Println(err)
 			} else {

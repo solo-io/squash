@@ -37,7 +37,7 @@ func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
 	}
 	das := v1.DebugAttachmentList{}
 	for _, ns := range watchNamespaces {
-		nsDas, err := (*o.daClient).List(ns, clients.ListOpts{Ctx: o.ctx})
+		nsDas, err := o.daClient.List(ns, clients.ListOpts{Ctx: o.ctx})
 		if err != nil {
 			return v1.DebugAttachmentList{}, err
 		}
@@ -203,7 +203,11 @@ func (o *Options) createPlankPermissions() error {
 	// need to create the permissions in the namespace of the target process
 	namespace := o.Squash.SquashNamespace
 
-	if _, err := cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err == nil {
+	// create namespace. ignore errors as it most likely exists and will error
+	cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+
+	existingSA, err := cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{})
+	if err == nil {
 		// service account already exists, no need to create it
 		return nil
 	}

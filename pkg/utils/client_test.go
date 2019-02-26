@@ -23,7 +23,7 @@ var _ = Describe("utils", func() {
 			Ctx:               ctx,
 			OverwriteExisting: true,
 		}
-		written, err := (*daClient).Write(&da, writeOpts)
+		written, err := daClient.Write(&da, writeOpts)
 		Expect(err).To(BeNil())
 		Expect(written.Metadata.Name).To(Equal(name))
 		Expect(written.Metadata.Namespace).To(Equal(namespace))
@@ -31,7 +31,7 @@ var _ = Describe("utils", func() {
 		readOpts := clients.ReadOpts{
 			Ctx: ctx,
 		}
-		read, err := (*daClient).Read(namespace, name, readOpts)
+		read, err := daClient.Read(namespace, name, readOpts)
 		Expect(err).To(BeNil())
 		Expect(read.Metadata.Name).To(Equal(name))
 		Expect(read.Metadata.Namespace).To(Equal(namespace))
@@ -41,7 +41,7 @@ var _ = Describe("utils", func() {
 			Ctx:            ctx,
 			IgnoreNotExist: false,
 		}
-		err = (*daClient).Delete(namespace, name, deleteOpts)
+		err = daClient.Delete(namespace, name, deleteOpts)
 		Expect(err).To(BeNil())
 	})
 })

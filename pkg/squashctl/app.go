@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/solo-io/go-utils/cliutils"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
@@ -203,7 +204,7 @@ func (o *Options) writeDebugAttachment() error {
 	if err != nil {
 		return err
 	}
-
+	daName := cliutils.RandKubeNameBytes(10)
 	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
 	_, err = uc.Attach(
 		daName,
@@ -466,6 +467,6 @@ func (o *Options) cleanupPostRun() error {
 	// remove crd
 	so := o.Squash
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
-	return (*o.daClient).Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
+	return o.daClient.Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
 	return nil
 }

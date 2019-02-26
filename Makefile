@@ -53,10 +53,13 @@ target:
 ### Squashctl
 
 
+target/squashctl: target $(SRCS)
+	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+
 target/squashctl-osx: target $(SRCS) target/squashctl
 	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-target/squashctl-linux: target $(SRCS)
+target/squashctl-linux: target $(SRCS) target/squashctl
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
 

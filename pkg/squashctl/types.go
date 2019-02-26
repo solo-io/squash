@@ -17,7 +17,7 @@ type Options struct {
 	// Debug Container is a superset of DebugRequest so we can use the same struct
 	// TODO(mitchdraft) - refactor
 	DebugRequest DebugContainer
-	daClient     *v1.DebugAttachmentClient
+	daClient     v1.DebugAttachmentClient
 	ctx          context.Context
 	Wait         Wait
 
@@ -41,6 +41,7 @@ type Options struct {
 func NewOptions() *Options {
 	o := &Options{}
 	o.Squash = config.NewSquashConfig()
+	return o
 }
 
 type DebugContainer struct {

@@ -102,10 +102,10 @@ func checkAddressAndGetPort(addr *net.TCPAddr, port *int) error {
 	return tmpListener.Close()
 }
 
-func ListDebugAttachments(ctx context.Context, daClient *squashv1.DebugAttachmentClient, nsList []string) ([]string, error) {
+func ListDebugAttachments(ctx context.Context, daClient squashv1.DebugAttachmentClient, nsList []string) ([]string, error) {
 	allDas := []string{}
 	for _, ns := range nsList {
-		das, err := (*daClient).List(ns, clients.ListOpts{Ctx: ctx})
+		das, err := daClient.List(ns, clients.ListOpts{Ctx: ctx})
 		if err != nil {
 			return []string{}, err
 		}
@@ -116,10 +116,10 @@ func ListDebugAttachments(ctx context.Context, daClient *squashv1.DebugAttachmen
 	return allDas, nil
 }
 
-func GetAllDebugAttachments(ctx context.Context, daClient *squashv1.DebugAttachmentClient, nsList []string) (squashv1.DebugAttachmentList, error) {
+func GetAllDebugAttachments(ctx context.Context, daClient squashv1.DebugAttachmentClient, nsList []string) (squashv1.DebugAttachmentList, error) {
 	allDas := squashv1.DebugAttachmentList{}
 	for _, ns := range nsList {
-		das, err := (*daClient).List(ns, clients.ListOpts{Ctx: ctx})
+		das, err := daClient.List(ns, clients.ListOpts{Ctx: ctx})
 		if err != nil {
 			return squashv1.DebugAttachmentList{}, err
 		}
