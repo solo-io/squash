@@ -1,8 +1,6 @@
 package remote
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -26,17 +24,8 @@ func (g *javaDebugServer) HostType() DebugHostType {
 	return DebugHostTypeTarget
 }
 
-// TODO - this should just return nil and exit, refactor with update to squashctl.getCreatedPod
 func (d *javaDebugServer) Cmd() *exec.Cmd {
-	cmd := exec.Command("sleep", "360000")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	log.WithFields(log.Fields{"cmd": cmd, "args": cmd.Args}).Debug("tmp sleep command")
-
-	err := cmd.Start()
-	fmt.Println(err)
-	return cmd
-	// return nil
+	return nil
 }
 
 func (g *JavaInterface) Attach(pid int) (DebugServer, error) {

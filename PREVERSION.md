@@ -45,7 +45,7 @@
 ## Wrap up
 - [x] squashctl: wait for pod to be created before expecting crd
 - [x] clean up artifacts: (auto) delete debug attachment crd on exit
-- [ ] clean up artifacts: (prompted) delete permissions
+- [x] clean up artifacts: (prompted) delete permissions
 - [x] check for existence of permissions before creating them
 - [x] only notify when newly creating permissions
 - [ ] handle error where user tries to create a second debug attachment on a single process
@@ -54,7 +54,7 @@
 - [ ] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
 - [x] permissions: fix permissions on planks created in secure mode
 - [x] bug: agent deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
-- [ ] stability: rework squashctl.getCreatedPod, make it debugger-specific
+- [x] stability: rework squashctl.getCreatedPod, make it debugger-specific
 - [x] use labels to select plank pods now that they are all in the same namespace
 - [ ] (P1) implement simplified API
 - [x] ux: shell completion

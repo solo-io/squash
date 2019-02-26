@@ -47,12 +47,6 @@ LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.AgentImageTag=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
-.PHONY: qdev
-# qdev: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
-# qdev: target $(SRCS) target/plank-dlv-pushed
-qdev: target $(SRCS)
-	go build -ldflags=$(LDFLAGS) -o sq.out ./cmd/squashctl
-
 target:
 	[ -d $@ ] || mkdir -p $@
 
@@ -147,3 +141,15 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
+
+
+# Helpers for development: build and push (locally) only the things you changed
+# first run `eval $(minikube docker-env)` then any of these commands
+.PHONY: dev_squashctl
+dev_squashctl: target $(SRCS) target/squashctl
+
+.PHONY: dev_planks
+dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
+
+.PHONY: dev_agent
+dev_planks: target $(SRCS) target/agent-container

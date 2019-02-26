@@ -20,7 +20,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
-	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -461,34 +460,6 @@ func (o *Options) ensureSquashIsInCluster() error {
 		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl agent deploy'.")
 	}
 
-	return nil
-}
-
-// TODO - improve this, it tends to fail during the first image pull, should be on a timeout with retries
-func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
-	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.SquashNamespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
-	if err != nil {
-		return fmt.Errorf("Could not find pod by label: %v", err)
-	}
-	// Make a set from the current pods
-	var lookup = make(map[string]core_v1.Pod)
-	for _, p := range currentPods.Items {
-		lookup[p.Name] = p
-	}
-	// Remove the initial pods
-	for _, p := range initialPods.Items {
-		delete(lookup, p.Name)
-	}
-	// Expect our newly created pod to be the only one left
-	matchCount := 0
-	for k, v := range lookup {
-		fmt.Println(k)
-		matchCount++
-		*createdPod = v
-	}
-	if matchCount != 1 {
-		return fmt.Errorf("Expected to find one newly created squash debug pod, found %v", matchCount)
-	}
 	return nil
 }
 
