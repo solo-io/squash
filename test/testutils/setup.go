@@ -14,7 +14,7 @@ import (
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/test/testutils/kubecdl"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -27,7 +27,7 @@ type E2eParams struct {
 	UserController actions.UserController
 	KubeClient     *kubernetes.Clientset
 
-	AgentPod                map[string]*v1.Pod
+	SquashPod               map[string]*v1.Pod
 	Microservice1Pods       map[string]*v1.Pod
 	Microservice2Pods       map[string]*v1.Pod
 	CurrentMicroservicePod  *v1.Pod
@@ -55,7 +55,7 @@ func NewE2eParams(namespace, daName string, w io.Writer) E2eParams {
 		UserController: uc,
 		KubeClient:     kubeClient,
 
-		AgentPod:          make(map[string]*v1.Pod),
+		SquashPod:         make(map[string]*v1.Pod),
 		Microservice1Pods: make(map[string]*v1.Pod),
 		Microservice2Pods: make(map[string]*v1.Pod),
 
@@ -79,7 +79,7 @@ func (p *E2eParams) SetupE2e() {
 
 	fmt.Fprintf(GinkgoWriter, "creating environment %v \n", p.kubectl)
 
-	if err := p.kubectl.CreateSleep("../../contrib/kubernetes/squash-agent.yaml"); err != nil {
+	if err := p.kubectl.CreateSleep("../../contrib/kubernetes/squash.yaml"); err != nil {
 		panic(err)
 	}
 	if err := p.kubectl.Create("../../contrib/example/service1/service1.yml"); err != nil {
@@ -107,18 +107,18 @@ func (p *E2eParams) SetupE2e() {
 			p.Microservice1Pods[pod.Spec.NodeName] = &newpod
 		case strings.HasPrefix(pod.ObjectMeta.Name, "example-service2"):
 			p.Microservice2Pods[pod.Spec.NodeName] = &newpod
-		case strings.HasPrefix(pod.ObjectMeta.Name, "squash-agent"):
-			pathToClientBinary := "../../target/agent/squash-agent"
+		case strings.HasPrefix(pod.ObjectMeta.Name, "squash"):
+			pathToClientBinary := "../../target/squash/squash"
 			if _, err := os.Stat(pathToClientBinary); os.IsNotExist(err) {
-				Fail("You must generate the squash-agent binary before running this e2e test.")
+				Fail("You must generate the squash binary before running this e2e test.")
 			}
 			// replace squash server and client binaries with local binaries for easy debuggings
-			Must(p.kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash-agent"))
+			Must(p.kubectl.Cp(pathToClientBinary, "/tmp/", pod.ObjectMeta.Name, "squash"))
 
 			// client is not in host pid namespace, so we we know that our process has pid 1.
-			clientscript := " /tmp/squash-agent  > /proc/1/fd/1 2> /proc/1/fd/2"
-			Must(p.kubectl.ExecAsync(pod.ObjectMeta.Name, "squash-agent", "sh", "-c", clientscript))
-			p.AgentPod[pod.Spec.NodeName] = &newpod
+			clientscript := " /tmp/squash  > /proc/1/fd/1 2> /proc/1/fd/2"
+			Must(p.kubectl.ExecAsync(pod.ObjectMeta.Name, "squash", "sh", "-c", clientscript))
+			p.SquashPod[pod.Spec.NodeName] = &newpod
 		}
 	}
 
@@ -138,11 +138,11 @@ func (p *E2eParams) SetupE2e() {
 		Fail("can't find service2 pod")
 	}
 
-	if len(p.AgentPod) == 0 {
+	if len(p.SquashPod) == 0 {
 		Fail("can't find client pods")
 	}
 
-	if p.AgentPod[p.CurrentMicroservicePod.Spec.NodeName] == nil {
+	if p.SquashPod[p.CurrentMicroservicePod.Spec.NodeName] == nil {
 		Fail("can't find client pods")
 	}
 
@@ -170,7 +170,7 @@ func (p *E2eParams) CleanupE2e() {
 		fmt.Sprintf("Failed to delete permissions: %v", err)
 	}
 
-	clogs, _ := p.kubectl.Logs(p.AgentPod[p.CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name)
+	clogs, _ := p.kubectl.Logs(p.SquashPod[p.CurrentMicroservicePod.Spec.NodeName].ObjectMeta.Name)
 	fmt.Fprintln(GinkgoWriter, "client logs:")
 	fmt.Fprintln(GinkgoWriter, string(clogs))
 }

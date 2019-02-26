@@ -2,18 +2,18 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   labels:
-    app: squash-agent
-  name: squash-agent
+    app: squash
+  name: squash
 spec:
   template:
     metadata:
       labels:
-        app: squash-agent
+        app: squash
     spec:
       # hostPID: true
       containers:
-      - name: squash-agent
-        image: soloio/squash-agent:dev
+      - name: squash
+        image: soloio/squash:dev
         volumeMounts:
         - mountPath: /var/run/cri.sock
           name: crisock
