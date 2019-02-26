@@ -14,25 +14,23 @@ import (
 )
 
 var (
-	AgentRepoName  = "soloio"
-	AgentName      = "squash-agent"
-	AgentImageName = "squash-agent"
+	SquashRepoName  = "soloio"
+	SquashName      = "squash"
+	SquashImageName = "squash"
 
 	ContainerPort = 1234
 
 	volumeName = "crisock"
-
-	DefaultNamespace = "squash-debugger"
 )
 
-// InstallAgent creates the resources needed for Squash to run in secure mode
+// InstallSquash creates the resources needed for Squash to run in secure mode
 // If preview is set, it prints the configuration and does not apply it.
 // The created resources include:
 // ServiceAccount - for Squash
 // ClusterRole - enabling pod creation
 // ClusterRoleBinding - bind ClusterRole to Squash's ServiceAccount
 // Deployment - Squash itself
-func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) error {
+func InstallSquash(cs *kubernetes.Clientset, namespace string, preview bool) error {
 
 	sa := v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +90,7 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 			rbacv1.Subject{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      sqOpts.SquashServiceAccountName,
-				Namespace: DefaultNamespace,
+				Namespace: sqOpts.SquashNamespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -104,29 +102,29 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 	privileged := true
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: AgentName,
+			Name: SquashName,
 			Labels: map[string]string{
-				"app": AgentName,
+				"app": SquashName,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": AgentName,
+					"app": SquashName,
 				},
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": AgentName,
+						"app": SquashName,
 					},
 				},
 				Spec: v1.PodSpec{
 					ServiceAccountName: sqOpts.SquashServiceAccountName,
 					Containers: []v1.Container{
 						{
-							Name:  AgentName,
-							Image: fmt.Sprintf("%v/%v:%v", AgentRepoName, AgentImageName, version.AgentImageTag),
+							Name:  SquashName,
+							Image: fmt.Sprintf("%v/%v:%v", SquashRepoName, SquashImageName, version.SquashImageTag),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,
@@ -228,7 +226,7 @@ func InstallAgent(cs *kubernetes.Clientset, namespace string, preview bool) erro
 		fmt.Println(err)
 	}
 
-	fmt.Println("Creating squash agent deployment")
+	fmt.Println("Creating Squash deployment")
 	_, err = cs.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
 		cleanupDeployment(cs, namespace)
@@ -261,7 +259,7 @@ func cleanupDeployment(cs *kubernetes.Clientset, namespace string) {
 		fmt.Println(err)
 	}
 
-	if err := cs.AppsV1().Deployments(namespace).Delete(AgentName, delOp); err != nil {
+	if err := cs.AppsV1().Deployments(namespace).Delete(SquashName, delOp); err != nil {
 		fmt.Println(err)
 	}
 }

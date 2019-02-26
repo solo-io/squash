@@ -58,14 +58,14 @@ type Error struct {
 }
 
 type DeployOptions struct {
-	DemoOptions  DemoOptions
-	AgentOptions AgentOptions
+	DemoOptions          DemoOptions
+	SquashProcessOptions SquashProcessOptions
 }
 
 func defaultDeployOptions() DeployOptions {
 	return DeployOptions{
-		DemoOptions:  defaultDemoOptions(),
-		AgentOptions: defaultAgentOptions(),
+		DemoOptions:          defaultDemoOptions(),
+		SquashProcessOptions: defaultSquashProcessOptions(),
 	}
 }
 
@@ -83,14 +83,14 @@ func defaultDemoOptions() DemoOptions {
 	}
 }
 
-type AgentOptions struct {
+type SquashProcessOptions struct {
 	Namespace string
 	// Preview, if set prints a yaml description of the Squash installation without creating installing Squash
 	Preview bool
 }
 
-func defaultAgentOptions() AgentOptions {
-	return AgentOptions{
+func defaultSquashProcessOptions() SquashProcessOptions {
+	return SquashProcessOptions{
 		Namespace: "squash-debugger",
 	}
 }

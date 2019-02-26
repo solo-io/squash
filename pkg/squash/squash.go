@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquashAgent(debugger func(string) remote.Remote) error {
+func RunSquash(debugger func(string) remote.Remote) error {
 	log.SetLevel(log.DebugLevel)
 
 	customFormatter := new(log.TextFormatter)

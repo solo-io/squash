@@ -18,7 +18,7 @@ func main() {
 	log.Infof("squash started %v, %v", version.Version, version.TimeStamp)
 
 	mustGetContainerProcessLocator()
-	err := squash.RunSquashAgent(remote.GetParticularDebugger)
+	err := squash.RunSquash(remote.GetParticularDebugger)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }

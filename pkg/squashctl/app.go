@@ -53,8 +53,8 @@ if err := top.ensureParticularCmdOption(po *particularOption); err != nil {
 
 const descriptionUsage = `Squash requires no arguments. Just run it!
 It creates a privileged debug pod, starts a debugger, and then attaches to it.
-If you are debugging in a shared cluster, consider using squash the squash agent.
-(squash agent --help for more info)
+If you are debugging in a shared cluster, consider using Squash (in cluster process).
+(squashctl squash --help for more info)
 Find more information at https://solo.io
 `
 
@@ -83,7 +83,7 @@ func App(version string) (*cobra.Command, error) {
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
 		opts.DeployCmd(opts),
-		opts.AgentCmd(opts),
+		opts.SquashCmd(opts),
 		opts.UtilsCmd(opts),
 		completionCmd(),
 	)
@@ -146,7 +146,7 @@ func (o *Options) runBaseCommand() error {
 	}
 
 	if o.Config.secureMode {
-		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
+		o.printVerbose("squashctl will create a CRD with your debug intent in your target pod's namespace. Squash will create a debugger pod in your target pod's.")
 		if err := o.runBaseCommandWithRbac(); err != nil {
 			o.cleanupPostRun()
 			return err
@@ -457,7 +457,7 @@ func (o *Options) ensureSquashIsInCluster() error {
 	}
 
 	if len(squashDeployments) == 0 {
-		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl agent deploy'.")
+		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl squash deploy'.")
 	}
 
 	return nil

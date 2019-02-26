@@ -9,4 +9,4 @@ var ImageVersion = "mkdev" // This will be overwritten by the linker
 
 var ImageRepo = "soloio" // This will be overwritten by the linker
 
-var AgentImageTag = "mkdev" // This will be overwritten by the linker
+var SquashImageTag = "mkdev" // This will be overwritten by the linker

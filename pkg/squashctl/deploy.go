@@ -6,6 +6,7 @@ import (
 
 	"github.com/solo-io/squash/pkg/demo"
 	"github.com/solo-io/squash/pkg/install"
+	"github.com/solo-io/squash/pkg/options"
 	"github.com/spf13/cobra"
 )
 
@@ -15,12 +16,12 @@ func (top *Options) DeployCmd(o *Options) *cobra.Command {
 	dOpts := &o.DeployOptions
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "deploy the squash agent or a demo microservice",
+		Short: "deploy squash or a demo microservice",
 	}
 
 	cmd.AddCommand(
 		top.deployDemoCmd(&dOpts.DemoOptions),
-		top.deployAgentCmd(&dOpts.AgentOptions),
+		top.deploySquashCmd(&dOpts.SquashProcessOptions),
 	)
 
 	return cmd
@@ -77,23 +78,23 @@ func (top *Options) ensureDemoDeployOpts(dOpts *DemoOptions) error {
 	return nil
 }
 
-func (top *Options) deployAgentCmd(agentOpts *AgentOptions) *cobra.Command {
+func (top *Options) deploySquashCmd(spOpts *SquashProcessOptions) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "agent",
-		Short: "deploy a squash agent",
+		Use:   "squash",
+		Short: "deploy Squash to cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := top.ensureAgentDeployOpts(agentOpts); err != nil {
+			if err := top.ensureSquashDeployOpts(spOpts); err != nil {
 				return err
 			}
-			return install.InstallAgent(top.KubeClient, agentOpts.Namespace, agentOpts.Preview)
+			return install.InstallSquash(top.KubeClient, spOpts.Namespace, spOpts.Preview)
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&agentOpts.Namespace, "agentNamespace", install.DefaultNamespace, "namespace in which to install Squash")
-	f.BoolVar(&agentOpts.Preview, "preview", false, "If set, prints Squash installation yaml without installing Squash.")
+	f.StringVar(&spOpts.Namespace, "squash-namespace", options.SquashNamespace, "namespace in which to install Squash")
+	f.BoolVar(&spOpts.Preview, "preview", false, "If set, prints Squash installation yaml without installing Squash.")
 	return cmd
 }
-func (top *Options) ensureAgentDeployOpts(dOpts *AgentOptions) error {
+func (top *Options) ensureSquashDeployOpts(dOpts *SquashProcessOptions) error {
 	// TODO(mitchdraft) - interactive mode
 	return nil
 }

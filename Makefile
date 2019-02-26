@@ -17,7 +17,7 @@ help:
 	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
 .PHONY: binaries
-binaries: target/plank/plank target/squashctl target/agent # Builds squashctl binaries in and places them in target/ folder
+binaries: target/plank/plank target/squashctl target/squash # Builds squashctl binaries in and places them in target/ folder
 
 RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
 
@@ -28,7 +28,7 @@ release-binaries: $(RELEASE_BINARIES)
 containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
 
 .PHONY: push-containers
-push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/agent-pushed ## Pushes debug containers to $(DOCKER_REPO)
+push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/squash-pushed ## Pushes debug containers to $(DOCKER_REPO)
 
 .PHONY: release
 release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
@@ -44,7 +44,7 @@ SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
 -X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.AgentImageTag=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.SquashImageTag=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
 
 target:
@@ -62,16 +62,16 @@ target/squashctl-linux: target $(SRCS)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
 
-### Agent
+### Squash
 
-target/agent: target $(SRCS)
-	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/agent/squash cmd/agent/main.go
+target/squash: target $(SRCS)
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/squash/squash cmd/squash/main.go
 
-target/agent-container: ./target/agent
-	docker build -f cmd/agent/Dockerfile -t $(DOCKER_REPO)/squash-agent:$(VERSION) ./target/agent/
+target/squash-container: ./target/squash
+	docker build -f cmd/squash/Dockerfile -t $(DOCKER_REPO)/squash:$(VERSION) ./target/squash/
 	touch $@
-target/agent-pushed: target/agent-container
-	docker push $(DOCKER_REPO)/squash-agent:$(VERSION)
+target/squash-pushed: target/squash-container
+	docker push $(DOCKER_REPO)/squash:$(VERSION)
 	touch $@
 
 
@@ -151,5 +151,5 @@ dev_squashctl: target $(SRCS) target/squashctl
 .PHONY: dev_planks
 dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
 
-.PHONY: dev_agent
-dev_planks: target $(SRCS) target/agent-container
+.PHONY: dev_squash
+dev_planks: target $(SRCS) target/squash-container

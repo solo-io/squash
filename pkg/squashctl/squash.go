@@ -9,45 +9,44 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const squashAgentDescription = `Squash agent allows you to debug with RBAC enabled.
-This may be desired for shared clusters. Squash supports RBAC through its agent
-mode. In this mode, a squash agent runs in your cluster as a server. When a
-user initiates a debug session with squash, the agent will create the debugging
-pod, rather than the person who initiated the debug session. The agent will
+const squashCommandDescription = `Squash allows you to debug with RBAC enabled.
+This may be desired for shared clusters. Squash supports RBAC through its secure.
+mode. In this mode, a Squash runs in your cluster as a server. When a
+user initiates a debug session with Squash, Squash will create the debugging
+pod, rather than the person who initiated the debug session. Squash will
 only open debug session on pods in namespaces where you have CRD write access.
-You can configure squash to use agent mode by setting the ENABLE_RBAC_MODE value
+You can configure squash to use secure mode by setting the secure_mode value
 in your .squash config file.
 `
 
-func (top *Options) AgentCmd(o *Options) *cobra.Command {
+func (top *Options) SquashCmd(o *Options) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "agent",
-		Short:   "manage the squash agent",
-		Example: "squash agent --wip sample",
-		Long:    squashAgentDescription,
+		Use:   "squash",
+		Short: "manage the squash",
+		Long:  squashCommandDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 	}
 
 	cmd.AddCommand(
-		top.agentStatusCmd(),
-		top.agentDeleteCmd(),
+		top.squashStatusCmd(),
+		top.squashDeleteCmd(),
 	)
 
 	return cmd
 }
 
-func (top *Options) agentStatusCmd() *cobra.Command {
+func (top *Options) squashStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "list status of squash agent",
+		Short: "list status of Squash process",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nsList, err := kubeutils.GetNamespaces(top.KubeClient)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("looking for squash agent in namespaces %v\n", strings.Join(nsList, ", "))
+			fmt.Printf("looking for Squash process in namespaces %v\n", strings.Join(nsList, ", "))
 			squashDeployments, err := squashutils.ListSquashDeployments(top.KubeClient, nsList)
 			if err != nil {
 				return err
@@ -55,13 +54,13 @@ func (top *Options) agentStatusCmd() *cobra.Command {
 
 			switch len(squashDeployments) {
 			case 0:
-				fmt.Println("Found no squash agent deployments")
+				fmt.Println("Found no Squash deployments")
 				return nil
 			case 1:
-				fmt.Printf("Squash agent is deployed in namespace %v.\n", squashDeployments[0].ObjectMeta.Namespace)
+				fmt.Printf("Squash is deployed in namespace %v.\n", squashDeployments[0].ObjectMeta.Namespace)
 				return nil
 			}
-			fmt.Printf("Found %v squash agents across these namespaces:\n", len(squashDeployments))
+			fmt.Printf("Found %v Squash processes across these namespaces:\n", len(squashDeployments))
 			matchNsList := []string{}
 			for _, dep := range squashDeployments {
 				matchNsList = append(matchNsList, dep.ObjectMeta.Namespace)
@@ -73,16 +72,16 @@ func (top *Options) agentStatusCmd() *cobra.Command {
 	return cmd
 }
 
-func (top *Options) agentDeleteCmd() *cobra.Command {
+func (top *Options) squashDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",
-		Short: "delete squash agents by namespace",
+		Short: "delete Squash processes from your cluster by namespace",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return fmt.Errorf("Please specify one namespace")
 			}
 			ns := args[0]
-			fmt.Printf("Looking for squash agent in namespace %v\n", ns)
+			fmt.Printf("Looking for Squash process in namespace %v\n", ns)
 			squashDeployments, err := squashutils.ListSquashDeployments(top.KubeClient, []string{ns})
 			if err != nil {
 				return err
@@ -90,7 +89,7 @@ func (top *Options) agentDeleteCmd() *cobra.Command {
 
 			switch len(squashDeployments) {
 			case 0:
-				fmt.Println("Found no squash agent deployments")
+				fmt.Println("Found no Squash deployments")
 				return nil
 			default:
 				count, err := squashutils.DeleteSquashDeployments(top.KubeClient, squashDeployments)
