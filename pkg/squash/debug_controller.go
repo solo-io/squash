@@ -18,7 +18,7 @@ type DebugController struct {
 	pidLock  sync.Mutex
 	pidMap   map[int]bool
 
-	daClient *v1.DebugAttachmentClient
+	daClient v1.DebugAttachmentClient
 	ctx      context.Context
 
 	debugattachmentsLock sync.Mutex
@@ -32,7 +32,7 @@ type debugAttachmentData struct {
 
 func NewDebugController(ctx context.Context,
 	debugger func(string) remote.Remote,
-	daClient *v1.DebugAttachmentClient) *DebugController {
+	daClient v1.DebugAttachmentClient) *DebugController {
 	return &DebugController{
 		debugger: debugger,
 
@@ -64,7 +64,7 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 
 	// Mark attachment as in progress
 	da.State = v1.DebugAttachment_PendingAttachment
-	_, err := (*d.daClient).Write(da, clients.WriteOpts{OverwriteExisting: true})
+	_, err := d.daClient.Write(da, clients.WriteOpts{OverwriteExisting: true})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
 	}
@@ -79,7 +79,7 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 
 func (d *DebugController) setState(namespace, name string, state v1.DebugAttachment_State) {
 	log.WithFields(log.Fields{"namespace": namespace, "name": name, "state": state}).Debug("marking state")
-	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		// should not happen, but if it does, the CRD was probably already deleted
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment.")
@@ -87,7 +87,7 @@ func (d *DebugController) setState(namespace, name string, state v1.DebugAttachm
 
 	da.State = state
 
-	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+	_, err = d.daClient.Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
 		OverwriteExisting: true,
 	})
@@ -99,7 +99,7 @@ func (d *DebugController) markForDeletion(namespace, name string) {
 	log.Debug("called mark for deletion from squash - skipping for now")
 	return
 	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
-	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		// should not happen, but if it does, the CRD was probably already deleted
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to delete.")
@@ -107,7 +107,7 @@ func (d *DebugController) markForDeletion(namespace, name string) {
 
 	da.State = v1.DebugAttachment_PendingDelete
 
-	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+	_, err = d.daClient.Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
 		OverwriteExisting: true,
 	})
@@ -117,14 +117,14 @@ func (d *DebugController) markForDeletion(namespace, name string) {
 }
 
 func (d *DebugController) deleteResource(namespace, name string) {
-	err := (*d.daClient).Delete(namespace, name, clients.DeleteOpts{Ctx: d.ctx, IgnoreNotExist: true})
+	err := d.daClient.Delete(namespace, name, clients.DeleteOpts{Ctx: d.ctx, IgnoreNotExist: true})
 	if err != nil {
 		log.WithFields(log.Fields{"name": name, "namespace": namespace, "error": err}).Warn("Failed to delete resource.")
 	}
 }
 
 func (d *DebugController) markAsAttached(namespace, name string) {
-	da, err := (*d.daClient).Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
 		d.markForDeletion(namespace, name)
@@ -132,7 +132,7 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 
 	da.State = v1.DebugAttachment_Attached
 
-	_, err = (*d.daClient).Write(da, clients.WriteOpts{
+	_, err = d.daClient.Write(da, clients.WriteOpts{
 		Ctx:               d.ctx,
 		OverwriteExisting: true,
 	})

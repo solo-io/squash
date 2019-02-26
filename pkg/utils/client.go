@@ -6,10 +6,10 @@ import (
 	"github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
-func GetDebugAttachmentClient(ctx context.Context) (*v1.DebugAttachmentClient, error) {
+func GetDebugAttachmentClient(ctx context.Context) (v1.DebugAttachmentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
 		return nil, err
@@ -27,5 +27,5 @@ func GetDebugAttachmentClient(ctx context.Context) (*v1.DebugAttachmentClient, e
 	if err := client.Register(); err != nil {
 		return nil, err
 	}
-	return &client, nil
+	return client, nil
 }

@@ -70,7 +70,7 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 		log.WithField("err", err).Error("getting debug attachment client")
 		return &v1.DebugAttachment{}, err
 	}
-	dac, errc, err := (*daClient).Watch(daNamespace, clients.WatchOpts{Ctx: ctx})
+	dac, errc, err := daClient.Watch(daNamespace, clients.WatchOpts{Ctx: ctx})
 	if err != nil {
 		return &v1.DebugAttachment{}, err
 	}

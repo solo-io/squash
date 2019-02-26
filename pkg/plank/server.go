@@ -89,7 +89,7 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 
 	// try to find a pre-existing CRD for this debug activity
 	// create one if none exist
-	da, err := (*daClient).Read(att.Metadata.Namespace, att.Metadata.Name, clients.ReadOpts{Ctx: ctx})
+	da, err := daClient.Read(att.Metadata.Namespace, att.Metadata.Name, clients.ReadOpts{Ctx: ctx})
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 	da.DebugServerAddress = fmt.Sprintf("inferfrompod:%v", dbgServer.Port())
 	// write own plank pod name
 	da.PlankName = os.Getenv("HOSTNAME")
-	if _, err := (*daClient).Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true}); err != nil {
+	if _, err := daClient.Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true}); err != nil {
 		return err
 	}
 

@@ -19,7 +19,7 @@ type Config struct {
 	// Options are dlv or gdb
 	Debugger   string
 	kubeClient *kubernetes.Clientset
-	daClient   *v1.DebugAttachmentClient
+	daClient   v1.DebugAttachmentClient
 	ctx        context.Context
 }
 
@@ -42,7 +42,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	}
 
 	// a debug attachment should have been created, pick it up
-	da, err := (*daClient).Read(debugNamespace, daName, clients.ReadOpts{})
+	da, err := daClient.Read(debugNamespace, daName, clients.ReadOpts{})
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 		return nil, err
 	}
 	da.PlankName = plankName
-	da, err = (*daClient).Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+	da, err = daClient.Write(da, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 	if err != nil {
 		return nil, err
 	}

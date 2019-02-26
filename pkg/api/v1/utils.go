@@ -27,14 +27,14 @@ func (m *DebugAttachment) GetPortFromDebugServerAddress() (int, error) {
 }
 
 // For a given debug Intent, finds the corresponding DebugAttachment, if any
-func (di *Intent) GetDebugAttachment(daClient *DebugAttachmentClient) (*DebugAttachment, error) {
+func (di *Intent) GetDebugAttachment(daClient DebugAttachmentClient) (*DebugAttachment, error) {
 	labels := di.GenerateLabels()
-	das, err := (*daClient).List(di.Pod.Namespace, clients.ListOpts{Selector: labels})
+	das, err := daClient.List(di.Pod.Namespace, clients.ListOpts{Selector: labels})
 	if err != nil {
-		return nil, err
+		return &DebugAttachment{}, err
 	}
 	if len(das) != 1 {
-		return nil, fmt.Errorf("Expected one debug attachment to match label selectors, found %v.", len(das))
+		return &DebugAttachment{}, fmt.Errorf("Expected one debug attachment to match label selectors, found %v.", len(das))
 	}
 	return das[0], nil
 }

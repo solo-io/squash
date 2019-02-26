@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/go-utils/contextutils"
@@ -55,7 +54,7 @@ type DebugHandler struct {
 
 	debugger        func(string) remote.Remote
 	debugController *DebugController
-	daClient        *v1.DebugAttachmentClient
+	daClient        v1.DebugAttachmentClient
 
 	watchNamespaces []string
 
@@ -63,7 +62,7 @@ type DebugHandler struct {
 	attachments []*v1.DebugAttachment
 }
 
-func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1.DebugAttachmentClient, debugger func(string) remote.Remote) *DebugHandler {
+func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient v1.DebugAttachmentClient, debugger func(string) remote.Remote) *DebugHandler {
 	dbghandler := &DebugHandler{
 		ctx:             ctx,
 		daClient:        daClient,
@@ -75,13 +74,9 @@ func NewDebugHandler(ctx context.Context, watchNamespaces []string, daClient *v1
 	return dbghandler
 }
 
-func getNodeName() string {
-	return os.Getenv("NODE_NAME")
-}
-
 func (d *DebugHandler) handleAttachments() error {
 	// setup event loop
-	emitter := v1.NewApiEmitter(*d.daClient)
+	emitter := v1.NewApiEmitter(d.daClient)
 	syncer := d // DebugHandler implements Sync
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
