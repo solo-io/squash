@@ -2,15 +2,16 @@ package main
 
 import (
 	"github.com/solo-io/solo-kit/pkg/code-generator/cmd"
+	"github.com/solo-io/solo-kit/pkg/code-generator/docgen/options"
 	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
 func main() {
-	relativeRoot := "./api/v1"
-	compileProtos := true
-	genDocs := true
-
-	if err := cmd.Run(relativeRoot, compileProtos, genDocs, []string{}, []string{}); err != nil {
-		log.Fatalf("%v", err)
+	log.Printf("Starting generate...")
+	docsOpts := cmd.DocsOptions{
+		Output: options.Hugo,
+	}
+	if err := cmd.Run(".", true, &docsOpts, nil, []string{}); err != nil {
+		log.Fatalf("generate failed!: %v", err)
 	}
 }

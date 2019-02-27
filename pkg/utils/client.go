@@ -14,7 +14,7 @@ func GetDebugAttachmentClient(ctx context.Context) (v1.DebugAttachmentClient, er
 	if err != nil {
 		return nil, err
 	}
-	cache := kube.NewKubeCache()
+	cache := kube.NewKubeCache(ctx)
 	rcFactory := &factory.KubeResourceClientFactory{
 		Crd:         v1.DebugAttachmentCrd,
 		Cfg:         cfg,
