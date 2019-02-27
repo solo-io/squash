@@ -20,6 +20,11 @@ help:
 pin-repos:
 	go run pin_repos.go
 
+.PHONY: check-format
+check-format:
+	NOT_FORMATTED=$$(gofmt -l ./projects/ ./pkg/ ./test/ ./install/) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
+
+
 .PHONY: binaries
 binaries: target/plank/plank target/squashctl target/squash # Builds squashctl binaries in and places them in target/ folder
 
