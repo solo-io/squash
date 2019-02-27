@@ -12,7 +12,7 @@ steps:
 # Dep modifies workspace so that the code is moved into the PROJECT_ROOT
 # All steps after this must set GOPATH
 - name: 'gcr.io/$PROJECT_ID/dep'
-  args: ['ensure', '-v']
+  args: ['ensure']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GIT_SSH_CONFIG=FALSE'
@@ -24,6 +24,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   dir: './gopath/src/github.com/solo-io/squash'
   entrypoint: make
+  waitFor: ['dep']
   # args: ['binaries', 'release-binaries']
   args: ['all']
 
