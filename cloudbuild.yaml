@@ -22,7 +22,7 @@ steps:
   entrypoint: ls
   waitFor: ['-']
   waitFor: ['dep']
-  id: 'grab-gingko-container'
+  id: 'grab-ginkgo-container'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
   env:
