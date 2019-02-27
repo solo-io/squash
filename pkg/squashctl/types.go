@@ -17,7 +17,7 @@ type Options struct {
 	// Debug Container is a superset of DebugRequest so we can use the same struct
 	// TODO(mitchdraft) - refactor
 	DebugRequest DebugContainer
-	daClient     *v1.DebugAttachmentClient
+	daClient     v1.DebugAttachmentClient
 	ctx          context.Context
 	Wait         Wait
 
@@ -36,6 +36,12 @@ type Options struct {
 
 	// Config may be blended into other options
 	Config Config
+}
+
+func NewOptions() *Options {
+	o := &Options{}
+	o.Squash = config.NewSquashConfig()
+	return o
 }
 
 type DebugContainer struct {
@@ -58,14 +64,14 @@ type Error struct {
 }
 
 type DeployOptions struct {
-	DemoOptions  DemoOptions
-	AgentOptions AgentOptions
+	DemoOptions          DemoOptions
+	SquashProcessOptions SquashProcessOptions
 }
 
 func defaultDeployOptions() DeployOptions {
 	return DeployOptions{
-		DemoOptions:  defaultDemoOptions(),
-		AgentOptions: defaultAgentOptions(),
+		DemoOptions:          defaultDemoOptions(),
+		SquashProcessOptions: defaultSquashProcessOptions(),
 	}
 }
 
@@ -83,12 +89,14 @@ func defaultDemoOptions() DemoOptions {
 	}
 }
 
-type AgentOptions struct {
+type SquashProcessOptions struct {
 	Namespace string
+	// Preview, if set prints a yaml description of the Squash installation without creating installing Squash
+	Preview bool
 }
 
-func defaultAgentOptions() AgentOptions {
-	return AgentOptions{
+func defaultSquashProcessOptions() SquashProcessOptions {
+	return SquashProcessOptions{
 		Namespace: "squash-debugger",
 	}
 }

@@ -1,3 +1,110 @@
+# System components
+- Squash consists of three distinct processes
+  - Local interface: "squashctl" (direct or via IDE extension)
+  - Debugger session manager: "Plank" pod - an in-cluster pod spawned on demand for managing a particular debug session
+  - RBAC expression process: "Squash" pod - (secure-mode only) an in-cluster pod that spawns Plank pods on the user's behalf according to their RBAC permissions. Typically configured by system admin
+
+
+# Flow
+- user declares debug intent in the command line [or in an IDE prompt]
+  - debugger
+  - pod namespace
+  - pod name
+  - container name
+  - process OR matcher (both ignored right now)
+- [TODO] squashctl checks that the squash-plank service account has been created
+  - if not, it creates the service account and required cluster roles
+- squashctl creates a crd with the debug intent
+  - crd fields that are populated:
+    - debug intent (fully populated: debugger, pod namespace, pod name, container name, process identifier)
+    - local port
+- squashctl spawns a plank [in secure mode, Squash spawns a plank]
+  - plank environment variables tell it where to find the CRD
+    - CRD_NAME
+    - CRD_NAMESPACE
+- squashctl waits for crd.plankReady=true
+- plank reads crd and takes the action required for the given debugger
+  - MAY:
+    - start a remote debugger
+  - MUST:
+    - add the following information to the crd:
+      - plank port
+      - target port
+      - plankReady = true
+- squashclt port-forwards
+  - port forward spec is debugger specific
+- squashctl attaches local debugger
+  - details are debugger specific
+- squashclt waits for debug session to end
+- user interacts with debugger and eventually closes it
+- squashctl terminates pod (not implemented explicitly as this currently happens upon ending the debug session - may want to add a check w/ explicit delete in the future in order to ensure the old pod is removed)
+- squashctl deletes the old debugattachment crd
+
+# Improved API outline
+
+## API Needs
+
+Squash requires the following information:
+
+- way to identify plank pod
+  - name
+  - namespace
+- way to identify target pod
+  - name
+  - namespace
+- ports list
+  - local
+  - plank
+  - target
+
+
+## Description of upcoming API
+- Intent
+  - debugger
+  - pod namespace
+  - pod name
+  - container name
+  - process OR matcher (both ignored right now)
+- State (for now, leave as currently exists)
+- Plank information
+  - pod namespace
+  - pod name
+  - readyForConnect
+- port information
+  - local port
+  - plank port
+  - target port
+  
+## How to associate the target pod, plank pod, and debug attachment CRD
+- target pod
+  - lifecycle:
+    - pre-existing
+  - name: any name, prexisting
+- debug attachment crd
+  - lifecycle:
+    - created by squashctl before anything else happens
+    - updated by squash and/or plank as plank is created and as plank establishes the debug session
+  - name: randomly generated
+  - labels:
+    - pod_name (target pod)
+	- pod_namespace (target pod)
+	- container_name (target container)
+  - fields:
+    - Attachment: name of plank pod (plank is in a known ns so this fully identifies plank)
+      - set by plank when plank is created
+- plank pod
+  - lifecycle:
+    - default mode:
+      - created by squashctl
+    - secure mode:
+      - created by squash
+    - both modes
+      - removed: TODO - by squashctl
+  - name: randomly generated
+  - labels:
+    - debug_attachment_name
+    - debug_attachment_namespace
+
 
 
 # Dev workflow notes
@@ -43,3 +150,20 @@ npm install -g vsce
 ```bash
 vsce publish -p $VSCODE_TOKEN
 ```
+
+# Debugger notes
+
+## Java
+- use `jdb` to attach
+```bash
+jdb -attach localhost:<port> -sourcepath ~/path/to/src/main/java/
+```
+## Go
+- use 'dlv' to attach
+```bash
+dlv connect localhost:<port>
+```
+- how to specify source path
+  - init file TODO(mitchdraft)
+
+

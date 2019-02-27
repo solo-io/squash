@@ -11,10 +11,14 @@ import (
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -33,7 +37,7 @@ func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
 	}
 	das := v1.DebugAttachmentList{}
 	for _, ns := range watchNamespaces {
-		nsDas, err := (*o.daClient).List(ns, clients.ListOpts{Ctx: o.ctx})
+		nsDas, err := o.daClient.List(ns, clients.ListOpts{Ctx: o.ctx})
 		if err != nil {
 			return v1.DebugAttachmentList{}, err
 		}
@@ -47,7 +51,7 @@ func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
 func (o *Options) getNamedDebugAttachment(name string) (*v1.DebugAttachment, error) {
 	das, err := o.getAllDebugAttachments()
 	if err != nil {
-		return &v1.DebugAttachment{}, err
+		return nil, err
 	}
 
 	namedDas := v1.DebugAttachmentList{}
@@ -58,10 +62,10 @@ func (o *Options) getNamedDebugAttachment(name string) (*v1.DebugAttachment, err
 	}
 	if len(namedDas) > 1 {
 		// TODO(mitchdraft) - make this impossible by explicitly specifying the namespace
-		return &v1.DebugAttachment{}, fmt.Errorf("multiple debug attachments with the same name found")
+		return nil, fmt.Errorf("multiple debug attachments with the same name found")
 	}
 	if len(namedDas) == 0 {
-		return &v1.DebugAttachment{}, fmt.Errorf("Debug attachment %v not found", name)
+		return nil, fmt.Errorf("Debug attachment %v not found", name)
 	}
 	return namedDas[0], nil
 }
@@ -184,4 +188,100 @@ func (top *Options) chooseString(message string, choice *string, options []strin
 		return err
 	}
 	return nil
+}
+
+// TODO - call this once from squashctl once during config instead of each time a pod is created
+// for now - just print errors since these resources may have already been created
+// we need them to exist in each namespace
+func (o *Options) createPlankPermissions() error {
+
+	cs, err := getClientSet()
+	if err != nil {
+		return err
+	}
+
+	// need to create the permissions in the namespace of the target process
+	namespace := o.Squash.SquashNamespace
+
+	// create namespace. ignore errors as it most likely exists and will error
+	cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+
+	_, err = cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{})
+	if err == nil {
+		// service account already exists, no need to create it
+		return nil
+	}
+
+	sa := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: sqOpts.PlankServiceAccountName,
+		},
+	}
+
+	fmt.Printf("Creating service account %v in namespace %v\n", sqOpts.PlankServiceAccountName, namespace)
+	if _, err := cs.CoreV1().ServiceAccounts(namespace).Create(&sa); err != nil {
+		fmt.Println(err)
+	}
+
+	cr := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: sqOpts.PlankClusterRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "delete"},
+				Resources: []string{"pods"},
+				APIGroups: []string{""},
+			},
+			{
+				Verbs:     []string{"list"},
+				Resources: []string{"namespaces"},
+				APIGroups: []string{""},
+			},
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+				Resources: []string{"debugattachments"},
+				APIGroups: []string{"squash.solo.io"},
+			},
+			{
+				// TODO remove the register permission when solo-kit is updated
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Resources: []string{"customresourcedefinitions"},
+				APIGroups: []string{"apiextensions.k8s.io"},
+			},
+		},
+	}
+	if _, err := cs.Rbac().ClusterRoles().Create(cr); err != nil {
+		fmt.Println(err)
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      sqOpts.PlankClusterRoleBindingName,
+			Namespace: namespace,
+		},
+		Subjects: []rbacv1.Subject{
+			rbacv1.Subject{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      sqOpts.PlankServiceAccountName,
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Name: sqOpts.PlankClusterRoleName,
+			Kind: "ClusterRole",
+		},
+	}
+	if _, err := cs.Rbac().ClusterRoleBindings().Create(crb); err != nil {
+		fmt.Println(err)
+	}
+	return nil
+}
+
+func getClientSet() (kubernetes.Interface, error) {
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(restCfg)
 }

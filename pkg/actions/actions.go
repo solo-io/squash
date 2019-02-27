@@ -3,19 +3,29 @@ package actions
 import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
 // Attach creates a DebugAttachment with a state of PendingAttachment
-func (uc *UserController) Attach(name, namespace, image, pod, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+func (uc *UserController) Attach(daName, namespace, image, podName, container, processName, dbgger string) (*v1.DebugAttachment, error) {
+	di := v1.Intent{
+		Debugger: dbgger,
+		Pod: &core.ResourceRef{
+			Name:      podName,
+			Namespace: namespace,
+		},
+		ContainerName: container,
+	}
+	attachlabels := di.GenerateLabels()
 	da := v1.DebugAttachment{
 		Metadata: core.Metadata{
-			Name:      name,
+			Name:      daName,
 			Namespace: namespace,
+			Labels:    attachlabels,
 		},
 		Debugger:       dbgger,
 		Image:          image,
-		Pod:            pod,
+		Pod:            podName,
 		Container:      container,
 		DebugNamespace: namespace,
 		State:          v1.DebugAttachment_RequestingAttachment,
@@ -27,13 +37,13 @@ func (uc *UserController) Attach(name, namespace, image, pod, container, process
 		Ctx:               uc.ctx,
 		OverwriteExisting: false,
 	}
-	return (*uc.daClient).Write(&da, writeOpts)
+	return uc.daClient.Write(&da, writeOpts)
 }
 
 // Remove sets the DebugAttachment state to PendingDelete
 func (uc *UserController) RequestDelete(namespace, name string) (*v1.DebugAttachment, error) {
 
-	da, err := (*uc.daClient).Read(namespace, name, clients.ReadOpts{Ctx: uc.ctx})
+	da, err := uc.daClient.Read(namespace, name, clients.ReadOpts{Ctx: uc.ctx})
 	if err != nil {
 		return &v1.DebugAttachment{}, err
 	}
@@ -43,14 +53,14 @@ func (uc *UserController) RequestDelete(namespace, name string) (*v1.DebugAttach
 		Ctx:               uc.ctx,
 		OverwriteExisting: true,
 	}
-	return (*uc.daClient).Write(da, writeOpts)
+	return uc.daClient.Write(da, writeOpts)
 }
 
 // Counts returns the number of debug attachments by type
 func (uc *UserController) Counts(namespace, name string) (map[v1.DebugAttachment_State]int, error) {
 	counts := make(map[v1.DebugAttachment_State]int)
 
-	das, err := (*uc.daClient).List(namespace, clients.ListOpts{Ctx: uc.ctx})
+	das, err := uc.daClient.List(namespace, clients.ListOpts{Ctx: uc.ctx})
 	if err != nil {
 		return counts, err
 	}

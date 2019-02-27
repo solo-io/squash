@@ -10,3 +10,5 @@ vendor/*
 *.out
 
 site/
+
+.vscode/*

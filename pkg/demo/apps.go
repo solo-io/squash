@@ -25,8 +25,12 @@ var (
 	DemoIds    = []string{DemoGoGo, DemoGoJava}
 )
 
-func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName string, containerPort int) error {
+func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName, appType string, containerPort int) error {
 
+	service2url := ""
+	if appType == DemoGoJava {
+		service2url = "example-service2-java"
+	}
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: appName,
@@ -56,6 +60,10 @@ func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName s
 									ContainerPort: int32(containerPort),
 								},
 							},
+							Env: []v1.EnvVar{{
+								Name:  "SERVICE2_URL",
+								Value: service2url,
+							}},
 						},
 					},
 				},
@@ -110,10 +118,10 @@ func DeployGoGo(cs *kubernetes.Clientset, namespace, namespace2 string) error {
 
 	containerPort := 8080
 
-	if err := DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
+	if err := DeployTemplate(cs, namespace, app1Name, template1Name, DemoGoGo, containerPort); err != nil {
 		return err
 	}
-	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
+	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, DemoGoGo, containerPort); err != nil {
 		return err
 	}
 	return nil
@@ -130,10 +138,10 @@ func DeployGoJava(cs *kubernetes.Clientset, namespace, namespace2 string) error 
 
 	containerPort := 8080
 
-	if err := DeployTemplate(cs, namespace, app1Name, template1Name, containerPort); err != nil {
+	if err := DeployTemplate(cs, namespace, app1Name, template1Name, DemoGoJava, containerPort); err != nil {
 		return err
 	}
-	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, containerPort); err != nil {
+	if err := DeployTemplate(cs, namespace2, app2Name, template2Name, DemoGoJava, containerPort); err != nil {
 		return err
 	}
 	return nil

@@ -2,11 +2,14 @@ package utils
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/install"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +39,7 @@ func GetCmdArgsByPid(pid int) ([]string, error) {
 func ListSquashDeployments(kc *kubernetes.Clientset, nsList []string) ([]appsv1.Deployment, error) {
 	matches := []appsv1.Deployment{}
 	for _, ns := range nsList {
-		deps, err := kc.Apps().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.AgentName)})
+		deps, err := kc.Apps().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.SquashName)})
 		if err != nil {
 			return []appsv1.Deployment{}, err
 		}
@@ -97,4 +100,32 @@ func checkAddressAndGetPort(addr *net.TCPAddr, port *int) error {
 		*port = tmpListener.Addr().(*net.TCPAddr).Port
 	}
 	return tmpListener.Close()
+}
+
+func ListDebugAttachments(ctx context.Context, daClient squashv1.DebugAttachmentClient, nsList []string) ([]string, error) {
+	allDas := []string{}
+	for _, ns := range nsList {
+		das, err := daClient.List(ns, clients.ListOpts{Ctx: ctx})
+		if err != nil {
+			return []string{}, err
+		}
+		for _, da := range das {
+			allDas = append(allDas, fmt.Sprintf("%v, %v", ns, da.Metadata.Name))
+		}
+	}
+	return allDas, nil
+}
+
+func GetAllDebugAttachments(ctx context.Context, daClient squashv1.DebugAttachmentClient, nsList []string) (squashv1.DebugAttachmentList, error) {
+	allDas := squashv1.DebugAttachmentList{}
+	for _, ns := range nsList {
+		das, err := daClient.List(ns, clients.ListOpts{Ctx: ctx})
+		if err != nil {
+			return squashv1.DebugAttachmentList{}, err
+		}
+		for _, da := range das {
+			allDas = append(allDas, da)
+		}
+	}
+	return allDas, nil
 }

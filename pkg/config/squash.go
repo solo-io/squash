@@ -6,15 +6,23 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/kr/pty"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
+	"github.com/solo-io/squash/pkg/debuggers/local"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
+	"github.com/solo-io/squash/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +47,14 @@ type Squash struct {
 	CRISock string
 
 	clientset kubernetes.Interface
+
+	SquashNamespace string
+}
+
+func NewSquashConfig() Squash {
+	s := Squash{}
+	s.clientset = s.getClientSet()
+	return s
 }
 
 type DebugTarget struct {
@@ -48,16 +64,17 @@ type DebugTarget struct {
 
 func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 
-	dbgpod, err := s.debugPodFor(s.Debugger, dbt.Pod, dbt.Container.Name)
+	dbgpod, err := s.debugPodFor()
 	if err != nil {
 		return nil, err
 	}
 	// create namespace. ignore errors as it most likely exists and will error
-	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.getDebuggerPodNamespace()}})
+	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.SquashNamespace}})
 
-	createdPod, err := s.getClientSet().CoreV1().Pods(s.getDebuggerPodNamespace()).Create(dbgpod)
+	// create debugger pod
+	createdPod, err := s.getClientSet().CoreV1().Pods(s.SquashNamespace).Create(dbgpod)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not create pod: %v", err)
 	}
 
 	if !s.Machine && !s.NoClean {
@@ -67,15 +84,18 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	// wait for running state
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	err = <-s.waitForPod(ctx, createdPod)
 	cancel()
+	// ctx, cancel = context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
+	// err <-s.waitForDebugAttachment(ctx)
 	if err != nil {
-		s.showLogs(err, createdPod)
-		return nil, err
+		// s.printError(createdPodName)
+		return nil, fmt.Errorf("Waiting for pod: %v", err)
 	}
 
-	if err := s.ReportOrConnectToCreatedDebuggerPod(createdPod); err != nil {
+	if err := s.ReportOrConnectToCreatedDebuggerPod(); err != nil {
 		return nil, err
 	}
 
@@ -108,6 +128,7 @@ func (s *Squash) GetDebugTargetPodFromSpec(dbt *DebugTarget) error {
 func (s *Squash) GetDebugTargetContainerFromSpec(dbt *DebugTarget) error {
 	for _, podContainer := range dbt.Pod.Spec.Containers {
 		log.Debug(podContainer.Image)
+		log.Info(podContainer.Image)
 		if strings.HasPrefix(podContainer.Image, s.Container) {
 			dbt.Container = &podContainer
 			break
@@ -123,64 +144,124 @@ func (s *Squash) getDebuggerPodNamespace() string {
 	return s.Namespace
 }
 
-func (s *Squash) ReportOrConnectToCreatedDebuggerPod(createdPod *v1.Pod) error {
+func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
 	if s.Machine {
-		fmt.Printf("pod.name: %v", createdPod.Name)
-	} else {
-		return s.connectUser(createdPod)
+		return s.printEditorExtensionData()
 	}
+	return s.connectUser()
+}
+
+func (s *Squash) printEditorExtensionData() error {
+	da, err := s.getDebugAttachment()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("pod.name: %v", da.PlankName)
 	return nil
 }
 
-func (s *Squash) connectUser(createdPod *v1.Pod) error {
+// TODO - remove this when V2 api is ready
+func (s *Squash) getIntent() squashv1.Intent {
+	return squashv1.Intent{
+		Debugger: s.Debugger,
+		Pod: &core.ResourceRef{
+			Name:      s.Pod,
+			Namespace: s.Namespace,
+		},
+		ContainerName: s.Container,
+	}
+}
+
+func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
+	// Refactor - eventually Intent will be created during config/user entry
+	intent := s.getIntent()
+	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	if err != nil {
+		return &squashv1.DebugAttachment{}, err
+	}
+	return intent.GetDebugAttachment(daClient)
+}
+
+func (s *Squash) connectUser() error {
 	if s.Machine {
 		return nil
 	}
-	// Starting port forward in background.
-	portSpec := fmt.Sprintf("%v:%v", s.LocalPort, sqOpts.DebuggerPort)
-	cmd1 := exec.Command("kubectl", "port-forward", createdPod.ObjectMeta.Name, portSpec, "-n", s.getDebuggerPodNamespace())
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	cmd1.Stdin = os.Stdin
-	err := cmd1.Start()
+	da, err := s.getDebugAttachment()
 	if err != nil {
-		s.showLogs(err, createdPod)
+		return err
+	}
+	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
+	if err != nil {
+		return err
+	}
+	debugger := local.GetParticularDebugger(s.Debugger)
+	kubectlCmd := debugger.GetRemoteConnectionCmd(
+		da.PlankName,
+		s.SquashNamespace,
+		s.Pod,
+		s.Namespace,
+		s.LocalPort,
+		remoteDbgPort,
+	)
+	// Starting port forward in background.
+	if err := kubectlCmd.Start(); err != nil {
+		// s.printError(createdPodName)
 		return err
 	}
 	// kill the kubectl port-forward process on exit to free the port
 	// this defer must be called after Start() initializes Process
-	defer cmd1.Process.Kill()
+	defer kubectlCmd.Process.Kill()
 
 	// Delaying to allow port forwarding to complete.
-	duration := time.Duration(5) * time.Second
-	time.Sleep(duration)
+	time.Sleep(5 * time.Second)
+	if os.Getenv("DEBUG_SELF") != "" {
+		fmt.Println("FOR DEBUGGING SQUASH'S DEBUGGER CONTAINER:")
+		fmt.Println("TODO")
+		// s.printError(createdPod)
+	}
 
-	// TODO(mitchdraft) dlv only atm - check if dlv before doing this
-	cmd2 := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", s.LocalPort))
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	cmd2.Stdin = os.Stdin
-	err = cmd2.Run()
-	if err != nil {
-		log.Warn("failed, printing logs")
-		log.Warn(err)
-		s.showLogs(err, createdPod)
+	dbgCmd := debugger.GetDebugCmd(s.LocalPort)
+	if err := ptyWrap(dbgCmd); err != nil {
+		// s.printError(createdPodName)
 		return err
 	}
 	return nil
 }
 
-func (s *Squash) showLogs(err error, createdPod *v1.Pod) {
+func ptyWrap(c *exec.Cmd) error {
 
-	cmd := exec.Command("kubectl", "-n", s.Namespace, "logs", createdPod.ObjectMeta.Name, sqOpts.ContainerName)
-	buf, err := cmd.CombinedOutput()
+	// Start the command with a pty.
+	ptmx, err := pty.Start(c)
 	if err != nil {
-		fmt.Println("Can't get logs from errored pod")
-		return
+		return err
 	}
+	// Make sure to close the pty at the end.
+	defer func() { _ = ptmx.Close() }() // Best effort.
 
-	fmt.Printf("Pod errored with: %v\n Logs:\n %s", err, string(buf))
-	log.Warn(fmt.Sprintf("Pod errored with: %v\n Logs:\n %s", err, string(buf)))
+	// Handle pty size.
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGWINCH)
+	go func() {
+		for range ch {
+			if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
+				log.Printf("error resizing pty: %s", err)
+			}
+		}
+	}()
+	ch <- syscall.SIGWINCH // Initial resize.
+
+	// Set stdin in raw mode.
+	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		panic(err)
+	}
+	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
+
+	// Copy stdin to the pty and the pty to stdout.
+	go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+	_, _ = io.Copy(os.Stdout, ptmx)
+
+	return nil
 }
 
 func (s *Squash) deletePod(createdPod *v1.Pod) {
@@ -204,16 +285,25 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 				var options meta_v1.GetOptions
 				options.ResourceVersion = createdPod.ResourceVersion
 				var err error
-				createdPod, err = s.getClientSet().CoreV1().Pods(s.Namespace).Get(name, options)
+				createdPod, err = s.getClientSet().CoreV1().Pods(s.SquashNamespace).Get(name, options)
+
+				if createdPod.Status.Phase == v1.PodPending {
+					fmt.Println("Pod creating")
+					continue
+				}
 				if err != nil {
-					errchan <- err
+					errchan <- errors.Wrap(err, "Error during read")
+					return
+				}
+				// TODO - consider refactor such that GetParticularDebugger is only ever called once per session
+				if !local.GetParticularDebugger(s.Debugger).ExpectRunningPlank() {
 					return
 				}
 				if createdPod.Status.Phase == v1.PodRunning {
 					return
 				}
 				if createdPod.Status.Phase != v1.PodPending {
-					err := s.printError(createdPod)
+					// err := s.printError(createdPod)
 					if err != nil {
 						errchan <- errors.Wrap(err, "pod is not running and not pending")
 					} else {
@@ -227,9 +317,9 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 	return errchan
 }
 
-func (s *Squash) printError(pod *v1.Pod) error {
+func (s *Squash) printError(podName string) error {
 	var options v1.PodLogOptions
-	req := s.getClientSet().Core().Pods(s.Namespace).GetLogs(pod.ObjectMeta.Name, &options)
+	req := s.getClientSet().Core().Pods(s.Namespace).GetLogs(podName, &options)
 
 	readCloser, err := req.Stream()
 	if err != nil {
@@ -242,6 +332,92 @@ func (s *Squash) printError(pod *v1.Pod) error {
 		return err
 	}
 	return nil
+}
+
+// Containers have a common name, suffixed by the particular debugger that they have installed
+// TODO(mitchdraft) - implement more specific debug containers (for example, bare containers for debuggers that don't need a specific process)
+// for now, default to the gdb variant
+func containerNameFromSpec(debugger string) string {
+	containerVariant := "gdb"
+	if debugger == "dlv" {
+		containerVariant = "dlv"
+	}
+	return fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, containerVariant)
+}
+
+func (s *Squash) debugPodFor() (*v1.Pod, error) {
+	it := s.getIntent()
+	const crisockvolume = "crisock"
+	targetPod, err := s.getClientSet().CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// get debugAttachment name so Plank knows where to find it
+	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	da, err := it.GetDebugAttachment(daClient)
+	if err != nil {
+		return nil, err
+	}
+
+	// this is our convention for naming the container images that contain specific debuggers
+	fullParticularContainerName := containerNameFromSpec(it.Debugger)
+	// repoRoot/containerName:tag
+	targetImage := fmt.Sprintf("%v/%v:%v", s.DebugContainerRepo, fullParticularContainerName, s.DebugContainerVersion)
+	templatePod := &v1.Pod{
+		TypeMeta: meta_v1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: meta_v1.ObjectMeta{
+			GenerateName: sqOpts.PlankContainerName,
+			Labels:       sqOpts.GeneratePlankLabels(it.Pod),
+		},
+		Spec: v1.PodSpec{
+			ServiceAccountName: sqOpts.PlankServiceAccountName,
+			HostPID:            true,
+			RestartPolicy:      v1.RestartPolicyNever,
+			NodeName:           targetPod.Spec.NodeName,
+			Containers: []v1.Container{{
+				Name:      sqOpts.PlankContainerName,
+				Image:     targetImage,
+				Stdin:     true,
+				StdinOnce: true,
+				TTY:       true,
+				VolumeMounts: []v1.VolumeMount{{
+					Name:      crisockvolume,
+					MountPath: squashkube.CriRuntime,
+				}},
+				SecurityContext: &v1.SecurityContext{
+					Capabilities: &v1.Capabilities{
+						Add: []v1.Capability{
+							"SYS_PTRACE",
+						},
+					},
+				},
+				Env: []v1.EnvVar{{
+					Name:  sqOpts.PlankEnvDebugAttachmentNamespace,
+					Value: it.Pod.Namespace,
+				}, {
+					Name:  sqOpts.PlankEnvDebugAttachmentName,
+					Value: da.Metadata.Name,
+				},
+				}},
+			},
+			Volumes: []v1.Volume{{
+				Name: crisockvolume,
+				VolumeSource: v1.VolumeSource{
+					HostPath: &v1.HostPathVolumeSource{
+						Path: s.CRISock,
+					},
+				},
+			}},
+		}}
+
+	return templatePod, nil
 }
 
 func (s *Squash) getClientSet() kubernetes.Interface {
@@ -259,66 +435,4 @@ func (s *Squash) getClientSet() kubernetes.Interface {
 	s.clientset = cs
 	return s.clientset
 
-}
-
-func (s *Squash) debugPodFor(debugger string, in *v1.Pod, containername string) (*v1.Pod, error) {
-	const crisockvolume = "crisock"
-
-	// this is our convention for naming the container images that contain specific debuggers
-	fullParticularContainerName := fmt.Sprintf("%v-%v", sqOpts.ParticularContainerRootName, debugger)
-	// repoRoot/containerName:tag
-	targetImage := fmt.Sprintf("%v/%v:%v", s.DebugContainerRepo, fullParticularContainerName, s.DebugContainerVersion)
-	templatePod := &v1.Pod{
-		TypeMeta: meta_v1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: meta_v1.ObjectMeta{
-			GenerateName: sqOpts.ContainerName,
-			Labels:       map[string]string{sqOpts.SquashLabelSelectorKey: sqOpts.SquashLabelSelectorValue},
-		},
-		Spec: v1.PodSpec{
-			HostPID:       true,
-			RestartPolicy: v1.RestartPolicyNever,
-			NodeName:      in.Spec.NodeName,
-			Containers: []v1.Container{{
-				Name:      sqOpts.ContainerName,
-				Image:     targetImage,
-				Stdin:     true,
-				StdinOnce: true,
-				TTY:       true,
-				VolumeMounts: []v1.VolumeMount{{
-					Name:      crisockvolume,
-					MountPath: squashkube.CriRuntime,
-				}},
-				SecurityContext: &v1.SecurityContext{
-					Capabilities: &v1.Capabilities{
-						Add: []v1.Capability{
-							"SYS_PTRACE",
-						},
-					},
-				},
-				Env: []v1.EnvVar{{
-					Name:  "SQUASH_NAMESPACE",
-					Value: in.ObjectMeta.Namespace,
-				}, {
-					Name:  "SQUASH_POD",
-					Value: in.ObjectMeta.Name,
-				}, {
-					Name:  "SQUASH_CONTAINER",
-					Value: containername,
-				},
-				}},
-			},
-			Volumes: []v1.Volume{{
-				Name: crisockvolume,
-				VolumeSource: v1.VolumeSource{
-					HostPath: &v1.HostPathVolumeSource{
-						Path: s.CRISock,
-					},
-				},
-			}},
-		}}
-
-	return templatePod, nil
 }

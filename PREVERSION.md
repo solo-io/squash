@@ -23,18 +23,18 @@
 ## enhancements
 - [x] squash lite supports multiple connections (use localport flag)
 ## cli
-- [x] distinguish between lite/agent mode
+- [x] distinguish between lite/squash mode
 - [x] use cobra
 - [x] auto gen docs
 ## tutorial
 - [x] install sample apps from command line
 ## backlog
 - [x] allow in/out-of cluster to be configured as a flag - will not do
-- [x] allow installation of squash agent from cli
+- [x] allow installation of Squash from cli
 ## outstanding
-- [ ] (P0) interactive input for RBAC mode
-- [x] (P0) decide what to call RBAC/Agent
-- [ ] (P0) choose container in interactive mode
+- [x] (P0) interactive input for RBAC mode
+- [x] (P0) decide what to call RBAC/Squash -> secure mode
+- [x] (P0) choose container in interactive mode
 - [ ] (P1, testing, docs) python support updates
 - [ ] (P1, testing, docs) java support updates
 - [ ] (P1, testing, docs) nodejs support updates
@@ -42,6 +42,23 @@
 ## e2e tests
 - [x] rbac mode
 - [ ] (P1) non rbac mode
+## Wrap up
+- [x] squashctl: wait for pod to be created before expecting crd
+- [x] clean up artifacts: (auto) delete debug attachment crd on exit
+- [x] clean up artifacts: (prompted) delete permissions
+- [x] check for existence of permissions before creating them
+- [x] only notify when newly creating permissions
+- [ ] handle error where user tries to create a second debug attachment on a single process
+- [x] use case: java debug with port-forward only - should print port info and wait for close. Can be implemented as an alternative local java debugger "java-port" for example
+- [x] security: in secure mode only spawn planks in the squash-debugger namespace
+- [x] security: add documentation suggesting that users not be allowed to exec into any pod running in the squash-debugger namespace (per Dio's suggestion)
+- [x] permissions: fix permissions on planks created in secure mode
+- [x] bug: Squash deletes crd before squashctl can read it's values - need to rework secure-mode crd lifecycle
+- [x] stability: rework squashctl.getCreatedPod, make it debugger-specific
+- [x] use labels to select plank pods now that they are all in the same namespace
+- [ ] (P1) implement simplified API
+- [x] ux: shell completion
+
 
 ## Release tasks
 - [x] (P0) update makefile for new client/docker settings
@@ -123,6 +140,6 @@ let cmdline = `debug-container --namespace=${podnamespace} ${imgid} ${podname} $
 - squashctl - the command line tool that the user uses to initiate debug sessions
 ## Pods
 - squash - watches for debug session requests (via DebugAttachment CRDs) and creates and removes squash-debugger pods
-- squash-debugger - a pod that runs a debugger process
+- plank - a pod that runs a debugger process - it "bridges" a connection to your pods
 ## Modes of operation
 - secure-mode - applies RBAC policy to debugging permissions

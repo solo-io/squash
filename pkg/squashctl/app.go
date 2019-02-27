@@ -3,14 +3,17 @@ package squashctl
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/solo-io/go-utils/cliutils"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
+	"github.com/solo-io/squash/pkg/options"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
@@ -18,7 +21,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
-	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -52,13 +54,13 @@ if err := top.ensureParticularCmdOption(po *particularOption); err != nil {
 
 const descriptionUsage = `Squash requires no arguments. Just run it!
 It creates a privileged debug pod, starts a debugger, and then attaches to it.
-If you are debugging in a shared cluster, consider using squash the squash agent.
-(squash agent --help for more info)
+If you are debugging in a shared cluster, consider using Squash (in cluster process).
+(squashctl squash --help for more info)
 Find more information at https://solo.io
 `
 
 func App(version string) (*cobra.Command, error) {
-	opts := &Options{}
+	opts := NewOptions()
 	app := &cobra.Command{
 		Use:     "squashctl",
 		Short:   "debug microservices with squash",
@@ -72,6 +74,7 @@ func App(version string) (*cobra.Command, error) {
 			// when no sub commands are specified, run w/wo RBAC according to settings
 			return opts.runBaseCommand()
 		},
+		SuggestionsMinimumDistance: 1,
 	}
 
 	if err := initializeOptions(opts); err != nil {
@@ -80,12 +83,10 @@ func App(version string) (*cobra.Command, error) {
 
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
-		DebugContainerCmd(opts),
-		DebugRequestCmd(opts),
-		ListCmd(opts),
-		WaitAttCmd(opts),
 		opts.DeployCmd(opts),
-		opts.AgentCmd(opts),
+		opts.SquashCmd(opts),
+		opts.UtilsCmd(opts),
+		completionCmd(),
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
@@ -107,11 +108,12 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.IntVar(&cfg.LocalPort, "localport", 0, "local port to use to connect to debugger (defaults to random free port)")
 
 	f.BoolVar(&cfg.Machine, "machine", false, "machine mode input and output")
-	f.StringVar(&cfg.Debugger, "debugger", "dlv", "Debugger to use")
+	f.StringVar(&cfg.Debugger, "debugger", "", "Debugger to use")
 	f.StringVar(&cfg.Namespace, "namespace", "", "Namespace to debug")
 	f.StringVar(&cfg.Pod, "pod", "", "Pod to debug")
 	f.StringVar(&cfg.Container, "container", "", "Container to debug")
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
+	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resourcea will be deployed (default: %v)", options.SquashNamespace))
 }
 
 func initializeOptions(o *Options) error {
@@ -145,15 +147,27 @@ func (o *Options) runBaseCommand() error {
 	}
 
 	if o.Config.secureMode {
-		o.printVerbose("Squash will create a CRD with your debug intent in your target pod's namespace. The squash agent will create a debugger pod in your target pod's.")
+		o.printVerbose("squashctl will create a CRD with your debug intent in your target pod's namespace. Squash will create a debugger pod in your target pod's.")
 		if err := o.runBaseCommandWithRbac(); err != nil {
+			o.cleanupPostRun()
 			return err
 		}
 	} else {
 		o.printVerbose("Squash will create a debugger pod in your target pod's namespace.")
+		if err := o.createPlankPermissions(); err != nil {
+			return err
+		}
+		// TODO - replace sleeps with watches on CRD
+		time.Sleep(200 * time.Millisecond)
+		if err := o.writeDebugAttachment(); err != nil {
+			return err
+		}
+		time.Sleep(200 * time.Millisecond)
 		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
+		o.cleanupPostRun()
 		return err
 	}
+	o.cleanupPostRun()
 
 	return nil
 }
@@ -163,22 +177,34 @@ func (top *Options) runBaseCommandWithRbac() error {
 		return err
 	}
 
+	if err := top.createPlankPermissions(); err != nil {
+		return err
+	}
+
+	if err := top.writeDebugAttachment(); err != nil {
+		return err
+	}
+
+	// wait until pod is created, print its name so the extension can connect
+
+	// TODO(mitchdraft) - add this to the configuration file
+	// 1 second was not long enough, status still pending, could not port-forward
+	// 3 seconds might be overkill
+	// TODO(mitchdraft) - replace with watch on cmd stream
+	time.Sleep(3 * time.Second)
+
+	return top.Squash.ReportOrConnectToCreatedDebuggerPod()
+}
+
+func (o *Options) writeDebugAttachment() error {
+	so := o.Squash
+	dbge := o.DebugTarget
+
 	uc, err := actions.NewUserController()
 	if err != nil {
 		return err
 	}
-
-	// TODO(mitchdraft) - use kubernetes' generate name instead of making a dummy name
-	daName := fmt.Sprintf("da-%v", rand.Int31n(100000))
-
-	so := top.Squash
-	dbge := top.DebugTarget
-
-	initialPods, err := top.KubeClient.CoreV1().Pods(top.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
-	if err != nil {
-		return err
-	}
-
+	daName := cliutils.RandKubeNameBytes(10)
 	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
 	_, err = uc.Attach(
 		daName,
@@ -188,18 +214,8 @@ func (top *Options) runBaseCommandWithRbac() error {
 		so.Container,
 		"",
 		so.Debugger)
-	// wait until pod is created, print its name so the extension can connect
 
-	// TODO(mitchdraft) - add this to the configuration file
-	// 1 second was not long enough, status still pending, could not port-forward
-	// 3 seconds might be overkill
-	time.Sleep(3 * time.Second)
-	createdPod := &core_v1.Pod{}
-	if err := top.getCreatedPod(initialPods, createdPod); err != nil {
-		return err
-	}
-
-	return top.Squash.ReportOrConnectToCreatedDebuggerPod(createdPod)
+	return nil
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -229,17 +245,16 @@ func (o *Options) ensureMinimumSquashConfig() error {
 }
 
 func (o *Options) chooseDebugger() error {
-	if len(o.Squash.Debugger) != 0 {
+	if o.Squash.Debugger != "" {
 		return nil
 	}
 
-	availableDebuggers := []string{"dlv", "gdb"}
 	debugger := o.detectLang()
 
 	if debugger == "" {
 		question := &survey.Select{
 			Message: "Select a debugger",
-			Options: availableDebuggers,
+			Options: sqOpts.AvailableDebuggers,
 		}
 		var choice string
 		if err := survey.AskOne(question, &choice, survey.Required); err != nil {
@@ -257,7 +272,7 @@ func (o *Options) detectLang() string {
 		return ""
 	}
 	// TODO: find some decent huristics to make this work
-	return "dlv"
+	return ""
 }
 
 func (o *Options) GetMissing() error {
@@ -300,6 +315,7 @@ func chooseContainer(o *Options) error {
 	}
 	if len(pod.Spec.Containers) == 1 {
 		o.DebugTarget.Container = &pod.Spec.Containers[0]
+		o.Squash.Container = pod.Spec.Containers[0].Name
 		return nil
 	}
 
@@ -321,6 +337,7 @@ func chooseContainer(o *Options) error {
 	for _, container := range pod.Spec.Containers {
 		if choice == container.Name {
 			o.DebugTarget.Container = &container
+			o.Squash.Container = container.Name
 			return nil
 		}
 	}
@@ -399,6 +416,7 @@ func (o *Options) choosePod() error {
 	for _, pod := range pods.Items {
 		if choice == pod.ObjectMeta.Name {
 			o.DebugTarget.Pod = &pod
+			o.Squash.Pod = pod.ObjectMeta.Name
 			return nil
 		}
 	}
@@ -437,35 +455,18 @@ func (o *Options) ensureSquashIsInCluster() error {
 	}
 
 	if len(squashDeployments) == 0 {
-		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl agent deploy'.")
+		return fmt.Errorf("Squash must be deployed to the cluster to use secure mode. Either disable secure mode in your squash config file or deploy Squash to your cluster. You can deploy with 'squashctl squash deploy'.")
 	}
 
 	return nil
 }
 
-func (o *Options) getCreatedPod(initialPods *core_v1.PodList, createdPod *core_v1.Pod) error {
-	currentPods, err := o.KubeClient.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
-	if err != nil {
-		return err
-	}
-	// Make a set from the current pods
-	var lookup = make(map[string]core_v1.Pod)
-	for _, p := range currentPods.Items {
-		lookup[p.Name] = p
-	}
-	// Remove the initial pods
-	for _, p := range initialPods.Items {
-		delete(lookup, p.Name)
-	}
-	// Expect our newly created pod to be the only one left
-	matchCount := 0
-	for k, v := range lookup {
-		fmt.Println(k)
-		matchCount++
-		*createdPod = v
-	}
-	if matchCount != 1 {
-		return fmt.Errorf("Expected to find one newly created squash debug pod, found %v", matchCount)
-	}
+func (o *Options) cleanupPostRun() error {
+	// TODO - consider explicitly ensuring that pod has been deleted (tends to be deleted by default)
+
+	// remove crd
+	so := o.Squash
+	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
+	return o.daClient.Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
 	return nil
 }
