@@ -53,10 +53,9 @@ steps:
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
   env:
-  - VERSION=$TAG_NAME
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
-  # - 'TAGGED_VERSION=$TAG_NAME'
+  - 'TAGGED_VERSION=$TAG_NAME'
   dir: './gopath/src/github.com/solo-io/squash'
   waitFor: ['check-code-and-docs-gen']
   args: ['all']
