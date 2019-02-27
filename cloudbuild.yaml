@@ -2,17 +2,17 @@ steps:
   
 # Can create a dep cache by running 'gcloud builds submit . --config=cloudbuild-cache.yaml'
 # These two steps should populate the cache
-# - name: gcr.io/cloud-builders/gsutil
-#   entrypoint: 'bash'
-#   args: ['-c', 'mkdir -p ./gopath/pkg/dep && gsutil cat gs://solo-public-cache/squash/squash-dep.tar.gz | tar -xzf -']
-#   id: 'download-untar-dep-cache'
-#   waitFor: ['-']
+- name: gcr.io/cloud-builders/gsutil
+  entrypoint: 'bash'
+  args: ['-c', 'mkdir -p ./gopath/pkg/dep && gsutil cat gs://solo-public-cache/squash/squash-dep.tar.gz | tar -xzf -']
+  id: 'download-untar-dep-cache'
+  waitFor: ['-']
 
 # Run dep to set up the project so it can be built and tested
 # Dep modifies workspace so that the code is moved into the PROJECT_ROOT
 # All steps after this must set GOPATH
 - name: 'gcr.io/$PROJECT_ID/dep'
-  args: ['ensure']
+  args: ['ensure', '-v']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GIT_SSH_CONFIG=FALSE'
