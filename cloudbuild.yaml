@@ -77,14 +77,14 @@ steps:
 #   entrypoint: make
 #   args: ['bump-extension-version']
 
-- name: node:10.10.0
-  entrypoint: npm
-  args: ['install']
-  dir: ./extension/vscode
+# - name: node:10.10.0
+#   entrypoint: npm
+#   args: ['install']
+#   dir: ./extension/vscode
 
-- name: 'gcr.io/$PROJECT_ID/vsce'
-  args: ['package']
-  dir: ./extension/vscode
+# - name: 'gcr.io/$PROJECT_ID/vsce'
+#   args: ['package']
+#   dir: ./extension/vscode
 
 # # publish
 # - name: 'gcr.io/cloud-builders/docker'
