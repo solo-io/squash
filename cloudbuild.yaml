@@ -58,7 +58,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   # - 'TAGGED_VERSION=$TAG_NAME'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['grab-ginkgo-container']
+  waitFor: ['check-code-and-docs-gen']
   args: ['all']
 
 - name: 'gcr.io/cloud-builders/docker'
