@@ -16,8 +16,20 @@ all: binaries containers ## (default) Builds binaries and containers
 help:
 	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
+.PHONY: pin-repos
+pin-repos:
+	go run pin_repos.go
+
 .PHONY: binaries
 binaries: target/plank/plank target/squashctl target/squash # Builds squashctl binaries in and places them in target/ folder
+
+.PHONY: update-deps
+update-deps:
+	go get -u golang.org/x/tools/cmd/goimports
+	go get -u github.com/gogo/protobuf/gogoproto
+	go get -u github.com/gogo/protobuf/protoc-gen-gogo
+	go get -u github.com/lyft/protoc-gen-validate
+	go get -u github.com/paulvollmer/2gobytes
 
 RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
 
