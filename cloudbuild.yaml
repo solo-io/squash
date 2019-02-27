@@ -21,6 +21,7 @@ steps:
 - name: 'gcr.io/cloud-builders/go'
   env:
   - VERSION=$TAG_NAME
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
   dir: './gopath/src/github.com/solo-io/squash'
   entrypoint: make
   # args: ['binaries', 'release-binaries']
