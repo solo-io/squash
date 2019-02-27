@@ -18,6 +18,12 @@ steps:
     - 'GIT_SSH_CONFIG=FALSE'
   id: 'dep'
 
+- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
+  entrypoint: ls
+  waitFor: ['-']
+  waitFor: ['dep']
+  id: 'grab-gingko-container'
+
 - name: 'gcr.io/$PROJECT_ID/go-make'
   env:
   - VERSION=$TAG_NAME
@@ -25,7 +31,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   # - 'TAGGED_VERSION=$TAG_NAME'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['dep']
+  waitFor: ['grab-ginkgo-container']
   args: ['all']
 
 - name: 'gcr.io/cloud-builders/docker'
