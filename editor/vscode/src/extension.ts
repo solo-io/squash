@@ -16,14 +16,14 @@ import * as vscode from 'vscode';
 
 const OutPort = 1236;
 
-const confname = "kubesquash";
+const confname = "squash";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "kubesquash" is now active!');
+    console.log(`Congratulations, your extension "${confname}" is now active!`);
 
     let se = new SquashExtention(context);
 
@@ -45,7 +45,7 @@ async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
     let execpath = path.join(pathforbin, "kubsquash");
 
-    let ks = getKubeSquash();
+    let ks = getSquashctl();
 
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
@@ -58,22 +58,24 @@ async function getremote(extPath: string): Promise<string> {
     }
 
     if (!fs.existsSync(execpath)) {
-        shelljs.mkdir('-p', pathforbin);
-        let s = await vscode.window.showInformationMessage("Download kubesquash?", "yes", "no");
+        let s = await vscode.window.showInformationMessage("HEY Download Squash?", "yes", "no");
         if (s === "yes") {
+            vscode.window.showInformationMessage("download started");
+            shelljs.mkdir('-p', pathforbin);
             await download2file(ks.link, execpath);
-            vscode.window.showInformationMessage("download kubesquash complete");
+            vscode.window.showInformationMessage("download Squash complete");
         }
     }
-    // test after the download
-    let exechash = await hash(execpath);
-    // make sure its the one we expect:
-    if (exechash !== ks.checksum) {
-        // remove the bad binary.
-        fs.unlinkSync(execpath);
-        throw new Error("bad checksum for binary; download may be corrupted - please try again.");
-    }
-    fs.chmodSync(execpath, 0o755);
+    // TODO(mitchdraft) - renable
+    // // test after the download
+    // let exechash = await hash(execpath);
+    // // make sure its the one we expect:
+    // if (exechash !== ks.checksum) {
+    //     // remove the bad binary.
+    //     fs.unlinkSync(execpath);
+    //     throw new Error("bad checksum for binary; download may be corrupted - please try again.");
+    // }
+    // fs.chmodSync(execpath, 0o755);
     return execpath;
 }
 
@@ -196,16 +198,17 @@ class SquashExtention {
         }
 
         let extraArgs  = get_conf_or("extraArgs", "");
-        // now invoke kubesquash
-        let stdout = await exec(maybeKubeEnv() + `${squahspath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace}`);
+        // now invoke squashctl
+        let stdout = await exec(maybeKubeEnv() + `${squahspath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`);
         let squashPodRegex = /pod.name:\s+(\S+)\s*$/g;
         let match = squashPodRegex.exec(stdout);
         if (match === null) {
-            throw new Error("can't parse output of kubesquash: " + stdout);
+            throw new Error("can't parse output of squashctl: " + stdout);
         }
         // get created pod name
         let squashPodName = match[1];
-        let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
+        // let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
+        let pa = new PodAddress("squash-debugger", squashPodName, OutPort);
 
         let remotepath = get_conf_or("remotePath", null);
 
@@ -404,26 +407,26 @@ function getSquashInfo(): SquashInfo {
     return <SquashInfo>squashVersionData;
 }
 
-interface KubesquashBinary {
+interface SquashctlBinary {
     link: string;
     checksum: string;
 }
 
-function createKubesquashBinary(os: string, checksum: string): KubesquashBinary {
+function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
     return {
-        link: "https://github.com/solo-io/kubesquash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
+        link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
         checksum: checksum
     };
 }
 
-function getKubeSquash(): KubesquashBinary {
+function getSquashctl(): SquashctlBinary {
     // download the squash version for this extension
     var osver = process.platform;
     switch (osver) {
         case 'linux':
-            return createKubesquashBinary("linux", getSquashInfo().binaries.linux);
+            return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
         case 'darwin':
-            return createKubesquashBinary("osx", getSquashInfo().binaries.darwin);
+            return createSquashctlBinary("osx", getSquashInfo().binaries.darwin);
         default:
             throw new Error(osver + " is current unsupported");
     }
