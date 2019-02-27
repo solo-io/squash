@@ -18,16 +18,14 @@ steps:
     - 'GIT_SSH_CONFIG=FALSE'
   id: 'dep'
 
-- name: 'gcr.io/cloud-builders/go'
+- name: 'gcr.io/$PROJECT_ID/go-make'
   env:
   - VERSION=$TAG_NAME
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   # - 'TAGGED_VERSION=$TAG_NAME'
   dir: './gopath/src/github.com/solo-io/squash'
-  entrypoint: make
   waitFor: ['dep']
-  # args: ['binaries', 'release-binaries']
   args: ['all']
 
 - name: 'gcr.io/cloud-builders/docker'
