@@ -1,3 +1,7 @@
+---
+title: "squashctl squash delete"
+weight: 5
+---
 ## squashctl squash delete
 
 delete Squash processes from your cluster by namespace
@@ -39,5 +43,5 @@ squashctl squash delete [flags]
 
 ### SEE ALSO
 
-* [squashctl squash](squashctl_squash.md)	 - manage the squash
+* [squashctl squash](../squashctl_squash)	 - manage the squash
 

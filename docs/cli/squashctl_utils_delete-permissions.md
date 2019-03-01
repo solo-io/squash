@@ -1,3 +1,7 @@
+---
+title: "squashctl utils delete-permissions"
+weight: 5
+---
 ## squashctl utils delete-permissions
 
 remove all service accounts, roles, and role bindings created by Squash.
@@ -39,5 +43,5 @@ squashctl utils delete-permissions [flags]
 
 ### SEE ALSO
 
-* [squashctl utils](squashctl_utils.md)	 - call various squash utils
+* [squashctl utils](../squashctl_utils)	 - call various squash utils
 

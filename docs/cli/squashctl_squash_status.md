@@ -1,3 +1,7 @@
+---
+title: "squashctl squash status"
+weight: 5
+---
 ## squashctl squash status
 
 list status of Squash process
@@ -39,5 +43,5 @@ squashctl squash status [flags]
 
 ### SEE ALSO
 
-* [squashctl squash](squashctl_squash.md)	 - manage the squash
+* [squashctl squash](../squashctl_squash)	 - manage the squash
 

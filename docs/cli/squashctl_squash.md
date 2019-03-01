@@ -1,3 +1,7 @@
+---
+title: "squashctl squash"
+weight: 5
+---
 ## squashctl squash
 
 manage the squash
@@ -47,7 +51,7 @@ squashctl squash [flags]
 
 ### SEE ALSO
 
-* [squashctl](squashctl.md)	 - debug microservices with squash
-* [squashctl squash delete](squashctl_squash_delete.md)	 - delete Squash processes from your cluster by namespace
-* [squashctl squash status](squashctl_squash_status.md)	 - list status of Squash process
+* [squashctl](../squashctl)	 - debug microservices with squash
+* [squashctl squash delete](../squashctl_squash_delete)	 - delete Squash processes from your cluster by namespace
+* [squashctl squash status](../squashctl_squash_status)	 - list status of Squash process
 
