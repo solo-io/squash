@@ -22,6 +22,8 @@ To learn more about the motivation behind project squash, read our blog [post](h
 
 To stay up-to-date with Squash, follow us [@soloio_inc](https://twitter.com/soloio_inc) and join us on our [slack channel](http://slack.solo.io).
 
+[Official website](https://squash.solo.io)
+
 
 ## With Squash, you can:
 * Live debugging cross multi microservices
