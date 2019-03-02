@@ -1,3 +1,7 @@
+---
+title: "squashctl deploy"
+weight: 5
+---
 ## squashctl deploy
 
 deploy squash or a demo microservice
@@ -35,7 +39,7 @@ deploy squash or a demo microservice
 
 ### SEE ALSO
 
-* [squashctl](squashctl.md)	 - debug microservices with squash
-* [squashctl deploy demo](squashctl_deploy_demo.md)	 - deploy a demo microservice
-* [squashctl deploy squash](squashctl_deploy_squash.md)	 - deploy Squash to cluster
+* [squashctl](../squashctl)	 - debug microservices with squash
+* [squashctl deploy demo](../squashctl_deploy_demo)	 - deploy a demo microservice
+* [squashctl deploy squash](../squashctl_deploy_squash)	 - deploy Squash to cluster
 

@@ -1,3 +1,7 @@
+---
+title: "squashctl utils list-attachments"
+weight: 5
+---
 ## squashctl utils list-attachments
 
 list all existing debug attachments
@@ -39,5 +43,5 @@ squashctl utils list-attachments [flags]
 
 ### SEE ALSO
 
-* [squashctl utils](squashctl_utils.md)	 - call various squash utils
+* [squashctl utils](../squashctl_utils)	 - call various squash utils
 

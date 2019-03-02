@@ -1,3 +1,7 @@
+---
+title: "squashctl"
+weight: 5
+---
 ## squashctl
 
 debug microservices with squash
@@ -39,8 +43,8 @@ squashctl [flags]
 
 ### SEE ALSO
 
-* [squashctl completion](squashctl_completion.md)	 - generate auto completion for your shell
-* [squashctl deploy](squashctl_deploy.md)	 - deploy squash or a demo microservice
-* [squashctl squash](squashctl_squash.md)	 - manage the squash
-* [squashctl utils](squashctl_utils.md)	 - call various squash utils
+* [squashctl completion](../squashctl_completion)	 - generate auto completion for your shell
+* [squashctl deploy](../squashctl_deploy)	 - deploy squash or a demo microservice
+* [squashctl squash](../squashctl_squash)	 - manage the squash
+* [squashctl utils](../squashctl_utils)	 - call various squash utils
 

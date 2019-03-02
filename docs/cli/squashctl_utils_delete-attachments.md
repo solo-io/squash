@@ -1,3 +1,7 @@
+---
+title: "squashctl utils delete-attachments"
+weight: 5
+---
 ## squashctl utils delete-attachments
 
 delete all existing debug attachments and plank pods
@@ -39,5 +43,5 @@ squashctl utils delete-attachments [flags]
 
 ### SEE ALSO
 
-* [squashctl utils](squashctl_utils.md)	 - call various squash utils
+* [squashctl utils](../squashctl_utils)	 - call various squash utils
 

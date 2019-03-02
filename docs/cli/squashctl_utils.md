@@ -1,3 +1,7 @@
+---
+title: "squashctl utils"
+weight: 5
+---
 ## squashctl utils
 
 call various squash utils
@@ -45,9 +49,9 @@ squash utils list-attachments
 
 ### SEE ALSO
 
-* [squashctl](squashctl.md)	 - debug microservices with squash
-* [squashctl utils delete-attachments](squashctl_utils_delete-attachments.md)	 - delete all existing debug attachments and plank pods
-* [squashctl utils delete-permissions](squashctl_utils_delete-permissions.md)	 - remove all service accounts, roles, and role bindings created by Squash.
-* [squashctl utils delete-planks](squashctl_utils_delete-planks.md)	 - remove all plank debugger pods created by Squash.
-* [squashctl utils list-attachments](squashctl_utils_list-attachments.md)	 - list all existing debug attachments
+* [squashctl](../squashctl)	 - debug microservices with squash
+* [squashctl utils delete-attachments](../squashctl_utils_delete-attachments)	 - delete all existing debug attachments and plank pods
+* [squashctl utils delete-permissions](../squashctl_utils_delete-permissions)	 - remove all service accounts, roles, and role bindings created by Squash.
+* [squashctl utils delete-planks](../squashctl_utils_delete-planks)	 - remove all plank debugger pods created by Squash.
+* [squashctl utils list-attachments](../squashctl_utils_list-attachments)	 - list all existing debug attachments
 
