@@ -2,5 +2,3 @@ changelog:
 - type: BREAKING_CHANGE
   description: "enables java debugging in default and secure modes"
   issueLink: https://github.com/solo-io/squash/issues/89
-- type: NON_USER_FACING
-  description: "moves docs to solo-docs"
