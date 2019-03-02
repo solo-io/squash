@@ -145,18 +145,27 @@ func (s *Squash) getDebuggerPodNamespace() string {
 }
 
 func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
-	if s.Machine {
-		return s.printEditorExtensionData()
-	}
-	return s.connectUser()
-}
-
-func (s *Squash) printEditorExtensionData() error {
 	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("pod.name: %v", da.PlankName)
+	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
+	if err != nil {
+		return err
+	}
+	if s.Machine {
+		return s.printEditorExtensionData(remoteDbgPort)
+	}
+	return s.connectUser(da, remoteDbgPort)
+}
+
+func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
+	da, err := s.getDebugAttachment()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("pod.name: %v\n", da.PlankName)
+	fmt.Printf("pod.port: %v", remoteDbgPort)
 	return nil
 }
 
@@ -182,17 +191,9 @@ func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	return intent.GetDebugAttachment(daClient)
 }
 
-func (s *Squash) connectUser() error {
+func (s *Squash) connectUser(da *squashv1.DebugAttachment, remoteDbgPort int) error {
 	if s.Machine {
 		return nil
-	}
-	da, err := s.getDebugAttachment()
-	if err != nil {
-		return err
-	}
-	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
-	if err != nil {
-		return err
 	}
 	debugger := local.GetParticularDebugger(s.Debugger)
 	kubectlCmd := debugger.GetRemoteConnectionCmd(

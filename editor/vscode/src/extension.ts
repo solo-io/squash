@@ -6,15 +6,13 @@ import * as shelljs from 'shelljs';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as download from 'download';
-import * as crypto from 'crypto';
+// import * as crypto from 'crypto';
 
 import squashVersionData = require('./squash.json');
 
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-
-const OutPort = 1236;
 
 const confname = "squash";
 
@@ -44,18 +42,21 @@ export function deactivate() { }
 async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
     let execpath = path.join(pathforbin, "kubsquash");
+    // TODO(mitchdraft) - remove
+    execpath ="/Users/mitch/go/src/github.com/solo-io/squash/target/squashctl";
 
     let ks = getSquashctl();
 
-    if (fs.existsSync(execpath)) {
-        let exechash = await hash(execpath);
-        // make sure its the one we expect:
-        // this can happen on version updates.
-        if (exechash !== ks.checksum) {
-            // remove the bad binary.
-            fs.unlinkSync(execpath);
-        }
-    }
+    // TODO(mitchdraft) - reenable
+    // if (fs.existsSync(execpath)) {
+    //     let exechash = await hash(execpath);
+    //     // make sure its the one we expect:
+    //     // this can happen on version updates.
+    //     if (exechash !== ks.checksum) {
+    //         // remove the bad binary.
+    //         fs.unlinkSync(execpath);
+    //     }
+    // }
 
     if (!fs.existsSync(execpath)) {
         let s = await vscode.window.showInformationMessage("HEY Download Squash?", "yes", "no");
@@ -79,21 +80,21 @@ async function getremote(extPath: string): Promise<string> {
     return execpath;
 }
 
-function hash(f: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        const input = fs.createReadStream(f);
-        const hash = crypto.createHash('sha256');
+// function hash(f: string): Promise<string> {
+//     return new Promise<string>((resolve, reject) => {
+//         const input = fs.createReadStream(f);
+//         const hash = crypto.createHash('sha256');
 
-        input.on('data', function (data: Buffer) {
-            hash.update(data);
-        });
-        input.on('error', reject);
-        input.on('end', () => {
-            resolve(hash.digest("hex"));
-        });
+//         input.on('data', function (data: Buffer) {
+//             hash.update(data);
+//         });
+//         input.on('error', reject);
+//         input.on('end', () => {
+//             resolve(hash.digest("hex"));
+//         });
 
-    });
-}
+//     });
+// }
 
 function download2file(what: string, to: string): Promise<any> {
 
@@ -141,9 +142,9 @@ class SquashExtention {
             run the squashkube binary with -server
         */
 
-        let squahspath: string = get_conf_or("path", null);
-        if (!squahspath) {
-            squahspath = await getremote(this.context.extensionPath);
+        let squashpath: string = get_conf_or("path", null);
+        if (!squashpath) {
+            squashpath = await getremote(this.context.extensionPath);
         }
 
         if (!vscode.workspace.workspaceFolders) {
@@ -199,23 +200,43 @@ class SquashExtention {
 
         let extraArgs  = get_conf_or("extraArgs", "");
         // now invoke squashctl
-        let stdout = await exec(maybeKubeEnv() + `${squahspath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`);
+        let stdout = await exec(maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`);
+        let lines = stdout.split("\n");
+        if (lines.length !== 2) {
+            throw new Error("can't parse output of squashctl: " + stdout);
+        }
         let squashPodRegex = /pod.name:\s+(\S+)\s*$/g;
-        let match = squashPodRegex.exec(stdout);
+        let match = squashPodRegex.exec(lines[0]);
         if (match === null) {
+            throw new Error("can't parse output of squashctl: " + stdout);
+        }
+        let squashPortRegex = /pod.port:\s+(\d+)\s*$/g;
+        let dbgPortMatches = squashPortRegex.exec(lines[1]);
+        if (dbgPortMatches === null) {
             throw new Error("can't parse output of squashctl: " + stdout);
         }
         // get created pod name
         let squashPodName = match[1];
         // let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
-        let pa = new PodAddress("squash-debugger", squashPodName, OutPort);
+        let dbgPort = dbgPortMatches[1];
+        let pa = new PodAddress("squash-debugger", squashPodName, parseInt( dbgPort ));
+        console.log("squashPodName");
+        console.log(squashPodName);
+
+        console.log("pa");
+        console.log(pa);
 
         let remotepath = get_conf_or("remotePath", null);
+        // TODO(mitchdraft) - fix
+        // remotepath = "/home/yuval/go/src/github.com/solo-io/squash/contrib/example/service1"
 
         // port forward
         let localport = await kubectl_portforward(pa);
 
         let localpath = workspace.uri.fsPath;
+        console.log(["localport", localport]);
+        console.log(["program", localpath]);
+        console.log(["remotePath", remotepath]);
         // start debugging!
         let debuggerconfig: vscode.DebugConfiguration = {
             type: "go",
@@ -302,6 +323,7 @@ function kubectl_portforward(remote: PodAddress): Promise<number> {
         });
     });
 
+    console.log(["port forwarding on", JSON.stringify(p)]);
     return p;
 }
 
@@ -388,8 +410,10 @@ function get_conf_or(k: string, d: any): any {
     let config = vscode.workspace.getConfiguration(confname);
     let v = config[k];
     if (!v) {
+        console.log("did not find " + k)
         return d;
     }
+    console.log("FOUND " + k)
     return v;
 }
 
