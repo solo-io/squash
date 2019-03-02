@@ -3,10 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/solo-io/go-utils/clidoc"
 	"github.com/solo-io/squash/pkg/squashctl"
 	"github.com/solo-io/squash/pkg/version"
-	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
 )
 
 func main() {
@@ -14,18 +13,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	disableAutoGenTag(app)
-
-	err = doc.GenMarkdownTree(app, "./docs/cli")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func disableAutoGenTag(c *cobra.Command) {
-	c.DisableAutoGenTag = true
-	for _, c := range c.Commands() {
-		disableAutoGenTag(c)
-	}
+	clidoc.MustGenerateCliDocs(app)
 }

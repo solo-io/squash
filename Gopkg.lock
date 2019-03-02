@@ -536,17 +536,19 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:a03b22749928fab37c355a278b7eb7a924e2a5a9875e60d42f78bc3dd9ca9dd1"
+  digest = "1:ab7ee324037e897a1d025b02a54e8ebd4fd393adb281c9db9ee6e31441c2fa7a"
   name = "github.com/solo-io/go-utils"
   packages = [
+    "clidoc",
     "cliutils",
     "contextutils",
     "kubeutils",
     "protoutils",
+    "versionutils",
   ]
   pruneopts = ""
-  revision = "1c5b99da71805f3cee3f259242e2e09057411586"
-  version = "v0.1.0"
+  revision = "d691aec5ebf933da195a78e2f5cd0d3357c772de"
+  version = "v0.2.9"
 
 [[projects]]
   digest = "1:1c0b84e64555e5e23b21af53d0aafbe2038da94545d54d0f8d06beb1b18948bc"
@@ -586,6 +588,7 @@
     "pkg/utils/contextutils",
     "pkg/utils/errutils",
     "pkg/utils/fileutils",
+    "pkg/utils/hashutils",
     "pkg/utils/kubeutils",
     "pkg/utils/log",
     "pkg/utils/protoutils",
@@ -1179,15 +1182,16 @@
     "github.com/hashicorp/go-multierror",
     "github.com/kr/pty",
     "github.com/mitchellh/go-homedir",
-    "github.com/mitchellh/hashstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
     "github.com/solo-io/go-checkpoint",
+    "github.com/solo-io/go-utils/clidoc",
     "github.com/solo-io/go-utils/cliutils",
     "github.com/solo-io/go-utils/contextutils",
     "github.com/solo-io/go-utils/kubeutils",
+    "github.com/solo-io/go-utils/versionutils",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/factory",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
@@ -1197,15 +1201,16 @@
     "github.com/solo-io/solo-kit/pkg/api/v1/resources",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources/core",
     "github.com/solo-io/solo-kit/pkg/code-generator/cmd",
+    "github.com/solo-io/solo-kit/pkg/code-generator/docgen/options",
     "github.com/solo-io/solo-kit/pkg/errors",
     "github.com/solo-io/solo-kit/pkg/utils/contextutils",
     "github.com/solo-io/solo-kit/pkg/utils/errutils",
+    "github.com/solo-io/solo-kit/pkg/utils/hashutils",
     "github.com/solo-io/solo-kit/pkg/utils/log",
     "github.com/solo-io/solo-kit/test/helpers",
     "github.com/solo-io/solo-kit/test/setup",
     "github.com/solo-io/solo-kit/test/tests/typed",
     "github.com/spf13/cobra",
-    "github.com/spf13/cobra/doc",
     "github.com/spf13/pflag",
     "github.com/spf13/viper",
     "github.com/vishvananda/netlink/nl",
@@ -1227,8 +1232,8 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
-    "k8s.io/client-go/tools/clientcmd",
     "k8s.io/kubernetes/pkg/kubelet/apis/cri",
     "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2",
     "k8s.io/kubernetes/pkg/kubelet/remote",

@@ -1,3 +1,7 @@
+---
+title: "squashctl completion"
+weight: 5
+---
 ## squashctl completion
 
 generate auto completion for your shell
@@ -71,5 +75,5 @@ squashctl completion SHELL [flags]
 
 ### SEE ALSO
 
-* [squashctl](squashctl.md)	 - debug microservices with squash
+* [squashctl](../squashctl)	 - debug microservices with squash
 

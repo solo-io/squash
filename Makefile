@@ -175,3 +175,17 @@ dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
 
 .PHONY: dev_squash
 dev_planks: target $(SRCS) target/squash-container
+
+# for use by ci
+# if any docs have changed, this will create a PR on the solo-io/solo-docs repo
+.PHONY: push-docs
+push-docs:
+ifeq ($(RELEASE),"true")
+	ci/push-docs.sh tag=$(TAGGED_VERSION)
+endif
+
+# for calling push docs manually
+# if any docs have changed, this will create a PR on the solo-io/solo-docs repo
+.PHONY: dev_push-docs
+dev_push-docs:
+	ci/push-docs.sh tag=development

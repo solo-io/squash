@@ -1,3 +1,7 @@
+---
+title: "squashctl deploy demo"
+weight: 5
+---
 ## squashctl deploy demo
 
 deploy a demo microservice
@@ -42,5 +46,5 @@ squashctl deploy demo [flags]
 
 ### SEE ALSO
 
-* [squashctl deploy](squashctl_deploy.md)	 - deploy squash or a demo microservice
+* [squashctl deploy](../squashctl_deploy)	 - deploy squash or a demo microservice
 
