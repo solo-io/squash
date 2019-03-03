@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -159,13 +160,32 @@ func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
 	return s.connectUser(da, remoteDbgPort)
 }
 
+type EditorData struct {
+	PortForwardCmd string
+}
+
 func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
 	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("pod.name: %v\n", da.PlankName)
-	fmt.Printf("pod.port: %v", remoteDbgPort)
+
+	debugger := local.GetParticularDebugger(s.Debugger)
+	kubectlCmd := debugger.GetEditorRemoteConnectionCmd(
+		da.PlankName,
+		s.SquashNamespace,
+		s.Pod,
+		s.Namespace,
+		remoteDbgPort,
+	)
+	ed := EditorData{
+		PortForwardCmd: kubectlCmd,
+	}
+	json, err := json.Marshal(ed)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(json))
 	return nil
 }
 

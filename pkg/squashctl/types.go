@@ -121,6 +121,6 @@ type Config struct {
 	// arguments to be passed to kubectl via ` kubectl --kubeconfig=<kubeConfig> ...`
 	kubeConfig string // NOT IMPLEMENTED
 	// semi-implemented as flags, should move to config file
-	containerRepo // SEMI-IMPLEMENTED
+	containerRepo string // SEMI-IMPLEMENTED
 
 }

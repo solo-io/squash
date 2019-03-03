@@ -11,6 +11,10 @@ func (i *PythonInterface) GetRemoteConnectionCmd(plankName, plankNamespace, podN
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
 
+func (p *PythonInterface) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	return getPortForwardWithRandomLocalCmd(podName, podNamespace, remotePort)
+}
+
 func (d *PythonInterface) GetDebugCmd(localPort int) *exec.Cmd {
 	// TODO
 	return nil

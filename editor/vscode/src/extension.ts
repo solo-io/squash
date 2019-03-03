@@ -3,9 +3,9 @@
 import * as kube from './kube-interfaces';
 import * as shelljs from 'shelljs';
 
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import * as path from 'path';
-import * as download from 'download';
+// import * as download from 'download';
 // import * as crypto from 'crypto';
 
 
@@ -60,7 +60,7 @@ async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
     let execpath = path.join(pathforbin, "squashctl");
 
-    let ks = getSquashctl();
+    // let ks = getSquashctl();
 
     // TODO(mitchdraft) - reenable
     // if (fs.existsSync(execpath)) {
@@ -111,21 +111,21 @@ async function getremote(extPath: string): Promise<string> {
 //     });
 // }
 
-function download2file(what: string, to: string): Promise<any> {
+// function download2file(what: string, to: string): Promise<any> {
 
-    return new Promise<any>((resolve, reject) => {
-        let file = fs.createWriteStream(to);
-        let stream = download(what);
-        stream.pipe(file);
-        file.on('close', resolve);
-        file.on("finish", function () {
-            file.close();
-        });
-        stream.on('error', reject);
-        file.on('error', reject);
+//     return new Promise<any>((resolve, reject) => {
+//         let file = fs.createWriteStream(to);
+//         let stream = download(what);
+//         stream.pipe(file);
+//         file.on('close', resolve);
+//         file.on("finish", function () {
+//             file.close();
+//         });
+//         stream.on('error', reject);
+//         file.on('error', reject);
 
-    });
-}
+//     });
+// }
 
 export class DebuggerPickItem implements vscode.QuickPickItem {
     label: string;
@@ -169,8 +169,8 @@ class SquashExtension {
         // run the squashkube binary with -server
 
         let squashpath: string = get_conf_or("path", null);
-        console.log("using squasctl from:")
-        console.log(squashpath)
+        console.log("using squasctl from:");
+        console.log(squashpath);
         if (!squashpath) {
             squashpath = await getremote(this.context.extensionPath);
         }
@@ -236,34 +236,15 @@ class SquashExtension {
         let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
-        let lines = stdout.split("\n");
-        if (lines.length !== 2) {
+        let responseData = JSON.parse(stdout);
+        if (!responseData) {
             throw new Error("can't parse output of squashctl: " + stdout);
-        }
-        let squashPodRegex = /pod.name:\s+(\S+)\s*$/g;
-        let match = squashPodRegex.exec(lines[0]);
-        if (match === null) {
-            throw new Error("can't parse output of squashctl: " + stdout);
-        }
-        let squashPortRegex = /pod.port:\s+(\d+)\s*$/g;
-        let dbgPortMatches = squashPortRegex.exec(lines[1]);
-        if (dbgPortMatches === null) {
-            throw new Error("can't parse output of squashctl: " + stdout);
-        }
-        // get created pod name
-        let squashPodName = match[1];
-        let dbgPort = dbgPortMatches[1];
-        let pa = new PodAddress("squash-debugger", squashPodName, parseInt( dbgPort ));
-        // TODO(mitchdraft) - move debugger-specific stuff to squashctl, local dbg interface
-        if (debuggerName === "java") {
-            // java connects to the target pod
-            pa = new PodAddress(selectedPod.metadata.namespace, selectedPod.metadata.name, parseInt( dbgPort ));
         }
 
         let remotepath = get_conf_or("remotePath", null);
 
         // port forward
-        let localport = await kubectl_portforward(pa);
+        let localport = await kubectl_portforward(responseData.PortForwardCmd);
 
         let localpath = workspace.uri.fsPath;
         // start debugging!
@@ -367,21 +348,7 @@ export class WorkspaceFolderPickItem implements vscode.QuickPickItem {
     }
 }
 
-export class PodAddress {
-    podName: string;
-    podNamespace: string;
-    port: number;
-
-    constructor(podNamespace: string, podName: string, port: number) {
-        this.podNamespace = podNamespace;
-        this.podName = podName;
-        this.port = port;
-    }
-}
-
-function kubectl_portforward(remote: PodAddress): Promise<number> {
-
-    let cmd = get_conf_or("kubectl-path", "kubectl") + ` --namespace=${remote.podNamespace} port-forward ${remote.podName} :${remote.port}`;
+function kubectl_portforward(cmd: string): Promise<number> {
     console.log("Executing: " + cmd);
     let p = new Promise<number>((resolve, reject) => {
         let resolved = false;
@@ -493,27 +460,27 @@ function getSquashInfo(): SquashInfo {
     return <SquashInfo>squashVersionData;
 }
 
-interface SquashctlBinary {
-    link: string;
-    checksum: string;
-}
+// interface SquashctlBinary {
+//     link: string;
+//     checksum: string;
+// }
 
-function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
-    return {
-        link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
-        checksum: checksum
-    };
-}
+// function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
+//     return {
+//         link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
+//         checksum: checksum
+//     };
+// }
 
-function getSquashctl(): SquashctlBinary {
-    // download the squash version for this extension
-    var osver = process.platform;
-    switch (osver) {
-        case 'linux':
-            return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
-        case 'darwin':
-            return createSquashctlBinary("osx", getSquashInfo().binaries.darwin);
-        default:
-            throw new Error(osver + " is current unsupported");
-    }
-}
+// function getSquashctl(): SquashctlBinary {
+//     // download the squash version for this extension
+//     var osver = process.platform;
+//     switch (osver) {
+//         case 'linux':
+//             return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
+//         case 'darwin':
+//             return createSquashctlBinary("osx", getSquashInfo().binaries.darwin);
+//         default:
+//             throw new Error(osver + " is current unsupported");
+//     }
+// }

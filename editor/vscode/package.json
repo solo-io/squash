@@ -61,7 +61,7 @@
           "type": "string",
           "default": null,
           "description": "Path of the source files in the remote executable."
-        },
+        }
       }
     },
     "commands": [

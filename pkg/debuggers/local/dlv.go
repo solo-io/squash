@@ -14,6 +14,11 @@ func (d *DLV) GetRemoteConnectionCmd(plankName, plankNamespace, podName, podName
 	return GetPortForwardCmd(plankName, plankNamespace, localPort, remotePort)
 }
 
+func (d *DLV) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	// for dlv, we proxy through the debug container
+	return getPortForwardWithRandomLocalCmd(plankName, plankNamespace, remotePort)
+}
+
 func (d *DLV) GetDebugCmd(localPort int) *exec.Cmd {
 	cmd := exec.Command("dlv", "connect", fmt.Sprintf("127.0.0.1:%v", localPort))
 	cmd.Stdout = os.Stdout
