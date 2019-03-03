@@ -439,3 +439,20 @@ func (s *Squash) getClientSet() kubernetes.Interface {
 	return s.clientset
 
 }
+
+// DeletePlankPod deletes the plank pod that was created for the debug session
+// represented by the Squash object. This should be called when a debugging session
+// is terminated.
+func (s *Squash) DeletePlankPod() error {
+	intent := s.getIntent()
+	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	if err != nil {
+		return err
+	}
+	da, err := intent.GetDebugAttachment(daClient)
+	if err != nil {
+		return err
+	}
+
+	return s.clientset.CoreV1().Pods(s.SquashNamespace).Delete(da.PlankName, &meta_v1.DeleteOptions{})
+}

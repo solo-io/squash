@@ -462,11 +462,13 @@ func (o *Options) ensureSquashIsInCluster() error {
 }
 
 func (o *Options) cleanupPostRun() error {
-	// TODO - consider explicitly ensuring that pod has been deleted (tends to be deleted by default)
+	// remove pod
+	if err := o.Squash.DeletePlankPod(); err != nil {
+		return err
+	}
 
 	// remove crd
 	so := o.Squash
 	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
 	return o.daClient.Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
-	return nil
 }
