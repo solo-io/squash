@@ -8,13 +8,30 @@ import * as path from 'path';
 import * as download from 'download';
 // import * as crypto from 'crypto';
 
+
+/* Flow of this extension
+   User opens extension
+   Interactive selection of debug type, ns, pod, container
+   Squashctl creates a debug connection, prints out needed information
+   Extension parses the squashctl return value
+   Extension uses vscode's debug capabilities
+*/
+
+/*
+  Configuration values
+  - remotePath - for source mapping, the source code path used when the target binary was compiled
+
+*/
+
+
 import squashVersionData = require('./squash.json');
 
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-const confname = "squash";
+// this is the key in the vscode config map for which our squash configuration object is the value
+const confname = "squashextension";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -112,6 +129,20 @@ function download2file(what: string, to: string): Promise<any> {
     });
 }
 
+export class DebuggerPickItem implements vscode.QuickPickItem {
+    label: string;
+    description: string;
+    detail?: string;
+
+    // pod: kube.Pod;
+    debugger: string;
+
+    constructor(dbg: string) {
+        this.label = `${dbg}`;
+        this.description = dbg;
+        this.debugger = dbg;
+    }
+}
 export class PodPickItem implements vscode.QuickPickItem {
     label: string;
     description: string;
@@ -192,6 +223,20 @@ class SquashExtention {
         }
         let selectedPod = item.pod;
 
+        // choose debugger to use
+        const debuggerList = ["dlv", "java"];
+        let debuggerItems: DebuggerPickItem[] = debuggerList.map(name => new DebuggerPickItem(name));
+        let debuggerOptions: vscode.QuickPickOptions = {
+            placeHolder: "Please select a debugger",
+        };
+        const chosenDebugger = await vscode.window.showQuickPick(debuggerItems, debuggerOptions);
+        if (!chosenDebugger) {
+            console.log("chosing debugger canceled - debugging canceled");
+            return;
+        }
+        console.log("You chose debugger: " + JSON.stringify(chosenDebugger));
+        let debuggerName = chosenDebugger.debugger;
+
         let containerRepo = get_conf_or("containerRepository", null);
         let containerRepoArg = "";
         if (containerRepo) {
@@ -200,7 +245,10 @@ class SquashExtention {
 
         let extraArgs  = get_conf_or("extraArgs", "");
         // now invoke squashctl
-        let stdout = await exec(maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`);
+        let cmdSpec = maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`;
+        console.log("cmdSpec");
+        console.log(cmdSpec);
+        let stdout = await exec(maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`);
         let lines = stdout.split("\n");
         if (lines.length !== 2) {
             throw new Error("can't parse output of squashctl: " + stdout);
@@ -220,6 +268,11 @@ class SquashExtention {
         // let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
         let dbgPort = dbgPortMatches[1];
         let pa = new PodAddress("squash-debugger", squashPodName, parseInt( dbgPort ));
+        // TODO(mitchdraft) - move debugger-specific stuff to squashctl, local dbg interface
+        if (debuggerName === "java") {
+            // java connects to the target pod
+            pa = new PodAddress(selectedPod.metadata.namespace, selectedPod.metadata.name, parseInt( dbgPort ));
+        }
         console.log("squashPodName");
         console.log(squashPodName);
 
@@ -227,8 +280,6 @@ class SquashExtention {
         console.log(pa);
 
         let remotepath = get_conf_or("remotePath", null);
-        // TODO(mitchdraft) - fix
-        // remotepath = "/home/yuval/go/src/github.com/solo-io/squash/contrib/example/service1"
 
         // port forward
         let localport = await kubectl_portforward(pa);
@@ -238,21 +289,77 @@ class SquashExtention {
         console.log(["program", localpath]);
         console.log(["remotePath", remotepath]);
         // start debugging!
-        let debuggerconfig: vscode.DebugConfiguration = {
-            type: "go",
-            name: "Remote",
-            request: "launch",
-            mode: "remote",
-            port: localport,
-            host: "127.0.0.1",
-            program: localpath,
-            remotePath: remotepath,
-            //    stopOnEntry: true,
-            env: {},
-            args: [],
-            showLog: true,
-            trace: "verbose"
-        };
+            let debuggerconfig;
+            switch (debuggerName) {
+                case "dlv":
+                    debuggerconfig = {
+                        name: "Remote",
+                        type: "go",
+                        request: "launch",
+                        mode: "remote",
+                        port: localport,
+                        host: "127.0.0.1",
+                        program: localpath,
+                        remotePath: remotepath,
+                        //      stopOnEntry: true,
+                        env: {},
+                        args: [],
+                        showLog: true,
+                        trace: "verbose"
+                    };
+                    break;
+                case "java":
+                    debuggerconfig = {
+                        type: "java",
+                        request: "attach",
+                        name: "Attach to java process",
+                        port: localport,
+                        hostName: "127.0.0.1",
+                    };
+                    break;
+                case "nodejs":
+                case "nodejs8":
+                    debuggerconfig = {
+                        type: "node",
+                        request: "attach",
+                        name: "Attach to Remote",
+                        address: "127.0.0.1",
+                        port: localport,
+                        localRoot: localpath,
+                        remoteRoot: remotepath
+                    };
+                    break;
+                case "python":
+                    let ptvsdsecret = get_conf_or("pythonSecret", "");
+                    debuggerconfig = {
+                        type: "python",
+                        request: "attach",
+                        name: "Python: Attach",
+                        localRoot: localpath,
+                        remoteRoot: remotepath,
+                        port: localport,
+                        secret: ptvsdsecret,
+                        host: "127.0.0.1"
+                    };
+                    break;
+                case "gdb":
+                    let autorun: string[] = [];
+                    if (remotepath) {
+                        autorun = [`set substitute-path "${remotepath}" "${localpath}"`];
+                    }
+                    debuggerconfig = {
+                        type: "gdb",
+                        request: "attach",
+                        name: "Attach to gdbserver",
+                        target: "localhost:" + localport,
+                        remote: true,
+                        cwd: localpath,
+                        autorun: autorun
+                    };
+                    break;
+                default:
+                    throw new Error(`Unknown debugger ${debuggerName}`);
+            }
 
         return vscode.debug.startDebugging(
             workspace,
@@ -410,10 +517,10 @@ function get_conf_or(k: string, d: any): any {
     let config = vscode.workspace.getConfiguration(confname);
     let v = config[k];
     if (!v) {
-        console.log("did not find " + k)
+        console.log("did not find " + k);
         return d;
     }
-    console.log("FOUND " + k)
+    console.log("FOUND " + k);
     return v;
 }
 

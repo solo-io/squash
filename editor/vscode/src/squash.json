@@ -3,6 +3,6 @@
   "baseName": "kubesquash",
   "binaries": {
     "linux": "",
-    "darwin": ""
+    "darwin": "/Users/mitch/go/src/github.com/solo-io/squash/target/squashctl"
   }
 }
