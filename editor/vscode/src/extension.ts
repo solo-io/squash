@@ -233,7 +233,7 @@ class SquashExtension {
         let debuggerName = chosenDebugger.debugger;
 
         // now invoke squashctl
-        let cmdSpec = `${squashpath} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
+        let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let lines = stdout.split("\n");
