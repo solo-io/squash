@@ -112,4 +112,15 @@ type Config struct {
 	verbose    bool
 	secureMode bool
 	logCmds    bool
+
+	// values from the kubesquash extension that have not been implemented
+	// path to the preferred kubectl binary
+	kubectlPath string // NOT IMPLEMENTED
+	// arguments to be passed to kubectl via `KUBECONFIG=<kubeEnv> kubectl ...`
+	kubeEnv string // NOT IMPLEMENTED
+	// arguments to be passed to kubectl via ` kubectl --kubeconfig=<kubeConfig> ...`
+	kubeConfig string // NOT IMPLEMENTED
+	// semi-implemented as flags, should move to config file
+	containerRepo // SEMI-IMPLEMENTED
+
 }

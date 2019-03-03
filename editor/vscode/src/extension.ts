@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log(`Congratulations, your extension "Squash" is now active!`);
 
-    let se = new SquashExtention(context);
+    let se = new SquashExtension(context);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
@@ -155,7 +155,7 @@ export class PodPickItem implements vscode.QuickPickItem {
         this.pod = pod;
     }
 }
-class SquashExtention {
+class SquashExtension {
 
     context: vscode.ExtensionContext;
     squashInfo: SquashInfo;
@@ -232,15 +232,8 @@ class SquashExtention {
         console.log("You chose debugger: " + JSON.stringify(chosenDebugger));
         let debuggerName = chosenDebugger.debugger;
 
-        let containerRepo = get_conf_or("containerRepository", null);
-        let containerRepoArg = "";
-        if (containerRepo) {
-            containerRepoArg = `--container-repo ${containerRepo}`;
-        }
-
-        let extraArgs  = get_conf_or("extraArgs", "");
         // now invoke squashctl
-        let cmdSpec = maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
+        let cmdSpec = `${squashpath} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let lines = stdout.split("\n");
@@ -315,6 +308,7 @@ class SquashExtention {
                     };
                     break;
                 case "python":
+                    // TODO - add this to config when python enabled
                     let ptvsdsecret = get_conf_or("pythonSecret", "");
                     debuggerconfig = {
                         type: "python",
@@ -387,7 +381,7 @@ export class PodAddress {
 
 function kubectl_portforward(remote: PodAddress): Promise<number> {
 
-    let cmd = get_conf_or("kubectl-path", "kubectl") + maybeKubeConfig() + ` --namespace=${remote.podNamespace} port-forward ${remote.podName} :${remote.port}`;
+    let cmd = get_conf_or("kubectl-path", "kubectl") + ` --namespace=${remote.podNamespace} port-forward ${remote.podName} :${remote.port}`;
     console.log("Executing: " + cmd);
     let p = new Promise<number>((resolve, reject) => {
         let resolved = false;
@@ -424,29 +418,7 @@ function kubectl_get<T=any>(cmd: string, ...args: string[]): Promise<T> {
 }
 
 function kubectl(cmd: string): Promise<string> {
-    return exec(get_conf_or("kubectl-path", "kubectl") + maybeKubeConfig() + " " + cmd);
-}
-
-function maybeKubeConfig(): string {
-
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
-    if (!maybeKubeConfig) {
-        maybeKubeConfig = "";
-    } else {
-        maybeKubeConfig = ` --kubeconfig="${maybeKubeConfig}" `;
-    }
-    return maybeKubeConfig;
-}
-
-function maybeKubeEnv(): string {
-
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
-    if (!maybeKubeConfig) {
-        maybeKubeConfig = "";
-    } else {
-        maybeKubeConfig = `KUBECONFIG="${maybeKubeConfig}" `;
-    }
-    return maybeKubeConfig;
+    return exec("kubectl" + " " + cmd);
 }
 
 // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
