@@ -38,7 +38,7 @@ const confname = "squashextension";
 export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log(`Congratulations, your extension "${confname}" is now active!`);
+    console.log(`Congratulations, your extension "Squash" is now active!`);
 
     let se = new SquashExtention(context);
 
@@ -132,7 +132,6 @@ export class DebuggerPickItem implements vscode.QuickPickItem {
     description: string;
     detail?: string;
 
-    // pod: kube.Pod;
     debugger: string;
 
     constructor(dbg: string) {
@@ -167,12 +166,10 @@ class SquashExtention {
     }
 
     async debug() {
-        /*
-            run the squashkube binary with -server
-        */
+        // run the squashkube binary with -server
 
         let squashpath: string = get_conf_or("path", null);
-        console.log("squashpath")
+        console.log("using squasctl from:")
         console.log(squashpath)
         if (!squashpath) {
             squashpath = await getremote(this.context.extensionPath);
@@ -204,9 +201,7 @@ class SquashExtention {
             }
         }
 
-        /*
-           get namespace and pod
-        */
+        // get namespace and pod
         let pods = await this.getPods();
 
         let podoptions: vscode.QuickPickOptions = {
@@ -245,10 +240,9 @@ class SquashExtention {
 
         let extraArgs  = get_conf_or("extraArgs", "");
         // now invoke squashctl
-        let cmdSpec = maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger dlv`;
-        console.log("cmdSpec");
-        console.log(cmdSpec);
-        let stdout = await exec(maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`);
+        let cmdSpec = maybeKubeEnv() + `${squashpath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
+        console.log(`executing ${cmdSpec}`);
+        let stdout = await exec(cmdSpec);
         let lines = stdout.split("\n");
         if (lines.length !== 2) {
             throw new Error("can't parse output of squashctl: " + stdout);
@@ -265,7 +259,6 @@ class SquashExtention {
         }
         // get created pod name
         let squashPodName = match[1];
-        // let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
         let dbgPort = dbgPortMatches[1];
         let pa = new PodAddress("squash-debugger", squashPodName, parseInt( dbgPort ));
         // TODO(mitchdraft) - move debugger-specific stuff to squashctl, local dbg interface
@@ -273,11 +266,6 @@ class SquashExtention {
             // java connects to the target pod
             pa = new PodAddress(selectedPod.metadata.namespace, selectedPod.metadata.name, parseInt( dbgPort ));
         }
-        console.log("squashPodName");
-        console.log(squashPodName);
-
-        console.log("pa");
-        console.log(pa);
 
         let remotepath = get_conf_or("remotePath", null);
 
@@ -285,9 +273,6 @@ class SquashExtention {
         let localport = await kubectl_portforward(pa);
 
         let localpath = workspace.uri.fsPath;
-        console.log(["localport", localport]);
-        console.log(["program", localpath]);
-        console.log(["remotePath", remotepath]);
         // start debugging!
             let debuggerconfig;
             switch (debuggerName) {
@@ -517,10 +502,8 @@ function get_conf_or(k: string, d: any): any {
     let config = vscode.workspace.getConfiguration(confname);
     let v = config[k];
     if (!v) {
-        console.log("did not find " + k);
         return d;
     }
-    console.log("FOUND " + k);
     return v;
 }
 
