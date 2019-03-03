@@ -58,9 +58,7 @@ export function deactivate() { }
 
 async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
-    let execpath = path.join(pathforbin, "kubsquash");
-    // TODO(mitchdraft) - remove
-    execpath ="/Users/mitch/go/src/github.com/solo-io/squash/target/squashctl";
+    let execpath = path.join(pathforbin, "squashctl");
 
     let ks = getSquashctl();
 
@@ -75,16 +73,16 @@ async function getremote(extPath: string): Promise<string> {
     //     }
     // }
 
-    if (!fs.existsSync(execpath)) {
-        let s = await vscode.window.showInformationMessage("HEY Download Squash?", "yes", "no");
-        if (s === "yes") {
-            vscode.window.showInformationMessage("download started");
-            shelljs.mkdir('-p', pathforbin);
-            await download2file(ks.link, execpath);
-            vscode.window.showInformationMessage("download Squash complete");
-        }
-    }
     // TODO(mitchdraft) - renable
+    // if (!fs.existsSync(execpath)) {
+    //     let s = await vscode.window.showInformationMessage("Download Squash?", "yes", "no");
+    //     if (s === "yes") {
+    //         vscode.window.showInformationMessage("download started");
+    //         shelljs.mkdir('-p', pathforbin);
+    //         await download2file(ks.link, execpath);
+    //         vscode.window.showInformationMessage("download Squash complete");
+    //     }
+    // }
     // // test after the download
     // let exechash = await hash(execpath);
     // // make sure its the one we expect:
@@ -174,6 +172,8 @@ class SquashExtention {
         */
 
         let squashpath: string = get_conf_or("path", null);
+        console.log("squashpath")
+        console.log(squashpath)
         if (!squashpath) {
             squashpath = await getremote(this.context.extensionPath);
         }
