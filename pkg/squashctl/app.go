@@ -11,7 +11,6 @@ import (
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
-	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/options"
 	sqOpts "github.com/solo-io/squash/pkg/options"
@@ -143,6 +142,10 @@ func (o *Options) runBaseCommand() error {
 	o.printVerbose("Attaching debugger")
 
 	if err := o.ensureMinimumSquashConfig(); err != nil {
+		return err
+	}
+
+	if err := o.cleanupPreRun(); err != nil {
 		return err
 	}
 
@@ -461,14 +464,56 @@ func (o *Options) ensureSquashIsInCluster() error {
 	return nil
 }
 
+func (o *Options) cleanupPreRun() error {
+	// look for an existing Debug Attachment CRD and clean up its old resources
+	it := o.Squash.GetIntent()
+	priorDas, err := it.GetDebugAttachments(o.daClient)
+	if err != nil {
+		return errors.Wrap(err, "cleanup pre run list das")
+	}
+	for _, priorDa := range priorDas {
+		// delete the prior plank pod
+		if err := o.KubeClient.
+			CoreV1().
+			Pods(o.Squash.SquashNamespace).
+			Delete(priorDa.PlankName, &meta_v1.DeleteOptions{}); err != nil {
+			// do not exit on error, it does not matter if the pod was already deleted
+			// TODO(mitchdraft) - first check if the pod exists before deleting
+			if !o.Squash.Machine {
+				fmt.Println(err)
+			}
+		}
+		if err := o.daClient.Delete(
+			priorDa.Metadata.Namespace,
+			priorDa.Metadata.Name,
+			clients.DeleteOpts{}); err != nil {
+			if !o.Squash.Machine {
+				fmt.Println(err)
+			}
+		}
+	}
+	return nil
+}
+
 func (o *Options) cleanupPostRun() error {
-	// remove pod
-	if err := o.Squash.DeletePlankPod(); err != nil {
-		return err
+	// remove pod only if we are not in machine mode
+	if !o.Squash.Machine {
+		it := o.Squash.GetIntent()
+		priorDa, err := it.GetDebugAttachment(o.daClient)
+		if err != nil {
+			return errors.Wrap(err, "cleanup pre run list das")
+		}
+		if err := o.daClient.Delete(
+			priorDa.Metadata.Namespace,
+			priorDa.Metadata.Name,
+			clients.DeleteOpts{}); err != nil {
+			fmt.Println(err)
+		}
+
+		if err := o.Squash.DeletePlankPod(); err != nil {
+			return err
+		}
 	}
 
-	// remove crd
-	so := o.Squash
-	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
-	return o.daClient.Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
+	return nil
 }

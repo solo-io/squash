@@ -170,7 +170,7 @@ func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
 }
 
 // TODO - remove this when V2 api is ready
-func (s *Squash) getIntent() squashv1.Intent {
+func (s *Squash) GetIntent() squashv1.Intent {
 	return squashv1.Intent{
 		Debugger: s.Debugger,
 		Pod: &core.ResourceRef{
@@ -183,7 +183,7 @@ func (s *Squash) getIntent() squashv1.Intent {
 
 func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	// Refactor - eventually Intent will be created during config/user entry
-	intent := s.getIntent()
+	intent := s.GetIntent()
 	daClient, err := utils.GetDebugAttachmentClient(context.Background())
 	if err != nil {
 		return &squashv1.DebugAttachment{}, err
@@ -349,7 +349,7 @@ func containerNameFromSpec(debugger string) string {
 }
 
 func (s *Squash) debugPodFor() (*v1.Pod, error) {
-	it := s.getIntent()
+	it := s.GetIntent()
 	const crisockvolume = "crisock"
 	targetPod, err := s.getClientSet().CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
 	if err != nil {
@@ -444,7 +444,7 @@ func (s *Squash) getClientSet() kubernetes.Interface {
 // represented by the Squash object. This should be called when a debugging session
 // is terminated.
 func (s *Squash) DeletePlankPod() error {
-	intent := s.getIntent()
+	intent := s.GetIntent()
 	daClient, err := utils.GetDebugAttachmentClient(context.Background())
 	if err != nil {
 		return err
