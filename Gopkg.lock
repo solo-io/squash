@@ -132,6 +132,22 @@
   revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
+  digest = "1:e38ad2825940d58bd8425be40bcd4211099d0c1988c158c35828197413b3cf85"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = ""
+  revision = "7462feb2032c2da9e3b85e9b04e6853a6e9e14ca"
+  version = "v24.0.1"
+
+[[projects]]
+  digest = "1:cea4aa2038169ee558bf507d5ea02c94ca85bcca28a4c7bb99fd59b31e43a686"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = ""
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:754f77e9c839b24778a4b64422236d38515301d2baeb63113aa3edc42e6af692"
   name = "github.com/google/gofuzz"
@@ -536,19 +552,21 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:9befb18f9fe3de24b8b0fbe3da6416f2efc3ce3c6d6db6824a40944f14b1860e"
+  digest = "1:bf270236c350ee656752902df4e1c8841bde37ae40370b3dddffc5cc04965546"
   name = "github.com/solo-io/go-utils"
   packages = [
     "clidoc",
     "cliutils",
     "contextutils",
+    "errors",
+    "githubutils",
     "kubeutils",
     "protoutils",
     "versionutils",
   ]
   pruneopts = ""
-  revision = "36028dafd82bcd915151a82ef9653a8b698e92f6"
-  version = "v0.2.10"
+  revision = "c7ac680a3615eb8f0cdbf12b3b8d4a2df69ee687"
+  version = "v0.2.12"
 
 [[projects]]
   digest = "1:1c0b84e64555e5e23b21af53d0aafbe2038da94545d54d0f8d06beb1b18948bc"
@@ -1190,6 +1208,7 @@
     "github.com/solo-io/go-utils/clidoc",
     "github.com/solo-io/go-utils/cliutils",
     "github.com/solo-io/go-utils/contextutils",
+    "github.com/solo-io/go-utils/githubutils",
     "github.com/solo-io/go-utils/kubeutils",
     "github.com/solo-io/go-utils/versionutils",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
