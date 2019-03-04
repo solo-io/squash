@@ -208,32 +208,25 @@ upload-github-release-assets: squashctl
 	go run ci/upload_github_release_assets.go
 
 
-#------------------------
-# .PHONY: binaries
-# binaries: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squash # Builds squashctl binaries in and places them in $(OUTPUT_DIR)/ folder
 
+#----------------------------------------------------------------------------------
+# VS-Code extension
+#----------------------------------------------------------------------------------
+.PHONY: publish-extension
+publish-extension: bump-extension-version ## (vscode) Publishes extension
+	./hack/publish-extension.sh
 
-# RELEASE_BINARIES := $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-windows $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squash
+.PHONY: package-extension
+package-extension: bump-extension-version ## (vscode) Packages extension
+	cd editor/vscode && vsce package
 
-# .PHONY: release-binaries
-# release-binaries: $(RELEASE_BINARIES)
-
-# .PHONY: containers
-# containers: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container ## Builds debug containers
-
-# .PHONY: push-containers
-# push-containers: all $(OUTPUT_DIR)/plank-dlv-pushed $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/squash-pushed squashctl-pushed ## Pushes debug containers to $(DOCKER_REPO)
-
-# .PHONY: release
-# release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
-
-# .PHONY: upload-release
-# upload-release: ## Uploads artifacts to GitHub releases
-# 	./hack/github-release.sh owner=solo-io repo=squash tag=$(VERSION)
-# 	@$(foreach BINARY,$(RELEASE_BINARIES),./hack/upload-github-release-asset.sh owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
-
-
-# dist: $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
+.PHONY: bump-extension-version
+bump-extension-version:  ## (vscode) Bumps extension version
+	cd extension/vscode && \
+	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
+	mv package.json.tmp package.json && \
+	jq '.version="$(VERSION)" | .binaries.win32="$(shell sha256sum _output/squashctl-windows.exe|cut -f1 -d" ")" | $(shell sha256sum _output/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum _output/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
+	mv src/squash.json.tmp src/squash.json
 
 
 
@@ -243,7 +236,7 @@ upload-github-release-assets: squashctl
 # Helpers for development: build and push (locally) only the things you changed
 # first run `eval $(minikube docker-env)` then any of these commands
 .PHONY: dev_squashctl
-dev_squashctl: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl
+dev_squashctl: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
 
 .PHONY: dev_win_squashctl
 dev_win_squashct: $(OUTPUT_DIR)/squashctl-windows

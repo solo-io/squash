@@ -3,10 +3,10 @@
 import * as kube from './kube-interfaces';
 import * as shelljs from 'shelljs';
 
-// import * as fs from 'fs';
+import * as fs from 'fs';
 import * as path from 'path';
-// import * as download from 'download';
-// import * as crypto from 'crypto';
+import * as download from 'download';
+import * as crypto from 'crypto';
 
 
 /* Flow of this extension
@@ -31,7 +31,7 @@ import squashVersionData = require('./squash.json');
 import * as vscode from 'vscode';
 
 // this is the key in the vscode config map for which our squash configuration object is the value
-const confname = "squashextension";
+const confname = "squash";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -60,72 +60,70 @@ async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
     let execpath = path.join(pathforbin, "squashctl");
 
-    // let ks = getSquashctl();
+    let ks = getSquashctl();
 
-    // TODO(mitchdraft) - reenable
-    // if (fs.existsSync(execpath)) {
-    //     let exechash = await hash(execpath);
-    //     // make sure its the one we expect:
-    //     // this can happen on version updates.
-    //     if (exechash !== ks.checksum) {
-    //         // remove the bad binary.
-    //         fs.unlinkSync(execpath);
-    //     }
-    // }
+    if (fs.existsSync(execpath)) {
+        let exechash = await hash(execpath);
+        // make sure its the one we expect:
+        // this can happen on version updates.
+        if (exechash !== ks.checksum) {
+            // remove the bad binary.
+            fs.unlinkSync(execpath);
+        }
+    }
 
-    // TODO(mitchdraft) - renable
-    // if (!fs.existsSync(execpath)) {
-    //     let s = await vscode.window.showInformationMessage("Download Squash?", "yes", "no");
-    //     if (s === "yes") {
-    //         vscode.window.showInformationMessage("download started");
-    //         shelljs.mkdir('-p', pathforbin);
-    //         await download2file(ks.link, execpath);
-    //         vscode.window.showInformationMessage("download Squash complete");
-    //     }
-    // }
-    // // test after the download
-    // let exechash = await hash(execpath);
-    // // make sure its the one we expect:
-    // if (exechash !== ks.checksum) {
-    //     // remove the bad binary.
-    //     fs.unlinkSync(execpath);
-    //     throw new Error("bad checksum for binary; download may be corrupted - please try again.");
-    // }
-    // fs.chmodSync(execpath, 0o755);
+    if (!fs.existsSync(execpath)) {
+        let s = await vscode.window.showInformationMessage("Download Squash?", "yes", "no");
+        if (s === "yes") {
+            vscode.window.showInformationMessage("download started");
+            shelljs.mkdir('-p', pathforbin);
+            await download2file(ks.link, execpath);
+            vscode.window.showInformationMessage("download Squash complete");
+        }
+    }
+    // test after the download
+    let exechash = await hash(execpath);
+    // make sure its the one we expect:
+    if (exechash !== ks.checksum) {
+        // remove the bad binary.
+        fs.unlinkSync(execpath);
+        throw new Error("bad checksum for binary; download may be corrupted - please try again.");
+    }
+    fs.chmodSync(execpath, 0o755);
     return execpath;
 }
 
-// function hash(f: string): Promise<string> {
-//     return new Promise<string>((resolve, reject) => {
-//         const input = fs.createReadStream(f);
-//         const hash = crypto.createHash('sha256');
+function hash(f: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        const input = fs.createReadStream(f);
+        const hash = crypto.createHash('sha256');
 
-//         input.on('data', function (data: Buffer) {
-//             hash.update(data);
-//         });
-//         input.on('error', reject);
-//         input.on('end', () => {
-//             resolve(hash.digest("hex"));
-//         });
+        input.on('data', function (data: Buffer) {
+            hash.update(data);
+        });
+        input.on('error', reject);
+        input.on('end', () => {
+            resolve(hash.digest("hex"));
+        });
 
-//     });
-// }
+    });
+}
 
-// function download2file(what: string, to: string): Promise<any> {
+function download2file(what: string, to: string): Promise<any> {
 
-//     return new Promise<any>((resolve, reject) => {
-//         let file = fs.createWriteStream(to);
-//         let stream = download(what);
-//         stream.pipe(file);
-//         file.on('close', resolve);
-//         file.on("finish", function () {
-//             file.close();
-//         });
-//         stream.on('error', reject);
-//         file.on('error', reject);
+    return new Promise<any>((resolve, reject) => {
+        let file = fs.createWriteStream(to);
+        let stream = download(what);
+        stream.pipe(file);
+        file.on('close', resolve);
+        file.on("finish", function () {
+            file.close();
+        });
+        stream.on('error', reject);
+        file.on('error', reject);
 
-//     });
-// }
+    });
+}
 
 export class DebuggerPickItem implements vscode.QuickPickItem {
     label: string;
@@ -460,27 +458,31 @@ function getSquashInfo(): SquashInfo {
     return <SquashInfo>squashVersionData;
 }
 
-// interface SquashctlBinary {
-//     link: string;
-//     checksum: string;
-// }
+interface SquashctlBinary {
+    link: string;
+    checksum: string;
+}
 
-// function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
-//     return {
-//         link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
-//         checksum: checksum
-//     };
-// }
+function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
+    let link = "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
+    console.log("trying to dl from: " + link)
+    return {
+        link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
+        checksum: checksum
+    };
+}
 
-// function getSquashctl(): SquashctlBinary {
-//     // download the squash version for this extension
-//     var osver = process.platform;
-//     switch (osver) {
-//         case 'linux':
-//             return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
-//         case 'darwin':
-//             return createSquashctlBinary("osx", getSquashInfo().binaries.darwin);
-//         default:
-//             throw new Error(osver + " is current unsupported");
-//     }
-// }
+function getSquashctl(): SquashctlBinary {
+    // download the squash version for this extension
+    var osver = process.platform;
+    switch (osver) {
+        case 'linux':
+            return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
+        case 'darwin':
+            return createSquashctlBinary("darwin", getSquashInfo().binaries.darwin);
+        case 'win32':
+            return createSquashctlBinary("windows.exe", getSquashInfo().binaries.win32);
+        default:
+            throw new Error(osver + " is current unsupported");
+    }
+}

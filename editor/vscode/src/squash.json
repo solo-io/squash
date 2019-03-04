@@ -2,6 +2,7 @@
   "version": "",
   "baseName": "squashctl",
   "binaries": {
+    "win32": "",
     "linux": "",
     "darwin": ""
   }
