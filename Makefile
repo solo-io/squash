@@ -36,7 +36,7 @@ update-deps:
 	go get -u github.com/lyft/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
 
-RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
+RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx target/squashctl-windows
 
 .PHONY: release-binaries
 release-binaries: $(RELEASE_BINARIES)
@@ -78,6 +78,9 @@ target/squashctl-osx: target $(SRCS) target/squashctl
 
 target/squashctl-linux: target $(SRCS) target/squashctl
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+
+target/squashctl-windows: target $(SRCS) target/squashctl
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
 
 ### Squash
@@ -169,6 +172,9 @@ previewsite:
 # first run `eval $(minikube docker-env)` then any of these commands
 .PHONY: dev_squashctl
 dev_squashctl: target $(SRCS) target/squashctl
+
+.PHONY: dev_win_squashctl
+dev_win_squashct: target/squashctl-windows
 
 .PHONY: dev_planks
 dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
