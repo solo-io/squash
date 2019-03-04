@@ -1,5 +1,12 @@
-DOCKER_REPO ?= soloio
+#----------------------------------------------------------------------------------
+# Base
+#----------------------------------------------------------------------------------
+
+ROOTDIR := $(shell pwd)
+OUTPUT_DIR ?= $(ROOTDIR)/_output
+DOCKER_REPO ?= quay.io/solo-io
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
+SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 
 # produce a release if TAGGED_VERSION is set
 RELEASE := "true"
@@ -9,6 +16,13 @@ ifeq ($(TAGGED_VERSION),)
 endif
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
+# Pass in build-time variables
+LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
+-X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.SquashImageTag=$(VERSION) \
+-X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
+
 .PHONY: all
 all: release-binaries containers ## (default) Builds binaries and containers
 
@@ -16,17 +30,14 @@ all: release-binaries containers ## (default) Builds binaries and containers
 help:
 	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
-.PHONY: pin-repos
-pin-repos:
-	go run pin_repos.go
+#----------------------------------------------------------------------------------
+# Repo setup
+#----------------------------------------------------------------------------------
 
-.PHONY: check-format
-check-format:
-	NOT_FORMATTED=$$(gofmt -l ./pkg/ ./cmd/ ) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
-
-
-.PHONY: binaries
-binaries: target/plank/plank target/squashctl target/squash # Builds squashctl binaries in and places them in target/ folder
+# https://www.viget.com/articles/two-ways-to-share-git-hooks-with-your-team/
+.PHONY: init
+init:
+	git config core.hooksPath .githooks
 
 .PHONY: update-deps
 update-deps:
@@ -35,141 +46,36 @@ update-deps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gogo
 	go get -u github.com/lyft/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
+.PHONY: pin-repos
 
-RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx target/squashctl-windows target/plank/plank target/squash
+pin-repos:
+	go run pin_repos.go
 
-.PHONY: release-binaries
-release-binaries: $(RELEASE_BINARIES)
+.PHONY: check-format
+check-format:
+	NOT_FORMATTED=$$(gofmt -l ./pkg/ ./cmd/ ) && if [ -n "$$NOT_FORMATTED" ]; then echo These files are not formatted: $$NOT_FORMATTED; exit 1; fi
 
-.PHONY: containers
-containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
+#----------------------------------------------------------------------------------
+# Clean
+#----------------------------------------------------------------------------------
 
-.PHONY: push-containers
-push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/squash-pushed squashctl-pushed ## Pushes debug containers to $(DOCKER_REPO)
-
-.PHONY: release
-release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
-
-.PHONY: upload-release
-upload-release: ## Uploads artifacts to GitHub releases
-	./hack/github-release.sh owner=solo-io repo=squash tag=$(VERSION)
-	@$(foreach BINARY,$(RELEASE_BINARIES),./hack/upload-github-release-asset.sh owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
-
-SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
-
-# Pass in build-time variables
-LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
--X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.SquashImageTag=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
-
-target:
-	[ -d $@ ] || mkdir -p $@
-
-### Squashctl
-
-
-target/squashctl: target $(SRCS)
-	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
-
-.PHONY: squashctl-pushed
-squashctl-pushed: target/squashctl-osx-pushed target/squashctl-linux-pushed target/squashctl-windows-pushed
-
-target/squashctl-osx: target $(SRCS) target/squashctl
-	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
-target/squashctl-osx-pushed: target/squashctl-osx
-	docker push $(DOCKER_REPO)/squashctl-osx:$(VERSION)
-	touch $@
-
-target/squashctl-linux: target $(SRCS) target/squashctl
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
-target/squashctl-linux-pushed: target/squashctl-linux
-	docker push $(DOCKER_REPO)/squashctl-linux:$(VERSION)
-	touch $@
-
-target/squashctl-windows: target $(SRCS) target/squashctl
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
-target/squashctl-windows-pushed: target/squashctl-windows
-	docker push $(DOCKER_REPO)/squashctl-windows:$(VERSION)
-	touch $@
-
-
-### Squash
-
-target/squash: target $(SRCS) generatecode
-	GOOS=linux go build -ldflags=$(LDFLAGS) -o target/squash/squash cmd/squash/main.go
-
-target/squash-container: ./target/squash
-	docker build -f cmd/squash/Dockerfile -t $(DOCKER_REPO)/squash:$(VERSION) ./target/squash/
-	touch $@
-target/squash-pushed: target/squash-container
-	docker push $(DOCKER_REPO)/squash:$(VERSION)
-	touch $@
-
-
- ### Plank
-
-target/plank/: generatecode
-	[ -d $@ ] || mkdir -p $@
-
-target/plank/plank: | target/plank/
-target/plank/plank: $(SRCS)
-	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o ./target/plank/plank ./cmd/plank/
-
-
-target/plank/Dockerfile.dlv:    | target/plank/
-target/plank/Dockerfile.dlv: cmd/plank/Dockerfile.dlv
-	cp cmd/plank/Dockerfile.dlv target/plank/Dockerfile.dlv
-target/plank-dlv-container: ./target/plank/plank target/plank/Dockerfile.dlv
-	docker build -f target/plank/Dockerfile.dlv -t $(DOCKER_REPO)/plank-dlv:$(VERSION) ./target/plank/
-	touch $@
-
-target/plank-dlv-pushed: target/plank-dlv-container
-	docker push $(DOCKER_REPO)/plank-dlv:$(VERSION)
-	touch $@
-
-
-
-target/plank/Dockerfile.gdb:    | target/plank/
-target/plank/Dockerfile.gdb: cmd/plank/Dockerfile.gdb
-	cp cmd/plank/Dockerfile.gdb target/plank/Dockerfile.gdb
-target/plank-gdb-container: ./target/plank/plank target/plank/Dockerfile.gdb
-	docker build -f target/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) ./target/plank/
-	touch $@
-target/plank-gdb-pushed: target/plank-gdb-container
-	docker push $(DOCKER_REPO)/plank-gdb:$(VERSION)
-	touch $@
-
-.PHONY: publish-extension
-publish-extension: bump-extension-version ## (vscode) Publishes extension
-	./hack/publish-extension.sh
-
-.PHONY: package-extension
-package-extension: bump-extension-version ## (vscode) Packages extension
-	cd editor/vscode && vsce package
-
-.PHONY: bump-extension-version
-bump-extension-version:  ## (vscode) Bumps extension version
-	cd editor/vscode && \
-	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
-	mv package.json.tmp package.json && \
-	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum target/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum target/squashctl-osx|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
-	mv src/squash.json.tmp src/squash.json
-
+# Important to clean before pushing new releases. Dockerfiles and binaries may not update properly
 .PHONY: clean
-clean: ## Deletes target folder
-	rm -rf target
+clean:
+	rm -rf $(OUTPUT_DIR)
+	rm -rf site
 
-dist: target/plank-gdb-pushed target/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
 
+#----------------------------------------------------------------------------------
+# Generated Code and Docs
+#----------------------------------------------------------------------------------
 # Generated code
 .PHONY: generatecode
 generatecode:
+	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
 
 # Docs
-
 .PHONY: generatedocs
 generatedocs:
 	go run cmd/generate-docs/main.go
@@ -178,21 +84,6 @@ generatedocs:
 .PHONY: previewsite
 previewsite:
 	cd site && python3 -m http.server 0
-
-
-# Helpers for development: build and push (locally) only the things you changed
-# first run `eval $(minikube docker-env)` then any of these commands
-.PHONY: dev_squashctl
-dev_squashctl: target $(SRCS) target/squashctl
-
-.PHONY: dev_win_squashctl
-dev_win_squashct: target/squashctl-windows
-
-.PHONY: dev_planks
-dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container
-
-.PHONY: dev_squash
-dev_planks: target $(SRCS) target/squash-container
 
 # for use by ci
 # if any docs have changed, this will create a PR on the solo-io/solo-docs repo
@@ -207,3 +98,158 @@ endif
 .PHONY: dev_push-docs
 dev_push-docs:
 	ci/push-docs.sh tag=development
+
+
+#----------------------------------------------------------------------------------
+# Squashctl
+#----------------------------------------------------------------------------------
+.PHONY: squashctl
+squashctl: $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-windows.exe
+
+$(OUTPUT_DIR)/squashctl-darwin: $(SRCS)
+	GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+$(OUTPUT_DIR)/squashctl-linux: $(SRCS)
+	GOOS=linux   GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+$(OUTPUT_DIR)/squashctl-windows.exe: $(SRCS)
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+
+
+#----------------------------------------------------------------------------------
+# Squash
+#----------------------------------------------------------------------------------
+.PHONY: squash
+squash: $(OUTPUT_DIR)/squash-container
+
+$(OUTPUT_DIR)/squash: $(SRCS) generatecode
+	GOOS=linux go build -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/squash/squash cmd/squash/main.go
+$(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
+	docker build -f cmd/squash/Dockerfile -t $(DOCKER_REPO)/squash:$(VERSION) $(OUTPUT_DIR)/squash/
+	touch $@
+
+
+#----------------------------------------------------------------------------------
+# Plank
+#----------------------------------------------------------------------------------
+.PHONY: plank
+plank: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+
+$(OUTPUT_DIR)/plank/: generatecode
+	[ -d $@ ] || mkdir -p $@
+
+$(OUTPUT_DIR)/plank/plank: | $(OUTPUT_DIR)/plank/
+$(OUTPUT_DIR)/plank/plank: $(SRCS)
+	GOOS=linux CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/plank/plank ./cmd/plank/
+
+$(OUTPUT_DIR)/plank/Dockerfile.dlv:    | $(OUTPUT_DIR)/plank/
+$(OUTPUT_DIR)/plank/Dockerfile.dlv: cmd/plank/Dockerfile.dlv
+	cp cmd/plank/Dockerfile.dlv $(OUTPUT_DIR)/plank/Dockerfile.dlv
+$(OUTPUT_DIR)/plank-dlv-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.dlv
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.dlv -t $(DOCKER_REPO)/plank-dlv:$(VERSION) $(OUTPUT_DIR)/plank/
+	touch $@
+
+$(OUTPUT_DIR)/plank/Dockerfile.gdb:    | $(OUTPUT_DIR)/plank/
+$(OUTPUT_DIR)/plank/Dockerfile.gdb: cmd/plank/Dockerfile.gdb
+	cp cmd/plank/Dockerfile.gdb $(OUTPUT_DIR)/plank/Dockerfile.gdb
+$(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.gdb
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
+	touch $@
+
+#----------------------------------------------------------------------------------
+# Extension
+#----------------------------------------------------------------------------------
+
+.PHONY: publish-extension
+publish-extension: bump-extension-version ## (vscode) Publishes extension
+	./hack/publish-extension.sh
+
+.PHONY: package-extension
+package-extension: bump-extension-version ## (vscode) Packages extension
+	cd editor/vscode && vsce package
+
+.PHONY: bump-extension-version
+bump-extension-version:  ## (vscode) Bumps extension version
+	cd editor/vscode && \
+	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
+	mv package.json.tmp package.json && \
+	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum $(OUTPUT_DIR)/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum $(OUTPUT_DIR)/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
+	mv src/squash.json.tmp src/squash.json
+
+#----------------------------------------------------------------------------------
+# Build All
+#----------------------------------------------------------------------------------
+.PHONY: build
+build: squashctl squash plank
+
+#----------------------------------------------------------------------------------
+# Docker
+#----------------------------------------------------------------------------------
+.PHONY: docker
+docker: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container $(OUTPUT_DIR)/squash-container
+
+DOCKER_IMAGES :=
+ifeq ($(RELEASE),"true")
+	DOCKER_IMAGES := docker
+endif
+
+.PHONY: docker-push
+docker-push: $(DOCKER_IMAGES)
+ifeq ($(RELEASE),"true")
+	docker push $(DOCKER_REPO)/plank-dlv:$(VERSION) && \
+	docker push $(DOCKER_REPO)/plank-gdb:$(VERSION) && \
+	docker push $(DOCKER_REPO)/squash:$(VERSION)
+endif
+
+
+#----------------------------------------------------------------------------------
+# Release
+#----------------------------------------------------------------------------------
+.PHONY: upload-github-release-assets
+upload-github-release-assets: squashctl
+	go run ci/upload_github_release_assets.go
+
+
+#------------------------
+# .PHONY: binaries
+# binaries: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squash # Builds squashctl binaries in and places them in $(OUTPUT_DIR)/ folder
+
+
+# RELEASE_BINARIES := $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-windows $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squash
+
+# .PHONY: release-binaries
+# release-binaries: $(RELEASE_BINARIES)
+
+# .PHONY: containers
+# containers: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container ## Builds debug containers
+
+# .PHONY: push-containers
+# push-containers: all $(OUTPUT_DIR)/plank-dlv-pushed $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/squash-pushed squashctl-pushed ## Pushes debug containers to $(DOCKER_REPO)
+
+# .PHONY: release
+# release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
+
+# .PHONY: upload-release
+# upload-release: ## Uploads artifacts to GitHub releases
+# 	./hack/github-release.sh owner=solo-io repo=squash tag=$(VERSION)
+# 	@$(foreach BINARY,$(RELEASE_BINARIES),./hack/upload-github-release-asset.sh owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
+
+
+# dist: $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
+
+
+
+#----------------------------------------------------------------------------------
+# Development utils
+#----------------------------------------------------------------------------------
+# Helpers for development: build and push (locally) only the things you changed
+# first run `eval $(minikube docker-env)` then any of these commands
+.PHONY: dev_squashctl
+dev_squashctl: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl
+
+.PHONY: dev_win_squashctl
+dev_win_squashct: $(OUTPUT_DIR)/squashctl-windows
+
+.PHONY: dev_planks
+dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+
+.PHONY: dev_squash
+dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container
