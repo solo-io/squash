@@ -154,10 +154,10 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
 	touch $@
 
-#----------------------------------------------------------------------------------
-# Extension
-#----------------------------------------------------------------------------------
 
+#----------------------------------------------------------------------------------
+# VS-Code extension
+#----------------------------------------------------------------------------------
 .PHONY: publish-extension
 publish-extension: bump-extension-version ## (vscode) Publishes extension
 	./hack/publish-extension.sh
@@ -168,17 +168,19 @@ package-extension: bump-extension-version ## (vscode) Packages extension
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	cd editor/vscode && \
+	cd extension/vscode && \
 	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
 	mv package.json.tmp package.json && \
-	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum $(OUTPUT_DIR)/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum $(OUTPUT_DIR)/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
+	jq '.version="$(VERSION)" | .binaries.win32="$(shell sha256sum $(OUTPUT_DIR)/squashctl-windows.exe|cut -f1 -d" ")" | $(shell sha256sum $(OUTPUT_DIR)/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum $(OUTPUT_DIR)/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
 	mv src/squash.json.tmp src/squash.json
+
 
 #----------------------------------------------------------------------------------
 # Build All
 #----------------------------------------------------------------------------------
 .PHONY: build
 build: squashctl squash plank
+
 
 #----------------------------------------------------------------------------------
 # Docker
@@ -206,28 +208,6 @@ endif
 .PHONY: upload-github-release-assets
 upload-github-release-assets: squashctl
 	go run ci/upload_github_release_assets.go
-
-
-
-#----------------------------------------------------------------------------------
-# VS-Code extension
-#----------------------------------------------------------------------------------
-.PHONY: publish-extension
-publish-extension: bump-extension-version ## (vscode) Publishes extension
-	./hack/publish-extension.sh
-
-.PHONY: package-extension
-package-extension: bump-extension-version ## (vscode) Packages extension
-	cd editor/vscode && vsce package
-
-.PHONY: bump-extension-version
-bump-extension-version:  ## (vscode) Bumps extension version
-	cd extension/vscode && \
-	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
-	mv package.json.tmp package.json && \
-	jq '.version="$(VERSION)" | .binaries.win32="$(shell sha256sum _output/squashctl-windows.exe|cut -f1 -d" ")" | $(shell sha256sum _output/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum _output/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
-	mv src/squash.json.tmp src/squash.json
-
 
 
 #----------------------------------------------------------------------------------
