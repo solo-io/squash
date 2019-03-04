@@ -30,7 +30,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
-  entrypoint: 'make'
+  entrypoint: make
   args: ['check-format']
   waitFor: ['dep']
   id: 'check-format'
@@ -44,6 +44,8 @@ steps:
   dir: './gopath/src/github.com/solo-io/squash'
   waitFor: ['dep']
   id: 'check-code-and-docs-gen'
+
+
 
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
@@ -60,7 +62,7 @@ steps:
     - 'BUILD_ID=$BUILD_ID'
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['docker-login', 'check-code-and-docs-gen']
+  waitFor: ['check-code-and-docs-gen']
   id: 'compile'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
@@ -74,30 +76,52 @@ steps:
   id: 'release'
   waitFor: ['compile']
 
-- name: 'gcr.io/$PROJECT_ID/vsce'
-  env:
-  - 'VERSION=$TAG_NAME'
-  entrypoint: 'make'
-  args: ['bump-extension-version']
+# - name: 'gcr.io/cloud-builders/docker'
+#   env:
+#   # - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['containers']
 
-- name: 'node:10.10.0'
-  entrypoint: 'npm'
-  args: ['install']
-  dir: './editor/vscode'
+# - name: 'gcr.io/$PROJECT_ID/vsce'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['bump-extension-version']
 
-- name: 'gcr.io/$PROJECT_ID/vsce'
-  args: ['package']
-  dir: './editor/vscode'
+# - name: node:10.10.0
+#   entrypoint: npm
+#   args: ['install']
+#   dir: ./extension/vscode
 
-- name: 'gcr.io/$PROJECT_ID/vsce'
- entrypoint: './hack/publish-extension.sh'
- secretEnv: ['VSCODE_TOKEN']
+# - name: 'gcr.io/$PROJECT_ID/vsce'
+#   args: ['package']
+#   dir: ./extension/vscode
+
+# # publish
+# - name: 'gcr.io/cloud-builders/docker'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['push-containers']
+
+# - name: 'gcr.io/$PROJECT_ID/go-make'
+#   env:
+#   - VERSION=$TAG_NAME
+#   entrypoint: make
+#   args: ['upload-release']
+#   secretEnv: ['GITHUB_TOKEN']
+
+  # TODO(mitchdraft) enable vscode publish
+#- name: 'gcr.io/$PROJECT_ID/vsce'
+#  entrypoint: ./hack/publish-extension.sh
+#  secretEnv: ['VSCODE_TOKEN']
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
   secretEnv:
     GITHUB_TOKEN: CiQABlzmSYYiveU0gTxGH2139eaBUedjV3vNCxQmJU+nRPlfQ/YSUQCCPGSGzbGp49fwDYuefAx9V94b8mivdp9AqB7zQAa07VtGJmrGdg9ZuhKGFrrgqxwABE0LLVNHyngCSHYSYMH8Vn/mRtT7wQuEHBlKVGtqPw==
     QUAY_IO_PASSWORD: CiQABlzmSRx5TcOqbldXa/d/+bkmAfpNAWa3PTS06WvuloZL+vASaQCCPGSGCogonVZVEUNx4G3YJtWi18gSuNx4PvLe08q8xAflTMFkjsyQirAOK3Y2oCvgYwiw/ITcuydjkpMjxDygFyENXS9FKFJoAXHlPQE5qidKr8xxmxF5ezhmjGB0gjyjXIIkbSEnBg==
-    VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
+    ## uncomment when extension is ready
+    # VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
 
 timeout: 1200s
