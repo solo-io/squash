@@ -9,7 +9,7 @@ func main() {
 		ChangelogPrefix: "squash",
 		CliPrefix: "squashctl",
 		ApiPaths: []string {
-			"docs/v1/github.com/solo-io/supergloo",
+			"docs/v1/github.com/solo-io/squash",
 		},
 		Product: "squash",
 	}
