@@ -10,7 +10,7 @@ endif
 VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
 .PHONY: all
-all: binaries containers ## (default) Builds binaries and containers
+all: release-binaries containers ## (default) Builds binaries and containers
 
 .PHONY: help
 help:
@@ -36,7 +36,7 @@ update-deps:
 	go get -u github.com/lyft/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
 
-RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx
+RELEASE_BINARIES := target/squashctl-linux target/squashctl-osx target/squashctl-windows target/plank/plank target/squash
 
 .PHONY: release-binaries
 release-binaries: $(RELEASE_BINARIES)
@@ -45,7 +45,7 @@ release-binaries: $(RELEASE_BINARIES)
 containers: target/plank-dlv-container target/plank-gdb-container ## Builds debug containers
 
 .PHONY: push-containers
-push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/squash-pushed ## Pushes debug containers to $(DOCKER_REPO)
+push-containers: all target/plank-dlv-pushed target/plank-gdb-pushed target/squash-pushed squashctl-pushed ## Pushes debug containers to $(DOCKER_REPO)
 
 .PHONY: release
 release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
@@ -73,11 +73,26 @@ target:
 target/squashctl: target $(SRCS)
 	go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
+.PHONY: squashctl-pushed
+squashctl-pushed: target/squashctl-osx-pushed target/squashctl-linux-pushed target/squashctl-windows-pushed
+
 target/squashctl-osx: target $(SRCS) target/squashctl
 	GOOS=darwin go build -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+target/squashctl-osx-pushed: target/squashctl-osx
+	docker push $(DOCKER_REPO)/squashctl-osx:$(VERSION)
+	touch $@
 
 target/squashctl-linux: target $(SRCS) target/squashctl
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+target/squashctl-linux-pushed: target/squashctl-linux
+	docker push $(DOCKER_REPO)/squashctl-linux:$(VERSION)
+	touch $@
+
+target/squashctl-windows: target $(SRCS) target/squashctl
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
+target/squashctl-windows-pushed: target/squashctl-windows
+	docker push $(DOCKER_REPO)/squashctl-windows:$(VERSION)
+	touch $@
 
 
 ### Squash
@@ -169,6 +184,9 @@ previewsite:
 # first run `eval $(minikube docker-env)` then any of these commands
 .PHONY: dev_squashctl
 dev_squashctl: target $(SRCS) target/squashctl
+
+.PHONY: dev_win_squashctl
+dev_win_squashct: target/squashctl-windows
 
 .PHONY: dev_planks
 dev_planks: target $(SRCS) target/plank-dlv-container target/plank-gdb-container

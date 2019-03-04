@@ -536,7 +536,7 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:ab7ee324037e897a1d025b02a54e8ebd4fd393adb281c9db9ee6e31441c2fa7a"
+  digest = "1:9befb18f9fe3de24b8b0fbe3da6416f2efc3ce3c6d6db6824a40944f14b1860e"
   name = "github.com/solo-io/go-utils"
   packages = [
     "clidoc",
@@ -547,8 +547,8 @@
     "versionutils",
   ]
   pruneopts = ""
-  revision = "d691aec5ebf933da195a78e2f5cd0d3357c772de"
-  version = "v0.2.9"
+  revision = "36028dafd82bcd915151a82ef9653a8b698e92f6"
+  version = "v0.2.10"
 
 [[projects]]
   digest = "1:1c0b84e64555e5e23b21af53d0aafbe2038da94545d54d0f8d06beb1b18948bc"
