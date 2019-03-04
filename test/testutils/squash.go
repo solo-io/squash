@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/test/testutils/kubecdl"
 )
 

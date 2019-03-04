@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashcli "github.com/solo-io/squash/pkg/squashctl"
 	"github.com/solo-io/squash/test/testutils"

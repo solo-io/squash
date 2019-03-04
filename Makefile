@@ -74,6 +74,9 @@ clean:
 generatecode:
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
+	go run cmd/generate-docs/main.go
+	gofmt -w ci cmd pkg test
+	goimports -w ci cmd pkg test
 
 # for use by ci
 # if any docs have changed, this will create a PR on the solo-io/solo-docs repo

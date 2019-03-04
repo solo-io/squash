@@ -26,7 +26,6 @@ squashctl [flags]
       --container-repo string      debug container repo to use (default "soloio")
       --container-version string   debug container version to use (default "mkdev")
       --crisock string             The path to the CRI socket (default "/var/run/dockershim.sock")
-      --debug-server               [deprecated] start a debug server instead of an interactive session
       --debugger string            Debugger to use
   -h, --help                       help for squashctl
       --json                       output json format
