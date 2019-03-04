@@ -76,12 +76,6 @@ steps:
   id: 'release'
   waitFor: ['compile']
 
-# - name: 'gcr.io/cloud-builders/docker'
-#   env:
-#   # - VERSION=$TAG_NAME
-#   entrypoint: make
-#   args: ['containers']
-
 - name: 'gcr.io/$PROJECT_ID/vsce'
   env:
   - VERSION=$TAG_NAME
@@ -102,20 +96,6 @@ steps:
   dir: ./extension/vscode
   waitFor: ['npm-install']
   id: 'vsce-package'
-
-# # publish
-# - name: 'gcr.io/cloud-builders/docker'
-#   env:
-#   - VERSION=$TAG_NAME
-#   entrypoint: make
-#   args: ['push-containers']
-
-# - name: 'gcr.io/$PROJECT_ID/go-make'
-#   env:
-#   - VERSION=$TAG_NAME
-#   entrypoint: make
-#   args: ['upload-release']
-#   secretEnv: ['GITHUB_TOKEN']
 
 - name: 'gcr.io/$PROJECT_ID/vsce'
   entrypoint: './hack/publish-extension.sh'
