@@ -1,0 +1,4 @@
+changelog:
+- type: FIX
+  description: "enables compilation for windows"
+  issueLink: https://github.com/solo-io/squash/issues/91
