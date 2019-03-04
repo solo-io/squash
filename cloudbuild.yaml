@@ -74,7 +74,7 @@ steps:
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN']
   id: 'release'
-  waitFor: ['test', 'regression-tests']
+  waitFor: ['compile']
 
 # - name: 'gcr.io/cloud-builders/docker'
 #   env:
