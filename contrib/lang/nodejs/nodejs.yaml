@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: node-lang-example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-lang-example
+  template:
+    metadata:
+      labels:
+        app: node-lang-example
+    spec:
+      containers:
+      - name: node-lang-example
+        image: soloio/squash-demo-node-hello:v0.1.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: node-lang-example
+spec:
+  selector:
+    app: node-lang-example
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
