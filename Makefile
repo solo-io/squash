@@ -46,10 +46,10 @@ update-deps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gogo
 	go get -u github.com/lyft/protoc-gen-validate
 	go get -u github.com/paulvollmer/2gobytes
-.PHONY: pin-repos
 
+.PHONY: pin-repos
 pin-repos:
-	go run pin_repos.go
+	go run ci/pin_repos.go
 
 .PHONY: check-format
 check-format:
@@ -75,29 +75,12 @@ generatecode:
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
 
-# Docs
-.PHONY: generatedocs
-generatedocs:
-	go run cmd/generate-docs/main.go
-	mkdocs build
-
-.PHONY: previewsite
-previewsite:
-	cd site && python3 -m http.server 0
-
 # for use by ci
 # if any docs have changed, this will create a PR on the solo-io/solo-docs repo
+# assumes TAGGED_VERSION and GITHUB_TOKEN are in env
 .PHONY: push-docs
 push-docs:
-ifeq ($(RELEASE),"true")
-	ci/push-docs.sh tag=$(TAGGED_VERSION)
-endif
-
-# for calling push docs manually
-# if any docs have changed, this will create a PR on the solo-io/solo-docs repo
-.PHONY: dev_push-docs
-dev_push-docs:
-	ci/push-docs.sh tag=development
+	ci/push_docs.go
 
 
 #----------------------------------------------------------------------------------

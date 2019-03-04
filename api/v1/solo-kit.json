@@ -1,4 +1,5 @@
 {
   "name": "squash.solo.io",
-  "version": "v1"
+  "version": "v1",
+  "docs_dir": "docs"
 }
