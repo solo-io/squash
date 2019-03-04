@@ -24,3 +24,7 @@ func (d *PythonInterface) ExpectRunningPlank() bool {
 	// TODO
 	return false
 }
+
+func (p *PythonInterface) WindowsSupportWarning() string {
+	return ""
+}

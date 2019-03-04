@@ -159,6 +159,40 @@ type EditorData struct {
 	PortForwardCmd string
 }
 
+func (s *Squash) connectUser(da *squashv1.DebugAttachment, remoteDbgPort int) error {
+	if s.Machine {
+		return nil
+	}
+	debugger := local.GetParticularDebugger(s.Debugger)
+	kubectlCmd := debugger.GetRemoteConnectionCmd(
+		da.PlankName,
+		s.SquashNamespace,
+		s.Pod,
+		s.Namespace,
+		s.LocalPort,
+		remoteDbgPort,
+	)
+	// Starting port forward in background.
+	if err := kubectlCmd.Start(); err != nil {
+		// s.printError(createdPodName)
+		return err
+	}
+	// kill the kubectl port-forward process on exit to free the port
+	// this defer must be called after Start() initializes Process
+	defer kubectlCmd.Process.Kill()
+
+	// Delaying to allow port forwarding to complete.
+	time.Sleep(5 * time.Second)
+	if os.Getenv("DEBUG_SELF") != "" {
+		fmt.Println("FOR DEBUGGING SQUASH'S DEBUGGER CONTAINER:")
+		fmt.Println("TODO")
+		// s.printError(createdPod)
+	}
+
+	dbgCmd := debugger.GetDebugCmd(s.LocalPort)
+	return s.callLocalDebuggerCommand(dbgCmd)
+}
+
 func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
 	da, err := s.getDebugAttachment()
 	if err != nil {

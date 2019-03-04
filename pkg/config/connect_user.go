@@ -3,58 +3,19 @@
 package config
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/kr/pty"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
-
-	squashv1 "github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/debuggers/local"
 )
 
-func (s *Squash) connectUser(da *squashv1.DebugAttachment, remoteDbgPort int) error {
-	if s.Machine {
-		return nil
-	}
-	debugger := local.GetParticularDebugger(s.Debugger)
-	kubectlCmd := debugger.GetRemoteConnectionCmd(
-		da.PlankName,
-		s.SquashNamespace,
-		s.Pod,
-		s.Namespace,
-		s.LocalPort,
-		remoteDbgPort,
-	)
-	// Starting port forward in background.
-	if err := kubectlCmd.Start(); err != nil {
-		// s.printError(createdPodName)
-		return err
-	}
-	// kill the kubectl port-forward process on exit to free the port
-	// this defer must be called after Start() initializes Process
-	defer kubectlCmd.Process.Kill()
-
-	// Delaying to allow port forwarding to complete.
-	time.Sleep(5 * time.Second)
-	if os.Getenv("DEBUG_SELF") != "" {
-		fmt.Println("FOR DEBUGGING SQUASH'S DEBUGGER CONTAINER:")
-		fmt.Println("TODO")
-		// s.printError(createdPod)
-	}
-
-	dbgCmd := debugger.GetDebugCmd(s.LocalPort)
-	if err := ptyWrap(dbgCmd); err != nil {
-		// s.printError(createdPodName)
-		return err
-	}
-	return nil
+func (s *Squash) callLocalDebuggerCommand(dbgCmd *exec.Cmd) error {
+	return ptyWrap(dbgCmd)
 }
 
 func ptyWrap(c *exec.Cmd) error {

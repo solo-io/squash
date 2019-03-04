@@ -28,3 +28,7 @@ func (d *JavaInterface) GetDebugCmd(localPort int) *exec.Cmd {
 func (d *JavaInterface) ExpectRunningPlank() bool {
 	return false
 }
+
+func (j *JavaInterface) WindowsSupportWarning() string {
+	return ""
+}

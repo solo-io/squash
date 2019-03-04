@@ -24,3 +24,7 @@ func (d *GdbInterface) ExpectRunningPlank() bool {
 	// TODO
 	return false
 }
+
+func (g *GdbInterface) WindowsSupportWarning() string {
+	return "Squash does not currently support the gdb interactive terminal on Windows. Please use the vscode extension or pass the --machine flag to squashctl."
+}
