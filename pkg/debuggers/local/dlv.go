@@ -30,3 +30,7 @@ func (d *DLV) GetDebugCmd(localPort int) *exec.Cmd {
 func (d *DLV) ExpectRunningPlank() bool {
 	return true
 }
+
+func (d *DLV) WindowsSupportWarning() string {
+	return "Squash does not currently support the dlv interactive terminal on Windows. Please use the vscode extension or pass the --machine flag to squashctl."
+}

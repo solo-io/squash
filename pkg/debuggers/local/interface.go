@@ -16,4 +16,8 @@ type Local interface {
 
 	// ExpectRunningPod indicates if this local debugger should be paired with an active plank pod
 	ExpectRunningPlank() bool
+
+	// WindowsSupportWarning returns a warning message if there are any caveats associated
+	// with running this debugger locally on windows. Otherwise returns ""
+	WindowsSupportWarning() string
 }
