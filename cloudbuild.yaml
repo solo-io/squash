@@ -30,7 +30,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
-  entrypoint: make
+  entrypoint: 'make'
   args: ['check-format']
   waitFor: ['dep']
   id: 'check-format'
@@ -76,21 +76,21 @@ steps:
 
 - name: 'gcr.io/$PROJECT_ID/vsce'
   env:
-  - VERSION=$TAG_NAME
-  entrypoint: make
+  - 'VERSION=$TAG_NAME'
+  entrypoint: 'make'
   args: ['bump-extension-version']
 
-- name: node:10.10.0
-  entrypoint: npm
+- name: 'node:10.10.0'
+  entrypoint: 'npm'
   args: ['install']
-  dir: ./editor/vscode
+  dir: './editor/vscode'
 
 - name: 'gcr.io/$PROJECT_ID/vsce'
   args: ['package']
-  dir: ./editor/vscode
+  dir: './editor/vscode'
 
 - name: 'gcr.io/$PROJECT_ID/vsce'
- entrypoint: ./hack/publish-extension.sh
+ entrypoint: './hack/publish-extension.sh'
  secretEnv: ['VSCODE_TOKEN']
 
 secrets:
