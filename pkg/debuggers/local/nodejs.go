@@ -11,6 +11,10 @@ func (g *NodeJsDebugger) GetRemoteConnectionCmd(plankName, plankNamespace, podNa
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
 
+func (n *NodeJsDebugger) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	return getPortForwardWithRandomLocalCmd(podName, podNamespace, remotePort)
+}
+
 func (d *NodeJsDebugger) GetDebugCmd(localPort int) *exec.Cmd {
 	// TODO
 	return nil

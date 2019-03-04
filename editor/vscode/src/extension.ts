@@ -3,10 +3,26 @@
 import * as kube from './kube-interfaces';
 import * as shelljs from 'shelljs';
 
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import * as path from 'path';
-import * as download from 'download';
-import * as crypto from 'crypto';
+// import * as download from 'download';
+// import * as crypto from 'crypto';
+
+
+/* Flow of this extension
+   User opens extension
+   Interactive selection of debug type, ns, pod, container
+   Squashctl creates a debug connection, prints out needed information
+   Extension parses the squashctl return value
+   Extension uses vscode's debug capabilities
+*/
+
+/*
+  Configuration values
+  - remotePath - for source mapping, the source code path used when the target binary was compiled
+
+*/
+
 
 import squashVersionData = require('./squash.json');
 
@@ -14,18 +30,17 @@ import squashVersionData = require('./squash.json');
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-const OutPort = 1236;
-
-const confname = "kubesquash";
+// this is the key in the vscode config map for which our squash configuration object is the value
+const confname = "squashextension";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "kubesquash" is now active!');
+    console.log(`Congratulations, your extension "Squash" is now active!`);
 
-    let se = new SquashExtention(context);
+    let se = new SquashExtension(context);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
@@ -43,72 +58,88 @@ export function deactivate() { }
 
 async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
-    let execpath = path.join(pathforbin, "kubsquash");
+    let execpath = path.join(pathforbin, "squashctl");
 
-    let ks = getKubeSquash();
+    // let ks = getSquashctl();
 
-    if (fs.existsSync(execpath)) {
-        let exechash = await hash(execpath);
-        // make sure its the one we expect:
-        // this can happen on version updates.
-        if (exechash !== ks.checksum) {
-            // remove the bad binary.
-            fs.unlinkSync(execpath);
-        }
-    }
+    // TODO(mitchdraft) - reenable
+    // if (fs.existsSync(execpath)) {
+    //     let exechash = await hash(execpath);
+    //     // make sure its the one we expect:
+    //     // this can happen on version updates.
+    //     if (exechash !== ks.checksum) {
+    //         // remove the bad binary.
+    //         fs.unlinkSync(execpath);
+    //     }
+    // }
 
-    if (!fs.existsSync(execpath)) {
-        shelljs.mkdir('-p', pathforbin);
-        let s = await vscode.window.showInformationMessage("Download kubesquash?", "yes", "no");
-        if (s === "yes") {
-            await download2file(ks.link, execpath);
-            vscode.window.showInformationMessage("download kubesquash complete");
-        }
-    }
-    // test after the download
-    let exechash = await hash(execpath);
-    // make sure its the one we expect:
-    if (exechash !== ks.checksum) {
-        // remove the bad binary.
-        fs.unlinkSync(execpath);
-        throw new Error("bad checksum for binary; download may be corrupted - please try again.");
-    }
-    fs.chmodSync(execpath, 0o755);
+    // TODO(mitchdraft) - renable
+    // if (!fs.existsSync(execpath)) {
+    //     let s = await vscode.window.showInformationMessage("Download Squash?", "yes", "no");
+    //     if (s === "yes") {
+    //         vscode.window.showInformationMessage("download started");
+    //         shelljs.mkdir('-p', pathforbin);
+    //         await download2file(ks.link, execpath);
+    //         vscode.window.showInformationMessage("download Squash complete");
+    //     }
+    // }
+    // // test after the download
+    // let exechash = await hash(execpath);
+    // // make sure its the one we expect:
+    // if (exechash !== ks.checksum) {
+    //     // remove the bad binary.
+    //     fs.unlinkSync(execpath);
+    //     throw new Error("bad checksum for binary; download may be corrupted - please try again.");
+    // }
+    // fs.chmodSync(execpath, 0o755);
     return execpath;
 }
 
-function hash(f: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        const input = fs.createReadStream(f);
-        const hash = crypto.createHash('sha256');
+// function hash(f: string): Promise<string> {
+//     return new Promise<string>((resolve, reject) => {
+//         const input = fs.createReadStream(f);
+//         const hash = crypto.createHash('sha256');
 
-        input.on('data', function (data: Buffer) {
-            hash.update(data);
-        });
-        input.on('error', reject);
-        input.on('end', () => {
-            resolve(hash.digest("hex"));
-        });
+//         input.on('data', function (data: Buffer) {
+//             hash.update(data);
+//         });
+//         input.on('error', reject);
+//         input.on('end', () => {
+//             resolve(hash.digest("hex"));
+//         });
 
-    });
+//     });
+// }
+
+// function download2file(what: string, to: string): Promise<any> {
+
+//     return new Promise<any>((resolve, reject) => {
+//         let file = fs.createWriteStream(to);
+//         let stream = download(what);
+//         stream.pipe(file);
+//         file.on('close', resolve);
+//         file.on("finish", function () {
+//             file.close();
+//         });
+//         stream.on('error', reject);
+//         file.on('error', reject);
+
+//     });
+// }
+
+export class DebuggerPickItem implements vscode.QuickPickItem {
+    label: string;
+    description: string;
+    detail?: string;
+
+    debugger: string;
+
+    constructor(dbg: string) {
+        this.label = `${dbg}`;
+        this.description = dbg;
+        this.debugger = dbg;
+    }
 }
-
-function download2file(what: string, to: string): Promise<any> {
-
-    return new Promise<any>((resolve, reject) => {
-        let file = fs.createWriteStream(to);
-        let stream = download(what);
-        stream.pipe(file);
-        file.on('close', resolve);
-        file.on("finish", function () {
-            file.close();
-        });
-        stream.on('error', reject);
-        file.on('error', reject);
-
-    });
-}
-
 export class PodPickItem implements vscode.QuickPickItem {
     label: string;
     description: string;
@@ -124,7 +155,7 @@ export class PodPickItem implements vscode.QuickPickItem {
         this.pod = pod;
     }
 }
-class SquashExtention {
+class SquashExtension {
 
     context: vscode.ExtensionContext;
     squashInfo: SquashInfo;
@@ -135,13 +166,13 @@ class SquashExtention {
     }
 
     async debug() {
-        /*
-            run the squashkube binary with -server
-        */
+        // run the squashkube binary with -server
 
-        let squahspath: string = get_conf_or("path", null);
-        if (!squahspath) {
-            squahspath = await getremote(this.context.extensionPath);
+        let squashpath: string = get_conf_or("path", null);
+        console.log("using squasctl from:");
+        console.log(squashpath);
+        if (!squashpath) {
+            squashpath = await getremote(this.context.extensionPath);
         }
 
         if (!vscode.workspace.workspaceFolders) {
@@ -170,9 +201,7 @@ class SquashExtention {
             }
         }
 
-        /*
-           get namespace and pod
-        */
+        // get namespace and pod
         let pods = await this.getPods();
 
         let podoptions: vscode.QuickPickOptions = {
@@ -189,46 +218,108 @@ class SquashExtention {
         }
         let selectedPod = item.pod;
 
-        let containerRepo = get_conf_or("containerRepository", null);
-        let containerRepoArg = "";
-        if (containerRepo) {
-            containerRepoArg = `--container-repo ${containerRepo}`;
+        // choose debugger to use
+        const debuggerList = ["dlv", "java"];
+        let debuggerItems: DebuggerPickItem[] = debuggerList.map(name => new DebuggerPickItem(name));
+        let debuggerOptions: vscode.QuickPickOptions = {
+            placeHolder: "Please select a debugger",
+        };
+        const chosenDebugger = await vscode.window.showQuickPick(debuggerItems, debuggerOptions);
+        if (!chosenDebugger) {
+            console.log("chosing debugger canceled - debugging canceled");
+            return;
         }
+        console.log("You chose debugger: " + JSON.stringify(chosenDebugger));
+        let debuggerName = chosenDebugger.debugger;
 
-        let extraArgs  = get_conf_or("extraArgs", "");
-        // now invoke kubesquash
-        let stdout = await exec(maybeKubeEnv() + `${squahspath} ${extraArgs} ${containerRepoArg} --machine --debug-server --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace}`);
-        let squashPodRegex = /pod.name:\s+(\S+)\s*$/g;
-        let match = squashPodRegex.exec(stdout);
-        if (match === null) {
-            throw new Error("can't parse output of kubesquash: " + stdout);
+        // now invoke squashctl
+        let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
+        console.log(`executing ${cmdSpec}`);
+        let stdout = await exec(cmdSpec);
+        let responseData = JSON.parse(stdout);
+        if (!responseData) {
+            throw new Error("can't parse output of squashctl: " + stdout);
         }
-        // get created pod name
-        let squashPodName = match[1];
-        let pa = new PodAddress(selectedPod.metadata.namespace, squashPodName, OutPort);
 
         let remotepath = get_conf_or("remotePath", null);
 
         // port forward
-        let localport = await kubectl_portforward(pa);
+        let localport = await kubectl_portforward(responseData.PortForwardCmd);
 
         let localpath = workspace.uri.fsPath;
         // start debugging!
-        let debuggerconfig: vscode.DebugConfiguration = {
-            type: "go",
-            name: "Remote",
-            request: "launch",
-            mode: "remote",
-            port: localport,
-            host: "127.0.0.1",
-            program: localpath,
-            remotePath: remotepath,
-            //    stopOnEntry: true,
-            env: {},
-            args: [],
-            showLog: true,
-            trace: "verbose"
-        };
+            let debuggerconfig;
+            switch (debuggerName) {
+                case "dlv":
+                    debuggerconfig = {
+                        name: "Remote",
+                        type: "go",
+                        request: "launch",
+                        mode: "remote",
+                        port: localport,
+                        host: "127.0.0.1",
+                        program: localpath,
+                        remotePath: remotepath,
+                        //      stopOnEntry: true,
+                        env: {},
+                        args: [],
+                        showLog: true,
+                        trace: "verbose"
+                    };
+                    break;
+                case "java":
+                    debuggerconfig = {
+                        type: "java",
+                        request: "attach",
+                        name: "Attach to java process",
+                        port: localport,
+                        hostName: "127.0.0.1",
+                    };
+                    break;
+                case "nodejs":
+                case "nodejs8":
+                    debuggerconfig = {
+                        type: "node",
+                        request: "attach",
+                        name: "Attach to Remote",
+                        address: "127.0.0.1",
+                        port: localport,
+                        localRoot: localpath,
+                        remoteRoot: remotepath
+                    };
+                    break;
+                case "python":
+                    // TODO - add this to config when python enabled
+                    let ptvsdsecret = get_conf_or("pythonSecret", "");
+                    debuggerconfig = {
+                        type: "python",
+                        request: "attach",
+                        name: "Python: Attach",
+                        localRoot: localpath,
+                        remoteRoot: remotepath,
+                        port: localport,
+                        secret: ptvsdsecret,
+                        host: "127.0.0.1"
+                    };
+                    break;
+                case "gdb":
+                    let autorun: string[] = [];
+                    if (remotepath) {
+                        autorun = [`set substitute-path "${remotepath}" "${localpath}"`];
+                    }
+                    debuggerconfig = {
+                        type: "gdb",
+                        request: "attach",
+                        name: "Attach to gdbserver",
+                        target: "localhost:" + localport,
+                        remote: true,
+                        cwd: localpath,
+                        autorun: autorun
+                    };
+                    break;
+                default:
+                    throw new Error(`Unknown debugger ${debuggerName}`);
+            }
 
         return vscode.debug.startDebugging(
             workspace,
@@ -257,21 +348,7 @@ export class WorkspaceFolderPickItem implements vscode.QuickPickItem {
     }
 }
 
-export class PodAddress {
-    podName: string;
-    podNamespace: string;
-    port: number;
-
-    constructor(podNamespace: string, podName: string, port: number) {
-        this.podNamespace = podNamespace;
-        this.podName = podName;
-        this.port = port;
-    }
-}
-
-function kubectl_portforward(remote: PodAddress): Promise<number> {
-
-    let cmd = get_conf_or("kubectl-path", "kubectl") + maybeKubeConfig() + ` --namespace=${remote.podNamespace} port-forward ${remote.podName} :${remote.port}`;
+function kubectl_portforward(cmd: string): Promise<number> {
     console.log("Executing: " + cmd);
     let p = new Promise<number>((resolve, reject) => {
         let resolved = false;
@@ -299,6 +376,7 @@ function kubectl_portforward(remote: PodAddress): Promise<number> {
         });
     });
 
+    console.log(["port forwarding on", JSON.stringify(p)]);
     return p;
 }
 
@@ -307,29 +385,7 @@ function kubectl_get<T=any>(cmd: string, ...args: string[]): Promise<T> {
 }
 
 function kubectl(cmd: string): Promise<string> {
-    return exec(get_conf_or("kubectl-path", "kubectl") + maybeKubeConfig() + " " + cmd);
-}
-
-function maybeKubeConfig(): string {
-
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
-    if (!maybeKubeConfig) {
-        maybeKubeConfig = "";
-    } else {
-        maybeKubeConfig = ` --kubeconfig="${maybeKubeConfig}" `;
-    }
-    return maybeKubeConfig;
-}
-
-function maybeKubeEnv(): string {
-
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
-    if (!maybeKubeConfig) {
-        maybeKubeConfig = "";
-    } else {
-        maybeKubeConfig = `KUBECONFIG="${maybeKubeConfig}" `;
-    }
-    return maybeKubeConfig;
+    return exec("kubectl" + " " + cmd);
 }
 
 // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
@@ -404,27 +460,27 @@ function getSquashInfo(): SquashInfo {
     return <SquashInfo>squashVersionData;
 }
 
-interface KubesquashBinary {
-    link: string;
-    checksum: string;
-}
+// interface SquashctlBinary {
+//     link: string;
+//     checksum: string;
+// }
 
-function createKubesquashBinary(os: string, checksum: string): KubesquashBinary {
-    return {
-        link: "https://github.com/solo-io/kubesquash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
-        checksum: checksum
-    };
-}
+// function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
+//     return {
+//         link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
+//         checksum: checksum
+//     };
+// }
 
-function getKubeSquash(): KubesquashBinary {
-    // download the squash version for this extension
-    var osver = process.platform;
-    switch (osver) {
-        case 'linux':
-            return createKubesquashBinary("linux", getSquashInfo().binaries.linux);
-        case 'darwin':
-            return createKubesquashBinary("osx", getSquashInfo().binaries.darwin);
-        default:
-            throw new Error(osver + " is current unsupported");
-    }
-}
+// function getSquashctl(): SquashctlBinary {
+//     // download the squash version for this extension
+//     var osver = process.platform;
+//     switch (osver) {
+//         case 'linux':
+//             return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
+//         case 'darwin':
+//             return createSquashctlBinary("osx", getSquashInfo().binaries.darwin);
+//         default:
+//             throw new Error(osver + " is current unsupported");
+//     }
+// }

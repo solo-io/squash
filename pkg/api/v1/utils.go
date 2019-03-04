@@ -26,17 +26,28 @@ func (m *DebugAttachment) GetPortFromDebugServerAddress() (int, error) {
 	return strconv.Atoi(parts[1])
 }
 
-// For a given debug Intent, finds the corresponding DebugAttachment, if any
+// For a given debug Intent, finds the corresponding DebugAttachment, errors if there is not exactly one match
 func (di *Intent) GetDebugAttachment(daClient DebugAttachmentClient) (*DebugAttachment, error) {
+	das, err := di.GetDebugAttachments(daClient)
+	if err != nil {
+		return nil, err
+	}
+	if len(das) != 1 {
+		return nil, fmt.Errorf("Expected one debug attachment to match label selectors, found %v.", len(das))
+	}
+	return das[0], nil
+}
+
+// For a given debug Intent, finds the corresponding DebugAttachments
+// Note, under normal operation, there should only ever be on match. This function exists
+// for handling possible error states.
+func (di *Intent) GetDebugAttachments(daClient DebugAttachmentClient) (DebugAttachmentList, error) {
 	labels := di.GenerateLabels()
 	das, err := daClient.List(di.Pod.Namespace, clients.ListOpts{Selector: labels})
 	if err != nil {
-		return &DebugAttachment{}, err
+		return DebugAttachmentList{}, err
 	}
-	if len(das) != 1 {
-		return &DebugAttachment{}, fmt.Errorf("Expected one debug attachment to match label selectors, found %v.", len(das))
-	}
-	return das[0], nil
+	return das, nil
 }
 
 func (di *Intent) GenerateLabels() map[string]string {

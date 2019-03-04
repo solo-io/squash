@@ -11,6 +11,10 @@ func (g *GdbInterface) GetRemoteConnectionCmd(plankName, plankNamespace, podName
 	return GetPortForwardCmd(plankName, plankNamespace, localPort, remotePort)
 }
 
+func (g *GdbInterface) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	return getPortForwardWithRandomLocalCmd(plankName, plankNamespace, remotePort)
+}
+
 func (d *GdbInterface) GetDebugCmd(localPort int) *exec.Cmd {
 	// TODO
 	return nil

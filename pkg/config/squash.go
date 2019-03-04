@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -145,23 +146,51 @@ func (s *Squash) getDebuggerPodNamespace() string {
 }
 
 func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
-	if s.Machine {
-		return s.printEditorExtensionData()
-	}
-	return s.connectUser()
-}
-
-func (s *Squash) printEditorExtensionData() error {
 	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("pod.name: %v", da.PlankName)
+	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
+	if err != nil {
+		return err
+	}
+	if s.Machine {
+		return s.printEditorExtensionData(remoteDbgPort)
+	}
+	return s.connectUser(da, remoteDbgPort)
+}
+
+type EditorData struct {
+	PortForwardCmd string
+}
+
+func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
+	da, err := s.getDebugAttachment()
+	if err != nil {
+		return err
+	}
+
+	debugger := local.GetParticularDebugger(s.Debugger)
+	kubectlCmd := debugger.GetEditorRemoteConnectionCmd(
+		da.PlankName,
+		s.SquashNamespace,
+		s.Pod,
+		s.Namespace,
+		remoteDbgPort,
+	)
+	ed := EditorData{
+		PortForwardCmd: kubectlCmd,
+	}
+	json, err := json.Marshal(ed)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(json))
 	return nil
 }
 
 // TODO - remove this when V2 api is ready
-func (s *Squash) getIntent() squashv1.Intent {
+func (s *Squash) GetIntent() squashv1.Intent {
 	return squashv1.Intent{
 		Debugger: s.Debugger,
 		Pod: &core.ResourceRef{
@@ -174,7 +203,7 @@ func (s *Squash) getIntent() squashv1.Intent {
 
 func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	// Refactor - eventually Intent will be created during config/user entry
-	intent := s.getIntent()
+	intent := s.GetIntent()
 	daClient, err := utils.GetDebugAttachmentClient(context.Background())
 	if err != nil {
 		return &squashv1.DebugAttachment{}, err
@@ -182,17 +211,9 @@ func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	return intent.GetDebugAttachment(daClient)
 }
 
-func (s *Squash) connectUser() error {
+func (s *Squash) connectUser(da *squashv1.DebugAttachment, remoteDbgPort int) error {
 	if s.Machine {
 		return nil
-	}
-	da, err := s.getDebugAttachment()
-	if err != nil {
-		return err
-	}
-	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
-	if err != nil {
-		return err
 	}
 	debugger := local.GetParticularDebugger(s.Debugger)
 	kubectlCmd := debugger.GetRemoteConnectionCmd(
@@ -288,7 +309,9 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 				createdPod, err = s.getClientSet().CoreV1().Pods(s.SquashNamespace).Get(name, options)
 
 				if createdPod.Status.Phase == v1.PodPending {
-					fmt.Println("Pod creating")
+					if !s.Machine {
+						fmt.Println("Pod creating")
+					}
 					continue
 				}
 				if err != nil {
@@ -346,7 +369,7 @@ func containerNameFromSpec(debugger string) string {
 }
 
 func (s *Squash) debugPodFor() (*v1.Pod, error) {
-	it := s.getIntent()
+	it := s.GetIntent()
 	const crisockvolume = "crisock"
 	targetPod, err := s.getClientSet().CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
 	if err != nil {
@@ -435,4 +458,21 @@ func (s *Squash) getClientSet() kubernetes.Interface {
 	s.clientset = cs
 	return s.clientset
 
+}
+
+// DeletePlankPod deletes the plank pod that was created for the debug session
+// represented by the Squash object. This should be called when a debugging session
+// is terminated.
+func (s *Squash) DeletePlankPod() error {
+	intent := s.GetIntent()
+	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	if err != nil {
+		return err
+	}
+	da, err := intent.GetDebugAttachment(daClient)
+	if err != nil {
+		return err
+	}
+
+	return s.clientset.CoreV1().Pods(s.SquashNamespace).Delete(da.PlankName, &meta_v1.DeleteOptions{})
 }

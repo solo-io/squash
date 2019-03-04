@@ -13,6 +13,10 @@ func (g *JavaInterface) GetRemoteConnectionCmd(plankName, plankNamespace, podNam
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
 
+func (j *JavaInterface) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	return getPortForwardWithRandomLocalCmd(podName, podNamespace, remotePort)
+}
+
 func (d *JavaInterface) GetDebugCmd(localPort int) *exec.Cmd {
 	cmd := exec.Command("jdb", "-attach", fmt.Sprintf("127.0.0.1:%v", localPort))
 	cmd.Stdout = os.Stdout

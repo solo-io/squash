@@ -1,6 +1,6 @@
 {
-  "name": "kubesquash",
-  "displayName": "KubeSquash",
+  "name": "squashextension",
+  "displayName": "Squash",
   "description": "Debug your applications running on Kubernetes",
   "version": "0.0.5",
   "publisher": "ilevine",
@@ -9,11 +9,11 @@
     "email": "idit.levine@solo.io",
     "url": "https://www.solo.io"
   },
-  "homepage": "https://github.com/solo-io/kubesquash/tree/master/extension/vscode",
+  "homepage": "https://github.com/solo-io/squash",
   "bugs": {
-    "url": "https://github.com/solo-io/kubesquash/issues"
+    "url": "https://github.com/solo-io/squash/issues"
   },
-  "icon": "images/KubeSquash.png",
+  "icon": "images/squash.svg",
   "galleryBanner": {
     "color": "#4a4a4a",
     "theme": "dark"
@@ -34,7 +34,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/solo-io/kubesquash.git"
+    "url": "https://github.com/solo-io/squash.git"
   },
   "license": "SEE LICENSE IN LICENSE",
   "engines": {
@@ -50,39 +50,24 @@
   "main": "./out/extension",
   "contributes": {
     "configuration": {
-      "title": "Kube squash config",
+      "title": "Squash config",
       "properties": {
-        "kubesquash.path": {
+        "squashextension.path": {
           "type": "string",
           "default": null,
-          "description": "path to kubesquash. This is mainly used for development. By default, the correct binary will be downloaded automatically."
+          "description": "path to squashctl. This is mainly used for development. By default, the correct binary will be downloaded automatically."
         },
-        "kubesquash.containerRepository": {
-          "type": "string",
-          "default": null,
-          "description": "Path to squash containers, incase they are hosted in a private repository. by default uses docker hub."
-        },
-        "kubesquash.remotePath": {
+        "squashextension.remotePath": {
           "type": "string",
           "default": null,
           "description": "Path of the source files in the remote executable."
-        },
-        "kubesquash.extraArgs": {
-          "type": "string",
-          "default": null,
-          "description": "Extra arguments to pass to the kubesquash binary."
-        },
-        "kubesquash.kubeConfig": {
-          "type": "string",
-          "default": null,
-          "description": "Path kubeconfig file to use to talk with kubernetes."
         }
       }
     },
     "commands": [
       {
         "command": "extension.debugPod",
-        "title": "Kubesquash - debug pod"
+        "title": "Squash - debug pod"
       }
     ]
   },

@@ -13,6 +13,10 @@ func (g *JavaPortInterface) GetRemoteConnectionCmd(plankName, plankNamespace, po
 	return GetPortForwardCmd(podName, podNamespace, localPort, remotePort)
 }
 
+func (j *JavaPortInterface) GetEditorRemoteConnectionCmd(plankName, plankNamespace, podName, podNamespace string, remotePort int) string {
+	return getPortForwardWithRandomLocalCmd(podName, podNamespace, remotePort)
+}
+
 func (d *JavaPortInterface) GetDebugCmd(localPort int) *exec.Cmd {
 	fmt.Printf("Java debug port available on local port %v.\n", localPort)
 	// TODO(mitchdraft) - do this in a less hacky way

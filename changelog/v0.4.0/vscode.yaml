@@ -1,0 +1,4 @@
+changelog:
+- type: FIX
+  description: "enables java debugging with vscode"
+  issueLink: https://github.com/solo-io/squash/issues/98

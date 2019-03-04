@@ -1,6 +1,6 @@
 {
   "version": "",
-  "baseName": "kubesquash",
+  "baseName": "squashctl",
   "binaries": {
     "linux": "",
     "darwin": ""

@@ -11,7 +11,6 @@ import (
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
-	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/options"
 	sqOpts "github.com/solo-io/squash/pkg/options"
@@ -96,11 +95,9 @@ func App(version string) (*cobra.Command, error) {
 }
 
 func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
-	depBool := false // TODO(mitchdraft) update extension to not pass debug-server
 	f.BoolVar(&cfg.NoClean, "no-clean", false, "don't clean temporary pod when existing")
 	f.BoolVar(&cfg.ChooseDebugger, "no-guess-debugger", false, "don't auto detect debugger to use")
 	f.BoolVar(&cfg.ChoosePod, "no-guess-pod", false, "don't auto detect pod to use")
-	f.BoolVar(&depBool, "debug-server", false, "[deprecated] start a debug server instead of an interactive session")
 	f.IntVar(&cfg.TimeoutSeconds, "timeout", 300, "timeout in seconds to wait for debug pod to be ready")
 	f.StringVar(&cfg.DebugContainerVersion, "container-version", version.ImageVersion, "debug container version to use")
 	f.StringVar(&cfg.DebugContainerRepo, "container-repo", version.ImageRepo, "debug container repo to use")
@@ -143,6 +140,10 @@ func (o *Options) runBaseCommand() error {
 	o.printVerbose("Attaching debugger")
 
 	if err := o.ensureMinimumSquashConfig(); err != nil {
+		return err
+	}
+
+	if err := o.cleanupPreRun(); err != nil {
 		return err
 	}
 
@@ -461,12 +462,56 @@ func (o *Options) ensureSquashIsInCluster() error {
 	return nil
 }
 
-func (o *Options) cleanupPostRun() error {
-	// TODO - consider explicitly ensuring that pod has been deleted (tends to be deleted by default)
+func (o *Options) cleanupPreRun() error {
+	// look for an existing Debug Attachment CRD and clean up its old resources
+	it := o.Squash.GetIntent()
+	priorDas, err := it.GetDebugAttachments(o.daClient)
+	if err != nil {
+		return errors.Wrap(err, "cleanup pre run list das")
+	}
+	for _, priorDa := range priorDas {
+		// delete the prior plank pod
+		if err := o.KubeClient.
+			CoreV1().
+			Pods(o.Squash.SquashNamespace).
+			Delete(priorDa.PlankName, &meta_v1.DeleteOptions{}); err != nil {
+			// do not exit on error, it does not matter if the pod was already deleted
+			// TODO(mitchdraft) - first check if the pod exists before deleting
+			if !o.Squash.Machine {
+				fmt.Println(err)
+			}
+		}
+		if err := o.daClient.Delete(
+			priorDa.Metadata.Namespace,
+			priorDa.Metadata.Name,
+			clients.DeleteOpts{}); err != nil {
+			if !o.Squash.Machine {
+				fmt.Println(err)
+			}
+		}
+	}
+	return nil
+}
 
-	// remove crd
-	so := o.Squash
-	daName := squashv1.GenDebugAttachmentName(so.Pod, so.Container)
-	return o.daClient.Delete(so.Namespace, daName, clients.DeleteOpts{Ctx: o.ctx})
+func (o *Options) cleanupPostRun() error {
+	// remove pod only if we are not in machine mode
+	if !o.Squash.Machine {
+		it := o.Squash.GetIntent()
+		priorDa, err := it.GetDebugAttachment(o.daClient)
+		if err != nil {
+			return errors.Wrap(err, "cleanup pre run list das")
+		}
+		if err := o.daClient.Delete(
+			priorDa.Metadata.Namespace,
+			priorDa.Metadata.Name,
+			clients.DeleteOpts{}); err != nil {
+			fmt.Println(err)
+		}
+
+		if err := o.Squash.DeletePlankPod(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

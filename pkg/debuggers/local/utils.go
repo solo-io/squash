@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,11 @@ func GetPortForwardCmd(targetName, targetNamespace string, localPort, targetRemo
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	return cmd
+}
+
+func getPortForwardWithRandomLocalCmd(targetName, targetNamespace string, targetRemotePort int) string {
+	portSpec := fmt.Sprintf(":%v", targetRemotePort)
+	return strings.Join([]string{"kubectl", "port-forward", targetName, portSpec, "-n", targetNamespace}, " ")
 }
 
 func GetParticularDebugger(dbgtype string) Local {
