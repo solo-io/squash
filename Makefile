@@ -199,6 +199,15 @@ ifeq ($(RELEASE),"true")
 	docker push $(DOCKER_REPO)/squash:$(VERSION)
 endif
 
+
+#----------------------------------------------------------------------------------
+# Release
+#----------------------------------------------------------------------------------
+.PHONY: upload-github-release-assets
+upload-github-release-assets: squashctl
+	go run ci/upload_github_release_assets.go
+
+
 #------------------------
 # .PHONY: binaries
 # binaries: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squash # Builds squashctl binaries in and places them in $(OUTPUT_DIR)/ folder

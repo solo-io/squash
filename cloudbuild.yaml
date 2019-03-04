@@ -45,25 +45,36 @@ steps:
   waitFor: ['dep']
   id: 'check-code-and-docs-gen'
 
-# - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
-#   entrypoint: ls
-#   waitFor: ['-']
-#   waitFor: ['dep']
-#   id: 'grab-ginkgo-container'
 
-- name: 'gcr.io/$PROJECT_ID/go-make'
-  env:
-  - 'PROJECT_ROOT=github.com/solo-io/squash'
-  - 'GOPATH=/workspace/gopath'
-  - 'TAGGED_VERSION=$TAG_NAME'
-  dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['check-code-and-docs-gen']
-  args: ['all']
 
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
-  args: ['-c', 'docker login --username soloiobot --password $$DOCKER_HUB_PASSWORD']
-  secretEnv: ['DOCKER_HUB_PASSWORD']
+  args: ['-c', 'docker login quay.io --username "solo-io+solobot" --password $$QUAY_IO_PASSWORD']
+  secretEnv: ['QUAY_IO_PASSWORD']
+  id: 'docker-login'
+
+- name: 'gcr.io/$PROJECT_ID/go-make'
+  args: ['docker']
+  env:
+    - 'PROJECT_ROOT=github.com/solo-io/squash'
+    - 'GOPATH=/workspace/gopath'
+    - 'TAGGED_VERSION=$TAG_NAME'
+    - 'BUILD_ID=$BUILD_ID'
+    - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
+  dir: './gopath/src/github.com/solo-io/squash'
+  waitFor: ['check-code-and-docs-gen']
+  id: 'compile'
+
+- name: 'gcr.io/$PROJECT_ID/go-make'
+  args: ['docker-push', 'upload-github-release-assets', 'push-docs']
+  env:
+  - 'TAGGED_VERSION=$TAG_NAME'
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
+  - 'GOPATH=/workspace/gopath'
+  dir: './gopath/src/github.com/solo-io/squash'
+  secretEnv: ['GITHUB_TOKEN']
+  id: 'release'
+  waitFor: ['test', 'regression-tests']
 
 # - name: 'gcr.io/cloud-builders/docker'
 #   env:
@@ -108,8 +119,9 @@ steps:
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
   secretEnv:
-    # GITHUB_TOKEN: CiQAwdWthppXCatGZZrcHgwEcPXq0J1UVsTgGxHBVeS08sMZV/gSUgD5SXFIMJqfBsZflgeqMpC4hkszp8q8aeBh6oMuPRJRHKZRCIlJhHiaamm49VmFHROd9rG7b8y0MTVb5BOaQPN9MQ1j9tIXI8XoHlI9JHfpgLs=
-    DOCKER_HUB_PASSWORD: CiQABlzmSW0u+qhXDvTCxLnbi09Zm88eCU0wSdvFn1W+6WOpTgQSTgCCPGSGTAlMndrEkYOynPhDzTXrW1q1eAsQYjKOWOwZKodcQZ2WIzdvpOOjv+WrGTssWWg1uPFV4CnajT7DzeNAb7USkla1epatm6OnuQ==
+    GITHUB_TOKEN: CiQAwdWthppXCatGZZrcHgwEcPXq0J1UVsTgGxHBVeS08sMZV/gSUgD5SXFIMJqfBsZflgeqMpC4hkszp8q8aeBh6oMuPRJRHKZRCIlJhHiaamm49VmFHROd9rG7b8y0MTVb5BOaQPN9MQ1j9tIXI8XoHlI9JHfpgLs=
+    # DOCKER_HUB_PASSWORD: CiQABlzmSW0u+qhXDvTCxLnbi09Zm88eCU0wSdvFn1W+6WOpTgQSTgCCPGSGTAlMndrEkYOynPhDzTXrW1q1eAsQYjKOWOwZKodcQZ2WIzdvpOOjv+WrGTssWWg1uPFV4CnajT7DzeNAb7USkla1epatm6OnuQ==
+    QUAY_IO_PASSWORD: CiQABlzmSRx5TcOqbldXa/d/+bkmAfpNAWa3PTS06WvuloZL+vASaQCCPGSGCogonVZVEUNx4G3YJtWi18gSuNx4PvLe08q8xAflTMFkjsyQirAOK3Y2oCvgYwiw/ITcuydjkpMjxDygFyENXS9FKFJoAXHlPQE5qidKr8xxmxF5ezhmjGB0gjyjXIIkbSEnBg==
     ## uncomment when extension is ready
     # VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
 
