@@ -49,27 +49,21 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 
 ## Supported debuggers:
-### Active
-- [dlv](https://github.com/derekparker/delve)
-- [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
-### Upcoming
-- [gdb](https://www.gnu.org/software/gdb/)
-- [Nodejs](https://nodejs.org/api/debugger.html)
-- [Python - ptvsd](https://code.visualstudio.com/docs/python/debugging)
+ - [dlv](https://github.com/derekparker/delve)
+ - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
+ - [gdb](https://www.gnu.org/software/gdb/) (2019)
+ - [Nodejs](https://nodejs.org/api/debugger.html) (2019)
+ - [Python - ptvsd](https://code.visualstudio.com/docs/python/debugging) (2019)
  
 ## Supported platforms:
-### Active
-- [Kubernetes](docs/platforms/kubernetes.md)
-- [OpenShift](https://www.openshift.com/)
-### Upcoming
-- [Istio](docs/platforms/istio.md)
+ - [Kubernetes](docs/platforms/kubernetes.md)
+ - [OpenShift](https://www.openshift.com/)
+ - [Istio](docs/platforms/istio.md) (2019)
  
 ## Supported IDEs:
-### Active
-- [VS Code](https://github.com/solo-io/squash-vscode)
-### Upcoming
-- [Intellij](https://github.com/solo-io/squash-intellij)
-- [Eclipse](https://eclipse.org/ide/)
+ - [VS Code](https://github.com/solo-io/squash-vscode)
+ - [Intellij](https://github.com/solo-io/squash-intellij) (2019)
+ - [Eclipse](https://eclipse.org/ide/)
 
 *We welcome community support for enabling more debuggers and IDEs.*
 
@@ -77,6 +71,11 @@ Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 **Service Mesh**
   - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
 
+**debuggers**
+ - We will be adding support to several additional debuggers in early 2019, including gdb, nodejs, and python.
+
+**IDEs**
+  - We have simplified the `squashctl --machine` interface so it is easier to add support for additional IDEs. We will be updating our Intellij extension in early 2019.
 
 
 Squash is under active development. APIs and compatibility are subject to change. We welcome community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
