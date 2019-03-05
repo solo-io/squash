@@ -1,3 +1,3 @@
 #!/bin/sh -e
-cd extension/vscode
+cd editor/vscode
 vsce publish -p $VSCODE_TOKEN

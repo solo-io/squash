@@ -140,31 +140,33 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
 	touch $@
 
-#----------------------------------------------------------------------------------
-# Extension
-#----------------------------------------------------------------------------------
 
+#----------------------------------------------------------------------------------
+# VS-Code extension
+#----------------------------------------------------------------------------------
 .PHONY: publish-extension
-publish-extension: bump-extension-version ## (vscode) Publishes extension
+publish-extension: package-extension ## (vscode) Publishes extension
+ifeq ($(RELEASE),"true")
 	./hack/publish-extension.sh
+endif
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
+ifeq ($(RELEASE),"true")
 	cd editor/vscode && vsce package
+endif
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	cd editor/vscode && \
-	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
-	mv package.json.tmp package.json && \
-	jq '.version="$(VERSION)" | .binaries.linux="$(shell sha256sum $(OUTPUT_DIR)/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum $(OUTPUT_DIR)/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
-	mv src/squash.json.tmp src/squash.json
+	go run ci/bump_extension_version.go $(VERSION)
+
 
 #----------------------------------------------------------------------------------
 # Build All
 #----------------------------------------------------------------------------------
 .PHONY: build
 build: squashctl squash plank
+
 
 #----------------------------------------------------------------------------------
 # Docker
@@ -194,48 +196,19 @@ upload-github-release-assets: squashctl
 	go run ci/upload_github_release_assets.go
 
 
-#------------------------
-# .PHONY: binaries
-# binaries: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squash # Builds squashctl binaries in and places them in $(OUTPUT_DIR)/ folder
-
-
-# RELEASE_BINARIES := $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-windows $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/squash
-
-# .PHONY: release-binaries
-# release-binaries: $(RELEASE_BINARIES)
-
-# .PHONY: containers
-# containers: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container ## Builds debug containers
-
-# .PHONY: push-containers
-# push-containers: all $(OUTPUT_DIR)/plank-dlv-pushed $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/squash-pushed squashctl-pushed ## Pushes debug containers to $(DOCKER_REPO)
-
-# .PHONY: release
-# release: push-containers release-binaries ## Pushes containers to $(DOCKER_REPO) and releases binaries to GitHub
-
-# .PHONY: upload-release
-# upload-release: ## Uploads artifacts to GitHub releases
-# 	./hack/github-release.sh owner=solo-io repo=squash tag=$(VERSION)
-# 	@$(foreach BINARY,$(RELEASE_BINARIES),./hack/upload-github-release-asset.sh owner=solo-io repo=squash tag=$(VERSION) filename=$(BINARY);)
-
-
-# dist: $(OUTPUT_DIR)/plank-gdb-pushed $(OUTPUT_DIR)/plank-dlv-pushed ## Pushes all containers to $(DOCKER_REPO)
-
-
-
 #----------------------------------------------------------------------------------
 # Development utils
 #----------------------------------------------------------------------------------
 # Helpers for development: build and push (locally) only the things you changed
 # first run `eval $(minikube docker-env)` then any of these commands
-.PHONY: dev_squashctl
-dev_squashctl: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl
+.PHONY: dev-squashctl-darwin
+dev-squashctl-darwin: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
 
-.PHONY: dev_win_squashctl
-dev_win_squashct: $(OUTPUT_DIR)/squashctl-windows
+.PHONY: dev-squashctl-win
+dev-squashct-win: $(OUTPUT_DIR)/squashctl-windows
 
-.PHONY: dev_planks
-dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+.PHONY: dev-planks
+dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
 
-.PHONY: dev_squash
-dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container
+.PHONY: dev-squash
+dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container

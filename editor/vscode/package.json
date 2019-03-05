@@ -1,8 +1,8 @@
 {
-  "name": "squashextension",
+  "version": "THIS_VALUE_WILL_BE_REPLACED_BY_BUILD_SCRIPT",
+  "name": "squash",
   "displayName": "Squash",
   "description": "Debug your applications running on Kubernetes",
-  "version": "0.0.5",
   "publisher": "ilevine",
   "author": {
     "name": "solo.io",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/solo-io/squash/issues"
   },
-  "icon": "images/squash.svg",
+  "icon": "images/Squash.png",
   "galleryBanner": {
     "color": "#4a4a4a",
     "theme": "dark"
@@ -52,12 +52,12 @@
     "configuration": {
       "title": "Squash config",
       "properties": {
-        "squashextension.path": {
+        "squash.path": {
           "type": "string",
           "default": null,
           "description": "path to squashctl. This is mainly used for development. By default, the correct binary will be downloaded automatically."
         },
-        "squashextension.remotePath": {
+        "squash.remotePath": {
           "type": "string",
           "default": null,
           "description": "Path of the source files in the remote executable."
