@@ -166,7 +166,9 @@ endif
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
+ifeq ($(RELEASE),"true")
 	cd editor/vscode && vsce package
+endif
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
