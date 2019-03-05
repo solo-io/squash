@@ -159,7 +159,7 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 # VS-Code extension
 #----------------------------------------------------------------------------------
 .PHONY: publish-extension
-publish-extension: bump-extension-version ## (vscode) Publishes extension
+publish-extension: package-extension ## (vscode) Publishes extension
 ifeq ($(RELEASE),"true")
 	./hack/publish-extension.sh
 endif
@@ -170,7 +170,7 @@ package-extension: bump-extension-version ## (vscode) Packages extension
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	go run ci/bump_extension_version.go
+	go run ci/bump_extension_version.go $(VERSION)
 
 
 #----------------------------------------------------------------------------------
