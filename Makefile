@@ -170,11 +170,7 @@ package-extension: bump-extension-version ## (vscode) Packages extension
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	cd editor/vscode && \
-	jq '.version="$(VERSION)" | .version=.version[1:]' package.json > package.json.tmp && \
-	mv package.json.tmp package.json && \
-	jq '.version="$(VERSION)" | .binaries.win32="$(shell sha256sum $(OUTPUT_DIR)/squashctl-windows.exe|cut -f1 -d" ")" | $(shell sha256sum $(OUTPUT_DIR)/squashctl-linux|cut -f1 -d" ")" | .binaries.darwin="$(shell sha256sum $(OUTPUT_DIR)/squashctl-darwin|cut -f1 -d" ")"' src/squash.json > src/squash.json.tmp && \
-	mv src/squash.json.tmp src/squash.json
+	go run ci/upload_github_release_assets.go
 
 
 #----------------------------------------------------------------------------------

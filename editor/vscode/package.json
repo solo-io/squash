@@ -1,8 +1,8 @@
 {
+  "version": "THIS_VALUE_WILL_BE_REPLACED_BY_BUILD_SCRIPT",
   "name": "squash",
   "displayName": "Squash",
   "description": "Debug your applications running on Kubernetes",
-  "version": "0.0.5",
   "publisher": "ilevine",
   "author": {
     "name": "solo.io",
