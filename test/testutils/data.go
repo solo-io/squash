@@ -2,7 +2,7 @@ package testutils
 
 import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
 func GenerateDebugAttachment(name, namespace, dbgger, image, pod, container, processName string) v1.DebugAttachment {

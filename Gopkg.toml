@@ -39,24 +39,24 @@
 
 [[constraint]]
   name = "github.com/davecgh/go-spew"
-  version = "v1.1.0"
+  version = "1.1.0"
 
 [[constraint]]
   name = "github.com/onsi/ginkgo"
-  version = "v1.4.0"
+  version = "1.4.0"
 
 [[constraint]]
   name = "github.com/onsi/gomega"
-  version = "v1.2.0"
+  version = "1.2.0"
 
 [[override]]
   name = "github.com/Azure/go-autorest"
-  version = "v9.10.0"
+  version = "9.10.0"
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "v0.2.29"
+  version = "0.2.29"
 
-[[constraint]]
-  name = "github.com/solo-io/go-utils"
-  version = "v0.2.10"
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
