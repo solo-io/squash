@@ -40,7 +40,7 @@ steps:
   waitsFor: ['dep']
 - name: gcr.io/cloud-builders/gcloud
   args: ['container', 'clusters', 'get-credentials', 'test-cluster']
-  id: 'get-creds'
+  id: 'set-zone'
   waitFor: ['set-zone']
 - name: 'gcr.io/$PROJECT_ID/go-make'
   entrypoint: 'bash'
