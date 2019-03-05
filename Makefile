@@ -83,7 +83,7 @@ generatecode:
 # assumes TAGGED_VERSION and GITHUB_TOKEN are in env
 .PHONY: push-docs
 push-docs:
-	ci/push_docs.go
+	go run ci/push_docs.go
 
 
 #----------------------------------------------------------------------------------
