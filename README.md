@@ -9,11 +9,11 @@
 <BR>
 
 
-Debugging microservices applications is a difficult task. The state of the application is spread across multi microservices and it is hard to get the holistic view of the state of the application. Currently debugging of microservices is assisted by openTracing, which helps in tracing of a transaction or workflow for post-mortem analysis, and service mesh like Istio which monitor the network to identify latency problems. These tools however, do not allow to monitor and interfere with the application during run time. 
+Debugging microservices applications is a difficult task. The state of an application is spread across multiple processes, often on different nodes. It is hard to get the holistic view of an application's state. Certain tools exist for troubleshooting microservice issues. OpenTracing can be used to produce transaction or workflow logs for post-mortem analysis. Service meshes like Istio can be used to monitor the network to identify latency problems. Unfortunately, these tools are passive, the feedback loop is slow, and they do not allow you to monitor and alter the application during run time. 
 
-In contrast, "traditional" debuggers of monolithic application provide devs with powerful features like setting breakpoints in their codes, following values of variables on the fly, stepping through the code, and changing these variables during run time. 
+In contrast, "traditional" debuggers for monolithic applications provide devs with powerful real-time investigation features. A developer working with monolithic applications has the powerful ability to setting breakpoints throughout the application, follow variable values on the fly, step through the code, and change values during run time. 
 
-Squash brings the power of modern popular debuggers to developers of microservices apps that run on container orchestration platforms. Squash bridges between the orchestration platform (without changing it) and IDE. Users are free to choose which containers, pods, services or images they are interested in debugging, and are allowed to set breakpoints in their codes, follow values of their variables on the fly, step through the code while jumping between microservices, and change these values during run time. 
+Squash brings the power of modern debuggers to developers of microservice apps. Squash bridges between the apps running in a Kubernetes environment (without modifying them) and the IDE. Users are free to choose which containers, pods, services or images they are interested in debugging, and are allowed to set breakpoints in their codes, follow values of their variables on the fly, step through the code while jumping between microservices, and change these values during run time. 
 
 Squash is built to be easily extensible, allowing – and encouraging – adding support for more platforms, debuggers and IDEs.
 
