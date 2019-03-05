@@ -78,7 +78,7 @@ func mustPrepareJsPackage(ctx context.Context, version string) {
 	out := ""
 	for scanner.Scan() {
 		if jsPackageVersionLineMatch.MatchString(scanner.Text()) {
-			out += fmt.Sprintf(`  "version": "%v"%v`, version, "\n")
+			out += fmt.Sprintf(`  "version": "%v",%v`, version, "\n")
 		} else {
 			out += scanner.Text() + "\n"
 		}
