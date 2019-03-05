@@ -11,7 +11,7 @@
 
 Debugging microservices applications is a difficult task. The state of an application is spread across multiple processes, often on different nodes. It is hard to get the holistic view of an application's state. Certain tools exist for troubleshooting microservice issues. OpenTracing can be used to produce transaction or workflow logs for post-mortem analysis. Service meshes like Istio can be used to monitor the network to identify latency problems. Unfortunately, these tools are passive, the feedback loop is slow, and they do not allow you to monitor and alter the application during run time. 
 
-In contrast, "traditional" debuggers for monolithic applications provide devs with powerful real-time investigation features. A developer working with monolithic applications has the powerful ability to setting breakpoints throughout the application, follow variable values on the fly, step through the code, and change values during run time. 
+In contrast, "traditional" debuggers for monolithic applications provide devs with powerful real-time investigation features. A developer working with monolithic applications has the powerful ability to set breakpoints throughout the application, follow variable values on the fly, step through the code, and change values during run time.
 
 Squash brings the power of modern debuggers to developers of microservice apps. Squash bridges between the apps running in a Kubernetes environment (without modifying them) and the IDE. Users are free to choose which containers, pods, services or images they are interested in debugging, and are allowed to set breakpoints in their codes, follow values of their variables on the fly, step through the code while jumping between microservices, and change these values during run time. 
 
@@ -32,7 +32,7 @@ To stay up-to-date with Squash, follow us [@soloio_inc](https://twitter.com/solo
 * Set breakpoints
 * Step through code
 * View and modify values of variables
-* ...anything you could do with a regular debuger, and more!
+* ...anything you could do with a regular debugger, and more!
 
 
 ## Demo
@@ -63,20 +63,19 @@ Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 ## Supported IDEs:
  - [VS Code](https://github.com/solo-io/squash-vscode)
  - [Intellij](https://github.com/solo-io/squash-intellij) (2019)
- - [Eclipse](https://eclipse.org/ide/)
-
-*We welcome community support for enabling more debuggers and IDEs.*
+ - [Eclipse](https://eclipse.org/ide/) (2019)
 
 ## Roadmap:
 **Service Mesh**
   - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
 
-**debuggers**
+**Debuggers**
  - We will be adding support to several additional debuggers in early 2019, including gdb, nodejs, and python.
 
 **IDEs**
   - We have simplified the `squashctl --machine` interface so it is easier to add support for additional IDEs. We will be updating our Intellij extension in early 2019.
 
+*We welcome community support for enabling more debuggers and IDEs.*
 
 Squash is under active development. APIs and compatibility are subject to change. We welcome community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
 
