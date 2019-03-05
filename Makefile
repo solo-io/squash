@@ -170,7 +170,7 @@ package-extension: bump-extension-version ## (vscode) Packages extension
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-	go run ci/upload_github_release_assets.go
+	go run ci/bump_extension_version.go
 
 
 #----------------------------------------------------------------------------------
