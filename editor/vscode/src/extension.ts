@@ -62,6 +62,8 @@ async function getremote(extPath: string): Promise<string> {
 
     let ks = getSquashctl();
 
+
+    return "";
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
         // make sure its the one we expect:
@@ -84,7 +86,9 @@ async function getremote(extPath: string): Promise<string> {
     // test after the download
     let exechash = await hash(execpath);
     // make sure its the one we expect:
-    if (exechash !== ks.checksum) {
+    // first split because the github hash includes the filename
+    let hashParts = ks.checksum.split(" ");
+    if (hashParts.length != 2 || exechash !== hashParts[0]) {
         // remove the bad binary.
         fs.unlinkSync(execpath);
         throw new Error("bad checksum for binary; download may be corrupted - please try again.");
@@ -167,7 +171,7 @@ class SquashExtension {
         // run the squashkube binary with -server
 
         let squashpath: string = get_conf_or("path", null);
-        console.log("using squasctl from:");
+        console.log("using squashctl from:");
         console.log(squashpath);
         if (!squashpath) {
             squashpath = await getremote(this.context.extensionPath);
