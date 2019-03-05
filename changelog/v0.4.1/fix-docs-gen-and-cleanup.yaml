@@ -1,0 +1,4 @@
+changelog:
+  - type: NEW_FEATURE
+    description: Docs are pushed using a go utility that also pushes the changelog.
+    issueLink: https://github.com/solo-io/squash/pull/108

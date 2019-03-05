@@ -10,7 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
 
 	log "github.com/sirupsen/logrus"

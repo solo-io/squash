@@ -3,7 +3,7 @@ package testutils
 import (
 	. "github.com/onsi/gomega"
 
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
 type Counter struct {

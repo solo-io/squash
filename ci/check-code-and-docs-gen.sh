@@ -21,7 +21,7 @@ PATH=/workspace/gopath/bin:$PATH
 
 set +e
 
-make generatecode -B > /dev/null
+make generatecode -B
 if [[ $? -ne 0 ]]; then
   echo "Code generation failed"
   exit 1;

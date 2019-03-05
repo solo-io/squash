@@ -60,3 +60,7 @@
 [[constraint]]
   name = "github.com/solo-io/go-utils"
   version = "0.2.12"
+
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
