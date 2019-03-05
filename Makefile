@@ -213,14 +213,14 @@ upload-github-release-assets: squashctl
 #----------------------------------------------------------------------------------
 # Helpers for development: build and push (locally) only the things you changed
 # first run `eval $(minikube docker-env)` then any of these commands
-.PHONY: dev_squashctl
-dev_squashctl: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
+.PHONY: dev-squashctl-darwin
+dev-squashctl-darwin: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
 
-.PHONY: dev_win_squashctl
-dev_win_squashct: $(OUTPUT_DIR)/squashctl-windows
+.PHONY: dev-squashctl-win
+dev-squashct-win: $(OUTPUT_DIR)/squashctl-windows
 
-.PHONY: dev_planks
-dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+.PHONY: dev-planks
+dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
 
-.PHONY: dev_squash
-dev_planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container
+.PHONY: dev-squash
+dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container
