@@ -87,13 +87,13 @@ steps:
 - name: node:10.10.0
   entrypoint: npm
   args: ['install']
-  dir: ./extension/vscode
+  dir: ./editor/vscode
   waitFor: ['bump-extension-version']
   id: 'npm-install'
 
 - name: 'gcr.io/$PROJECT_ID/vsce'
   args: ['package']
-  dir: ./extension/vscode
+  dir: ./editor/vscode
   waitFor: ['npm-install']
   id: 'vsce-package'
 
