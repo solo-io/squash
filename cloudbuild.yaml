@@ -79,6 +79,7 @@ steps:
 - name: 'gcr.io/$PROJECT_ID/vsce'
   env:
   - VERSION=$TAG_NAME
+  dir: './gopath/src/github.com/solo-io/squash'
   entrypoint: make
   args: ['bump-extension-version']
   waitFor: ['release']
