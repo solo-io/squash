@@ -447,6 +447,7 @@ function get_conf_or(k: string, d: any): any {
 class BinariesSha {
     linux!: string;
     darwin!: string;
+    win32!: string;
 }
 class SquashInfo {
     version!: string;
