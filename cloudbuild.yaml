@@ -132,4 +132,4 @@ secrets:
     ## uncomment when extension is ready
     # VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
 
-timeout: 1200s
+timeout: 1800s
