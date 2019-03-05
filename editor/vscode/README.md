@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="https://s3.amazonaws.com/artifacts.solo.io/Squash.png" alt="Squash" width="285" height="248">
+    <img src="https://s3.amazonaws.com/artifacts.solo.io/squash.png" alt="Squash" width="285" height="248">
  </h1>
 
 <h4 align="center">Debug your Kubernetes applications from VS Code.</h4>

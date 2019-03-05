@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="img/squash.svg" alt="squash" width="200" height="248">
+    <img src="https://s3.amazonaws.com/artifacts.solo.io/squash.png" alt="squash" width="200" height="248">
   <br>
   Debugger for microservices
 </h1>
@@ -7,6 +7,12 @@
 
 <h4 align="center">Debug your microservice applications from your terminal or IDE <i>while</i> they run in Kubernetes.</h4>
 <BR>
+
+[**Installation**](https://squash.solo.io/overview/quick_start/) &nbsp; |
+&nbsp; [**Documentation**](https://squash.solo.io) &nbsp; |
+&nbsp; [**Blog**](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) &nbsp; |
+&nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
+&nbsp; [**Twitter**](https://twitter.com/soloio_inc)
 
 
 Debugging microservices applications is a difficult task. The state of an application is spread across multiple processes, often on different nodes. It is hard to get the holistic view of an application's state. Certain tools exist for troubleshooting microservice issues. OpenTracing can be used to produce transaction or workflow logs for post-mortem analysis. Service meshes like Istio can be used to monitor the network to identify latency problems. Unfortunately, these tools are passive, the feedback loop is slow, and they do not allow you to monitor and alter the application during run time. 
