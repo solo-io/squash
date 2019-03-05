@@ -37,10 +37,10 @@ steps:
 - name: gcr.io/cloud-builders/gcloud
   args: ['config', 'set', 'compute/zone', 'us-central1-a']
   id: 'set-zone'
-  waitsFor: ['dep']
+  waitFor: ['dep']
 - name: gcr.io/cloud-builders/gcloud
   args: ['container', 'clusters', 'get-credentials', 'test-cluster']
-  id: 'set-zone'
+  id: 'get-creds'
   waitFor: ['set-zone']
 - name: 'gcr.io/$PROJECT_ID/go-make'
   entrypoint: 'bash'
