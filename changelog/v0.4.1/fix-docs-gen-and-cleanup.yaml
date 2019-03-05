@@ -1,4 +1,4 @@
 changelog:
   - type: NEW_FEATURE
-    description: CLI docs are now generated when code is generated. Docs are pushed using a go utility that also pushes the changelog.
+    description: Docs are pushed using a go utility that also pushes the changelog.
     issueLink: https://github.com/solo-io/squash/pull/108
