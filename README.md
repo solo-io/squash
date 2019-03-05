@@ -15,7 +15,7 @@ In contrast, "traditional" debuggers for monolithic applications provide devs wi
 
 Squash brings the power of modern debuggers to developers of microservice apps. Squash bridges between the apps running in a Kubernetes environment (without modifying them) and the IDE. Users are free to choose which containers, pods, services or images they are interested in debugging, and are allowed to set breakpoints in their codes, follow values of their variables on the fly, step through the code while jumping between microservices, and change these values during run time. 
 
-Squash is built to be easily extensible, allowing – and encouraging – adding support for more platforms, debuggers and IDEs.
+Squash is built to be easily extensible. It is easy to add support for more languages, debuggers and IDEs.
 
 
 To learn more about the motivation behind project squash, read our blog [post](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://medium.com/solo-io/technical-introduction-to-squash-399e0c0c54b).
@@ -26,73 +26,57 @@ To stay up-to-date with Squash, follow us [@soloio_inc](https://twitter.com/solo
 
 
 ## With Squash, you can:
-* Live debugging cross multi microservices
+* Debug running microservices
 * Debug container in a pod
 * Debug a service
 * Set breakpoints
-* Step through the code
+* Step through code
 * View and modify values of variables
-* and more ...
+* ...anything you could do with a regular debuger, and more!
 
 
 ## Demo
 
 In the following demo we debug an application that adds two numbers. As you can see, it currently fails miserably at adding 9 to 99. The application is composed of two microservices. We  set breakpoints in both, then step through the application, while monitoring its variables. At some point we identify the problem, and test it by changing the value of the variable isadd before resuming the execution of the application.
 
-<img src="images/squash-demo-2.gif" alt="Squash Demo" />
+<img src="img/squash-demo-calc.gif" alt="Squash Demo" />
 
 An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvLvA).
 
 
 ## Documentation
-- **Installation**
-  - [install squash](docs/install)
-- **Getting Started**
-  - [debug your microservice](docs/getting-started.md)
-- **User Documentation**
-  - using [IDEs to debug](docs/IDEs.md)
-  - using the [command line interface](docs/cli.md)
-  - [Debug your java microservices](docs/debuggers/java.md)
-  - [Debug your NodeJS microservices](docs/debuggers/nodejs.md)
-  - [Debug your python microservices with VSCode](docs/debuggers/python_vscode.md)
-  - [Debug application using service mesh](docs/platforms/istio.md)
 
-- **Developer Documentation**
-  - how to [build squash](docs/build) from source
-  - [technical overview](docs/techincal-overview.md)
-  - adding [debugger](docs/debuggers.md) support
-  - adding [platform](docs/platforms.md) support
-  - squash's [REST API](http://squash.solo.io)
-
----
+Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 
 ## Supported debuggers:
- - [gdb](https://www.gnu.org/software/gdb/)
- - [dlv](https://github.com/derekparker/delve)
- - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
- - [Nodejs](https://nodejs.org/api/debugger.html)
- - [Python - ptvsd](https://code.visualstudio.com/docs/python/debugging)
+### Active
+- [dlv](https://github.com/derekparker/delve)
+- [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
+### Upcoming
+- [gdb](https://www.gnu.org/software/gdb/)
+- [Nodejs](https://nodejs.org/api/debugger.html)
+- [Python - ptvsd](https://code.visualstudio.com/docs/python/debugging)
  
 ## Supported platforms:
- - [Kubernetes](docs/platforms/kubernetes.md)
- - [OpenShift](https://www.openshift.com/)
- - [Istio](docs/platforms/istio.md) (2019)
+### Active
+- [Kubernetes](docs/platforms/kubernetes.md)
+- [OpenShift](https://www.openshift.com/)
+### Upcoming
+- [Istio](docs/platforms/istio.md)
  
 ## Supported IDEs:
- - [VS Code](https://github.com/solo-io/squash-vscode)
- - [Intellij](https://github.com/solo-io/squash-intellij)
+### Active
+- [VS Code](https://github.com/solo-io/squash-vscode)
+### Upcoming
+- [Intellij](https://github.com/solo-io/squash-intellij)
+- [Eclipse](https://eclipse.org/ide/)
 
-*We are looking for community help to add support for more debuggers and IDEs.*
+*We welcome community support for enabling more debuggers and IDEs.*
 
 ## Roadmap:
 **Service Mesh**
   - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
 
-**debuggers**
- - [Python - pdb](https://docs.python.org/3/library/pdb.html)
-
-**IDEs**
-  - [Eclipse](https://eclipse.org/ide/)
 
 
 Squash is under active development. APIs and compatibility are subject to change. We welcome community participation to help identify potential bugs and compatibility issues. Please open a Github issue for any problems you may experience, and join us on our [slack channel](http://slack.solo.io)
