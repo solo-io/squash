@@ -53,8 +53,6 @@ steps:
   waitFor: ['get-creds']
   id: 'check-code-and-docs-gen'
 
-
-
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login quay.io --username "solo-io+solobot" --password $$QUAY_IO_PASSWORD']
@@ -73,7 +71,6 @@ steps:
   waitFor: ['docker-login', 'check-code-and-docs-gen']
   id: 'compile'
 
-# - name: 'gcr.io/$PROJECT_ID/go-make'
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.3'
   entrypoint: make
   args: ['docker-push', 'upload-github-release-assets', 'push-docs', 'publish-extension']
@@ -85,41 +82,6 @@ steps:
   secretEnv: ['GITHUB_TOKEN', 'VSCODE_TOKEN']
   id: 'release'
   waitFor: ['compile']
-
-# - name: 'gcr.io/$PROJECT_ID/vsce'
-#   env:
-#   - VERSION=$TAG_NAME
-#   dir: './gopath/src/github.com/solo-io/squash'
-#   entrypoint: make
-#   args: ['bump-extension-version']
-#   waitFor: ['release']
-#   id: 'bump-extension-version'
-
-# - name: node:10.10.0
-#   entrypoint: npm
-#   args: ['install']
-#   dir: ./editor/vscode
-#   waitFor: ['bump-extension-version']
-#   id: 'npm-install'
-
-# - name: 'gcr.io/$PROJECT_ID/vsce'
-#   args: ['package']
-#   dir: ./editor/vscode
-#   waitFor: ['npm-install']
-#   id: 'vsce-package'
-
-# - name: 'gcr.io/$PROJECT_ID/vsce'
-#   entrypoint: 'make'
-#   args: ['publish-extension']
-#   # entrypoint: './hack/publish-extension.sh'
-#   env:
-#   - 'TAGGED_VERSION=$TAG_NAME'
-#   - 'PROJECT_ROOT=github.com/solo-io/squash'
-#   - 'GOPATH=/workspace/gopath'
-#   dir: './gopath/src/github.com/solo-io/squash'
-#   secretEnv: ['VSCODE_TOKEN']
-#   waitFor: ['vsce-package']
-#   id: 'publish-extension'
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key

@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="https://s3.amazonaws.com/artifacts.solo.io/squash.png" alt="squash" width="200" height="248">
+    <img src="https://s3.amazonaws.com/artifacts.solo.io/squash.png" alt="squash" width="230" height="275">
   <br>
   Debugger for microservices
 </h1>
