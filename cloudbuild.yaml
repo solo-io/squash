@@ -71,6 +71,12 @@ steps:
   waitFor: ['docker-login', 'check-code-and-docs-gen']
   id: 'compile'
 
+- name: node:10.10.0
+  entrypoint: npm
+  args: ['install']
+  dir: './gopath/src/github.com/solo-io/squash/editor/vscode'
+  id: 'npminstall'
+
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.3'
   entrypoint: make
   args: ['docker-push', 'upload-github-release-assets', 'push-docs', 'publish-extension']
