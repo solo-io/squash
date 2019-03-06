@@ -87,7 +87,7 @@ steps:
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN', 'VSCODE_TOKEN']
   id: 'release'
-  waitFor: ['compile']
+  waitFor: ['compile', 'npminstall']
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
