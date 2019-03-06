@@ -75,6 +75,7 @@ steps:
   entrypoint: npm
   args: ['install']
   dir: './gopath/src/github.com/solo-io/squash/editor/vscode'
+  waitFor: ['dep']
   id: 'npminstall'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.3'
