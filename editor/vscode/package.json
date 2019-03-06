@@ -1,12 +1,12 @@
 {
   "version": "THIS_VALUE_WILL_BE_REPLACED_BY_BUILD_SCRIPT",
-  "name": "solotestsquashextension",
-  "displayName": "Testing Squash Extension",
+  "name": "squash",
+  "displayName": "Squash",
   "description": "Debug your applications running on Kubernetes",
   "publisher": "ilevine",
   "author": {
     "name": "solo.io",
-    "email": "mtchkll@gmail.com",
+    "email": "idit.levine@solo.io",
     "url": "https://www.solo.io"
   },
   "homepage": "https://github.com/solo-io/squash",
