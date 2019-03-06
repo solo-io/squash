@@ -146,7 +146,7 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 #----------------------------------------------------------------------------------
 .PHONY: publish-extension
 publish-extension: package-extension ## (vscode) Publishes extension
-  echo "TEST 1"
+	echo "TEST 1"
 	touch $@
 # ifeq ($(RELEASE),"true")
 # 	./hack/publish-extension.sh
@@ -155,7 +155,7 @@ publish-extension: package-extension ## (vscode) Publishes extension
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
-  echo "TEST 2"
+	echo "TEST 2"
 	touch $@
 # ifeq ($(RELEASE),"true")
 # 	cd editor/vscode && vsce package
