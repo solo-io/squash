@@ -63,6 +63,7 @@ async function getremote(extPath: string): Promise<string> {
     let ks = getSquashctl();
 
 
+    // exit this early until release is smoothed out
     return "";
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
@@ -88,10 +89,10 @@ async function getremote(extPath: string): Promise<string> {
     // make sure its the one we expect:
     // first split because the github hash includes the filename
     let hashParts = ks.checksum.split(" ");
-    console.log("ks.checksum")
-    console.log(ks.checksum)
-    console.log(hashParts.length)
-    console.log(exechash)
+    console.log("ks.checksum");
+    console.log(ks.checksum);
+    console.log(hashParts.length);
+    console.log(exechash);
     if (hashParts.length != 2 || exechash !== hashParts[0]) {
         // remove the bad binary.
         fs.unlinkSync(execpath);
