@@ -63,6 +63,7 @@ async function getremote(extPath: string): Promise<string> {
     let ks = getSquashctl();
 
 
+    // exit this early until release is smoothed out
     return "";
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
@@ -168,8 +169,6 @@ class SquashExtension {
     }
 
     async debug() {
-        // run the squashkube binary with -server
-
         let squashpath: string = get_conf_or("path", null);
         console.log("using squashctl from:");
         console.log(squashpath);
