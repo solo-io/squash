@@ -91,7 +91,7 @@ steps:
   waitFor: ['compile', 'npminstall']
   id: 'push-github-resources'
 
-- name: 'gcr.io/$PROJECT_ID/go-vsce:mkdev'
+- name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
   entrypoint: make
   args: ['publish-extension']
   env:
