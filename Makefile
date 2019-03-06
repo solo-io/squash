@@ -106,7 +106,7 @@ $(OUTPUT_DIR)/squashctl-windows.exe: $(SRCS)
 .PHONY: squash
 squash: $(OUTPUT_DIR)/squash-container
 
-$(OUTPUT_DIR)/squash: $(SRCS) generatecode
+$(OUTPUT_DIR)/squash: $(SRCS)
 	GOOS=linux go build -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/squash/squash cmd/squash/main.go
 $(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
 	docker build -f cmd/squash/Dockerfile -t $(DOCKER_REPO)/squash:$(VERSION) $(OUTPUT_DIR)/squash/
@@ -119,7 +119,7 @@ $(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
 .PHONY: plank
 plank: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
 
-$(OUTPUT_DIR)/plank/: generatecode
+$(OUTPUT_DIR)/plank/:
 	[ -d $@ ] || mkdir -p $@
 
 $(OUTPUT_DIR)/plank/plank: | $(OUTPUT_DIR)/plank/
@@ -148,17 +148,20 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 publish-extension: package-extension ## (vscode) Publishes extension
 ifeq ($(RELEASE),"true")
 	./hack/publish-extension.sh
+	touch $@
 endif
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
 ifeq ($(RELEASE),"true")
 	cd editor/vscode && vsce package
+	touch $@
 endif
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
 	go run ci/bump_extension_version.go $(VERSION)
+	touch $@
 
 
 #----------------------------------------------------------------------------------

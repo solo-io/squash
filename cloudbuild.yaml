@@ -71,6 +71,13 @@ steps:
   waitFor: ['docker-login', 'check-code-and-docs-gen']
   id: 'compile'
 
+- name: node:10.10.0
+  entrypoint: npm
+  args: ['install']
+  dir: './gopath/src/github.com/solo-io/squash/editor/vscode'
+  waitFor: ['dep']
+  id: 'npminstall'
+
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.3'
   entrypoint: make
   args: ['docker-push', 'upload-github-release-assets', 'push-docs', 'publish-extension']
@@ -81,7 +88,7 @@ steps:
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN', 'VSCODE_TOKEN']
   id: 'release'
-  waitFor: ['compile']
+  waitFor: ['compile', 'npminstall']
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
