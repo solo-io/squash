@@ -78,17 +78,30 @@ steps:
   waitFor: ['dep']
   id: 'npminstall'
 
+- name: 'gcr.io/$PROJECT_ID/go-make'
+  args: ['docker-push', 'upload-github-release-assets', 'push-docs']
+  env:
+    - 'PROJECT_ROOT=github.com/solo-io/squash'
+    - 'GOPATH=/workspace/gopath'
+    - 'TAGGED_VERSION=$TAG_NAME'
+    - 'BUILD_ID=$BUILD_ID'
+    - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
+  dir: './gopath/src/github.com/solo-io/squash'
+  secretEnv: ['GITHUB_TOKEN']
+  waitFor: ['compile', 'npminstall']
+  id: 'push-github-resources'
+
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.3'
   entrypoint: make
-  args: ['docker-push', 'upload-github-release-assets', 'push-docs', 'publish-extension']
+  args: ['publish-extension']
   env:
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
-  secretEnv: ['GITHUB_TOKEN', 'VSCODE_TOKEN']
-  id: 'release'
-  waitFor: ['compile', 'npminstall']
+  secretEnv: ['VSCODE_TOKEN']
+  waitFor: ['push-github-resources']
+  id: 'extension'
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
@@ -98,3 +111,5 @@ secrets:
     VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
 
 timeout: 3000s
+options:
+  machineType: 'N1_HIGHCPU_8'
