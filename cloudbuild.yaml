@@ -71,13 +71,6 @@ steps:
   waitFor: ['docker-login', 'check-code-and-docs-gen']
   id: 'compile'
 
-- name: node:10.10.0
-  entrypoint: npm
-  args: ['install']
-  dir: './gopath/src/github.com/solo-io/squash/editor/vscode'
-  waitFor: ['dep']
-  id: 'npminstall'
-
 - name: 'gcr.io/$PROJECT_ID/go-make'
   args: ['docker-push', 'upload-github-release-assets', 'push-docs']
   env:
@@ -88,7 +81,7 @@ steps:
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN']
-  waitFor: ['compile', 'npminstall']
+  waitFor: ['compile']
   id: 'push-github-resources'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
