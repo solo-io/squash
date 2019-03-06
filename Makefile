@@ -154,7 +154,7 @@ endif
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
 ifeq ($(RELEASE),"true")
-	cd editor/vscode && npm install
+	cd editor/vscode && npm install --unsafe-perm
 	cd editor/vscode && vsce package
 	touch $@
 endif
