@@ -64,7 +64,6 @@ async function getremote(extPath: string): Promise<string> {
 
 
     // exit this early until release is smoothed out
-    return "";
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
         // make sure its the one we expect:
@@ -170,11 +169,11 @@ class SquashExtension {
 
     async debug() {
         let squashpath: string = get_conf_or("path", null);
-        console.log("using squashctl from:");
-        console.log(squashpath);
         if (!squashpath) {
             squashpath = await getremote(this.context.extensionPath);
         }
+        console.log("using squashctl from:");
+        console.log(squashpath);
 
         if (!vscode.workspace.workspaceFolders) {
             throw new Error("no workspace folders");
