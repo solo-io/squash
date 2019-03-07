@@ -80,12 +80,9 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	// wait for running state
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	err = <-s.waitForPod(ctx, createdPod)
 	cancel()
-	// ctx, cancel = context.WithTimeout(context.Background(), time.Duration(s.TimeoutSeconds)*time.Second)
-	// err <-s.waitForDebugAttachment(ctx)
 	if err != nil {
 		// s.printError(createdPodName)
 		return nil, fmt.Errorf("Waiting for pod: %v", err)

@@ -1,8 +1,10 @@
 package e2e_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -11,6 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/squash/pkg/config"
+	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/test/testutils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,11 +26,6 @@ func check(err error) {
 }
 
 var _ = Describe("Single debug mode", func() {
-	testutils.DeclareTestConditions()
-
-	seed := time.Now().UnixNano()
-	fmt.Printf("rand seed: %v\n", seed)
-	rand.Seed(seed)
 
 	It("Should create a debug session", func() {
 		cs := &kubernetes.Clientset{}
@@ -37,6 +36,7 @@ var _ = Describe("Single debug mode", func() {
 		check(err)
 
 		By("should list no resources after delete")
+		// Run delete before testing to ensure there are no lingering artifacts
 		err = testutils.Squashctl("utils delete-attachments")
 		check(err)
 		str, err := testutils.SquashctlOut("utils list-attachments")
@@ -52,19 +52,17 @@ var _ = Describe("Single debug mode", func() {
 		By("should deploy a demo app")
 		err = testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java", testNamespace, testNamespace))
 		check(err)
-		time.Sleep(5 * time.Second)
 
 		By("should find the demo deployment")
-		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{})
-		podName, err := findPod(pods, "example-service1")
+		podName, err := waitForPod(cs, testNamespace, "example-service1")
 		check(err)
 
 		By("should attach a debugger")
 		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, podName))
 		check(err)
-		// TODO(mitchdraft) - this is failing because the image needs to be pulled, add wait logic and re-enable
-		// validateMachineDebugOutput(dbgStr)
+		validateMachineDebugOutput(dbgStr)
 		fmt.Println(dbgStr)
+		ensureDLVServerIsLive(dbgStr)
 
 		By("should list expected resources after debug session initiated")
 		attachmentList, err := testutils.SquashctlOut("utils list-attachments")
@@ -77,13 +75,29 @@ var _ = Describe("Single debug mode", func() {
 	})
 })
 
-func findPod(pods *v1.PodList, deploymentName string) (string, error) {
-	for _, pod := range pods.Items {
-		if pod.Spec.Containers[0].Name == deploymentName {
-			return pod.Name, nil
+func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) (string, error) {
+	timeLimit := 10
+	timeStepSleepDuration := time.Second
+	for i := 0; i < timeLimit; i++ {
+		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{})
+		if err != nil {
+			return "", err
 		}
+		if podName, found := findPod(pods, deploymentName); found {
+			return podName, nil
+		}
+		time.Sleep(timeStepSleepDuration)
 	}
 	return "", fmt.Errorf("Pod for deployment %v not found", deploymentName)
+}
+
+func findPod(pods *v1.PodList, deploymentName string) (string, bool) {
+	for _, pod := range pods.Items {
+		if pod.Spec.Containers[0].Name == deploymentName {
+			return pod.Name, true
+		}
+	}
+	return "", false
 }
 
 /* sample of expected output (case of 4 debug attachments across two namespaces)
@@ -119,4 +133,37 @@ func validateUtilsListDebugAttachmentsLine(line string) {
 func validateMachineDebugOutput(output string) {
 	re := regexp.MustCompile(`{"PortForwardCmd":"kubectl port-forward.*}`)
 	Expect(re.MatchString(output)).To(BeTrue())
+}
+
+// using the kubectl port-forward command spec provided by the Plank pod,
+// port forward, curl, and inspect the curl error message
+// expect to see the error associated with a rejection, rather than a failure to connect
+func ensureDLVServerIsLive(dbgJson string) {
+	ed := config.EditorData{}
+	check(json.Unmarshal([]byte(dbgJson), &ed))
+	cmdParts := strings.Split(ed.PortForwardCmd, " ")
+	// 0: kubectl
+	// 1:	port-forward
+	// 2: plankhxpq4
+	// 3: :33303
+	// 4: -n
+	// 5: squash-debugger
+	ports := strings.Split(cmdParts[3], ":")
+	remotePort := ports[1]
+	var localPort int
+	check(utils.FindAnyFreePort(&localPort))
+	cmdParts[3] = fmt.Sprintf("%v:%v", localPort, remotePort)
+	// the portforward spec includes "kubectl ..." but exec.Command requires the binary be called explicitly
+	pfCmd := exec.Command("kubectl", cmdParts[1:]...)
+	go func() {
+		out, _ := pfCmd.CombinedOutput()
+		fmt.Println(string(out))
+	}()
+	time.Sleep(2 * time.Second)
+	curlOut, _ := testutils.Curl(fmt.Sprintf("localhost:%v", localPort))
+	// valid response signature: curl: (52) Empty reply from server
+	// invalid response signature: curl: (7) Failed to connect to localhost port 58239: Connection refused
+	re := regexp.MustCompile(`curl: \(52\) Empty reply from server`)
+	match := re.Match(curlOut)
+	Expect(match).To(BeTrue())
 }
