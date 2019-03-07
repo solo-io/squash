@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/solo-io/squash/pkg/squashctl"
 )
 
@@ -67,14 +65,9 @@ func SquashctlOut(args string) (string, error) {
 	return strings.TrimSuffix(out, "\n"), nil
 }
 
-func Make(dir, args string) error {
-	make := exec.Command("make", strings.Split(args, " ")...)
-	make.Dir = dir
-	out, err := make.CombinedOutput()
-	if err != nil {
-		return errors.Errorf("make failed with err: %s", out)
-	}
-	return nil
+func Curl(args string) ([]byte, error) {
+	curl := exec.Command("curl", strings.Split(args, " ")...)
+	return curl.CombinedOutput()
 }
 
 func MachineDebugArgs(debugger, ns, podName string) string {
