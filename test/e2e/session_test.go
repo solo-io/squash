@@ -17,11 +17,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func Must(err error) {
-	Expect(err).NotTo(HaveOccurred())
-}
 func check(err error) {
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
 
 var _ = Describe("Single debug mode", func() {

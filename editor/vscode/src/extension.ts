@@ -68,7 +68,7 @@ async function getremote(extPath: string): Promise<string> {
         let exechash = await hash(execpath);
         // make sure its the one we expect:
         // this can happen on version updates.
-        if (exechash !== ks.checksum) {
+        if (!hashesMatch(ks.checksum, exechash)) {
             // remove the bad binary.
             fs.unlinkSync(execpath);
         }
@@ -86,9 +86,7 @@ async function getremote(extPath: string): Promise<string> {
     // test after the download
     let exechash = await hash(execpath);
     // make sure its the one we expect:
-    // first split because the github hash includes the filename
-    let hashParts = ks.checksum.split(" ");
-    if (hashParts.length != 2 || exechash !== hashParts[0]) {
+    if (!hashesMatch(ks.checksum, exechash)) {
         // remove the bad binary.
         fs.unlinkSync(execpath);
         throw new Error("bad checksum for binary; download may be corrupted - please try again.");
@@ -111,6 +109,16 @@ function hash(f: string): Promise<string> {
         });
 
     });
+}
+
+// solo is the hash that was created from the squashctl binary when the binary was compiled
+// gen is the hash that was generated locally from the squashctl file that the extension is trying to use
+function hashesMatch(solo: string, gen: string): boolean {
+    let hashParts = solo.split(" ");
+    if (hashParts.length !== 2 || gen !== hashParts[0]) {
+        return false;
+    }
+    return true;
 }
 
 function download2file(what: string, to: string): Promise<any> {
@@ -468,7 +476,7 @@ interface SquashctlBinary {
 
 function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
     let link = "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
-    console.log("trying to dl from: " + link)
+    console.log("trying to dl from: " + link);
     return {
         link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
         checksum: checksum
