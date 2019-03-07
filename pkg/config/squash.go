@@ -80,7 +80,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	// wait for running state
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	err = <-s.waitForPod(ctx, createdPod)
 	cancel()
 	if err != nil {
@@ -280,9 +280,9 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 				if createdPod.Status.Phase != v1.PodPending {
 					// err := s.printError(createdPod)
 					if err != nil {
-						errchan <- errors.Wrap(err, "pod is not running and not pending")
+						errchan <- errors.Wrapf(err, "pod is not running and not pending, status: %v", createdPod.Status.Phase)
 					} else {
-						errchan <- errors.New("pod is not running and not pending")
+						errchan <- errors.New(fmt.Sprintf("pod is not running and not pending, status: %v", createdPod.Status.Phase))
 					}
 					return
 				}

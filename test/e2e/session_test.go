@@ -62,6 +62,8 @@ var _ = Describe("Single debug mode", func() {
 		check(err)
 		validateMachineDebugOutput(dbgStr)
 		fmt.Println(dbgStr)
+
+		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
 
 		By("should list expected resources after debug session initiated")
@@ -94,11 +96,22 @@ func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) 
 
 func findPod(pods *v1.PodList, deploymentName string) (string, bool) {
 	for _, pod := range pods.Items {
-		if pod.Spec.Containers[0].Name == deploymentName {
+		if pod.Spec.Containers[0].Name == deploymentName && podReady(pod) {
 			return pod.Name, true
 		}
 	}
 	return "", false
+}
+
+func podReady(pod v1.Pod) bool {
+	switch pod.Status.Phase {
+	case v1.PodRunning:
+		return true
+	case v1.PodSucceeded:
+		return true
+	default:
+		return false
+	}
 }
 
 /* sample of expected output (case of 4 debug attachments across two namespaces)
@@ -161,10 +174,15 @@ func ensureDLVServerIsLive(dbgJson string) {
 		fmt.Println(string(out))
 	}()
 	time.Sleep(2 * time.Second)
-	curlOut, _ := testutils.Curl(fmt.Sprintf("localhost:%v", localPort))
+	dlvAddr := fmt.Sprintf("localhost:%v", localPort)
+	curlOut, _ := testutils.Curl(dlvAddr)
 	// valid response signature: curl: (52) Empty reply from server
 	// invalid response signature: curl: (7) Failed to connect to localhost port 58239: Connection refused
 	re := regexp.MustCompile(`curl: \(52\) Empty reply from server`)
 	match := re.Match(curlOut)
 	Expect(match).To(BeTrue())
+	// dlvClient := rpc1.NewClient(dlvAddr)
+	// err, dlvState := dlvClient.GetState()
+	// check(err)
+	// fmt.Println(dlvState)
 }
