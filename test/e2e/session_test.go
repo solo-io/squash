@@ -76,7 +76,8 @@ var _ = Describe("Single debug mode", func() {
 })
 
 func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) (string, error) {
-	timeLimit := 10
+	// this can be slow, pulls image for the first time - should store demo images in cache if possible
+	timeLimit := 100
 	timeStepSleepDuration := time.Second
 	for i := 0; i < timeLimit; i++ {
 		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{})
