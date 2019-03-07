@@ -83,7 +83,7 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 	}
 
 	// TODO - make timeout configurable
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 300*time.Second)
 	defer cancel()
 	for {
 		select {
