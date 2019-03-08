@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-delve/delve/service/rpc2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -180,16 +181,11 @@ func ensureDLVServerIsLive(dbgJson string) {
 	}()
 	time.Sleep(2 * time.Second)
 	dlvAddr := fmt.Sprintf("localhost:%v", localPort)
-	curlOut, _ := testutils.Curl(dlvAddr)
-	// valid response signature: curl: (52) Empty reply from server
-	// invalid response signature: curl: (7) Failed to connect to localhost port 58239: Connection refused
-	re := regexp.MustCompile(`curl: \(52\) Empty reply from server`)
-	match := re.Match(curlOut)
-	Expect(match).To(BeTrue())
-	// dlvClient := rpc1.NewClient(dlvAddr)
-	// err, dlvState := dlvClient.GetState()
-	// check(err)
-	// fmt.Print
+	dlvClient := rpc2.NewClient(dlvAddr)
+	dlvState, err := dlvClient.GetState()
+	check(err)
+	Expect(dlvState.Err).To(BeNil())
+	Expect(dlvState.Exited).To(BeFalse())
 }
 
 func ensurePlankPermissionsWereCreated(cs *kubernetes.Clientset, plankNs string) error {

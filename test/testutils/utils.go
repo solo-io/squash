@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/solo-io/squash/pkg/squashctl"
@@ -63,11 +62,6 @@ func SquashctlOut(args string) (string, error) {
 	out := <-outC
 
 	return strings.TrimSuffix(out, "\n"), nil
-}
-
-func Curl(args string) ([]byte, error) {
-	curl := exec.Command("curl", strings.Split(args, " ")...)
-	return curl.CombinedOutput()
 }
 
 func MachineDebugArgs(debugger, ns, podName string) string {

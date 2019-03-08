@@ -37,29 +37,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:c79a2c1b5cbb74c3ad444aff55ccaae8619de2cf964e5cf88043df003682c507"
-  name = "github.com/derekparker/delve"
-  packages = [
-    "pkg/dwarf/frame",
-    "pkg/dwarf/godwarf",
-    "pkg/dwarf/line",
-    "pkg/dwarf/op",
-    "pkg/dwarf/reader",
-    "pkg/dwarf/util",
-    "pkg/proc",
-    "pkg/proc/core",
-    "pkg/proc/gdbserial",
-    "pkg/proc/native",
-    "service",
-    "service/api",
-    "service/debugger",
-    "service/rpc1",
-  ]
-  pruneopts = ""
-  revision = "279a8a792e2748ba07be9ca15688d1871c0f1a5f"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:b2ac39cf926d768133bdd17e53333235a3e1d6154ed806777f0ba5f43819fa2e"
   name = "github.com/fgrosse/zaptest"
   packages = ["."]
@@ -82,6 +59,34 @@
   pruneopts = ""
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:d10c307caccb4aa5fa266259a57f5aace08b1c2d593428a9b588da0ada57e6d3"
+  name = "github.com/go-delve/delve"
+  packages = [
+    "pkg/dwarf/frame",
+    "pkg/dwarf/godwarf",
+    "pkg/dwarf/line",
+    "pkg/dwarf/op",
+    "pkg/dwarf/reader",
+    "pkg/dwarf/util",
+    "pkg/goversion",
+    "pkg/logflags",
+    "pkg/proc",
+    "pkg/proc/core",
+    "pkg/proc/core/minidump",
+    "pkg/proc/gdbserial",
+    "pkg/proc/linutil",
+    "pkg/proc/native",
+    "pkg/proc/winutil",
+    "service",
+    "service/api",
+    "service/debugger",
+    "service/rpc2",
+  ]
+  pruneopts = ""
+  revision = "86d4b0b9915d55833a99bfb4c8b3a138f03ab802"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:527e1e468c5586ef2645d143e9f5fbd50b4fe5abc8b1e25d9f1c416d22d24895"
@@ -758,11 +763,11 @@
   version = "v1.9.1"
 
 [[projects]]
-  digest = "1:f07fa8c698c885627c8426c670d438c07064f9657ea51c05ba7352ff755f8dfd"
+  digest = "1:75d13a4ae7b1210b8e123aa61ce303d82dbb03c49d418f74138becb57f73bb5c"
   name = "golang.org/x/arch"
   packages = ["x86/x86asm"]
   pruneopts = ""
-  revision = "58ea1a195b1a354bcd572b7ef6bbbd264dc63732"
+  revision = "077ac972c2e48fdb75168a5ba36a387f0c72d8aa"
 
 [[projects]]
   branch = "master"
@@ -1227,7 +1232,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/davecgh/go-spew/spew",
-    "github.com/derekparker/delve/service/rpc1",
+    "github.com/go-delve/delve/service/rpc2",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/proto",
     "github.com/gogo/protobuf/sortkeys",
@@ -1281,6 +1286,7 @@
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",
+    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",

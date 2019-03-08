@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/derekparker/delve/service/rpc1"
+	"github.com/go-delve/delve/service/rpc2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ type DLV struct {
 }
 
 type DLVLiveDebugSession struct {
-	client  *rpc1.RPCClient
+	client  *rpc2.RPCClient
 	port    int
 	process *os.Process
 	cmd     *exec.Cmd
@@ -43,8 +43,8 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	// use rpc1 client for vscode extension support
-	client := rpc1.NewClient(fmt.Sprintf("localhost:%d", port))
+	// use rpc2 client for vscode extension support
+	client := rpc2.NewClient(fmt.Sprintf("localhost:%d", port))
 	dls := &DLVLiveDebugSession{
 		client:  client,
 		port:    port,

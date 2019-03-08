@@ -30,12 +30,12 @@
   name = "github.com/vishvananda/netlink"
 
 [[constraint]]
-  name = "github.com/derekparker/delve"
-  version = "1.0.0"
+  name = "github.com/go-delve/delve"
+  version = "1.2.0"
 
 [[override]]
   name = "golang.org/x/arch"
-  revision = "58ea1a195b1a354bcd572b7ef6bbbd264dc63732"
+  revision = "077ac972c2e48fdb75168a5ba36a387f0c72d8aa"
 
 [[constraint]]
   name = "github.com/davecgh/go-spew"
