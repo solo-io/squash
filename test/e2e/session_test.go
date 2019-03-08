@@ -159,8 +159,6 @@ func validateMachineDebugOutput(output string) {
 // expect to see the error associated with a rejection, rather than a failure to connect
 func ensureDLVServerIsLive(dbgJson string) {
 	ed := config.EditorData{}
-	fmt.Println("dbgJson")
-	fmt.Println(dbgJson)
 	check(json.Unmarshal([]byte(dbgJson), &ed))
 	cmdParts := strings.Split(ed.PortForwardCmd, " ")
 	// 0: kubectl

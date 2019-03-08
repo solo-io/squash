@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"gopkg.in/AlecAivazis/survey.v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -207,10 +207,11 @@ func (o *Options) createPlankPermissions() error {
 	// create namespace. ignore errors as it most likely exists and will error
 	cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 
-	_, err = cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{})
-	if err != nil {
-		// service account already exists, no need to create it
-		return err
+	if _, err := cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err != nil {
+		if !errors.IsAlreadyExists(err) {
+			// service account already exists, no need to create it
+			return err
+		}
 	}
 
 	sa := corev1.ServiceAccount{
@@ -221,7 +222,7 @@ func (o *Options) createPlankPermissions() error {
 
 	o.info(fmt.Sprintf("Creating service account %v in namespace %v\n", sqOpts.PlankServiceAccountName, namespace))
 	if _, err := cs.CoreV1().ServiceAccounts(namespace).Create(&sa); err != nil {
-		if !alreadyExistsError(err) {
+		if !errors.IsAlreadyExists(err) {
 			return err
 		}
 	}
@@ -256,7 +257,7 @@ func (o *Options) createPlankPermissions() error {
 	}
 	o.info(fmt.Sprintf("Creating cluster role %v \n", sqOpts.PlankClusterRoleName))
 	if _, err := cs.Rbac().ClusterRoles().Create(cr); err != nil {
-		if !alreadyExistsError(err) {
+		if !errors.IsAlreadyExists(err) {
 			return err
 		}
 	}
@@ -281,7 +282,7 @@ func (o *Options) createPlankPermissions() error {
 
 	o.info(fmt.Sprintf("Creating cluster role binding %v \n", sqOpts.PlankClusterRoleBindingName))
 	if _, err := cs.Rbac().ClusterRoleBindings().Create(crb); err != nil {
-		if !alreadyExistsError(err) {
+		if !errors.IsAlreadyExists(err) {
 			return err
 		}
 	}
@@ -295,14 +296,6 @@ func getClientSet() (kubernetes.Interface, error) {
 		return nil, err
 	}
 	return kubernetes.NewForConfig(restCfg)
-}
-
-func alreadyExistsError(inErr error) bool {
-	re := regexp.MustCompile("already exists$")
-	if re.MatchString(inErr.Error()) {
-		return true
-	}
-	return false
 }
 
 // only print info if squashctl is being used by a human
