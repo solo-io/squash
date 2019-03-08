@@ -1,203 +1,206 @@
 package e2e_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
+	"os/exec"
+	"regexp"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	v1 "github.com/solo-io/squash/pkg/api/v1"
+	gokubeutils "github.com/solo-io/go-utils/kubeutils"
+	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
-	squashcli "github.com/solo-io/squash/pkg/squashctl"
+	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/test/testutils"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-//const KubeEndpoint = "http://localhost:8001/api"
-
-func Must(err error) {
-	Expect(err).NotTo(HaveOccurred())
+func check(err error) {
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 }
-
-var (
-	daName  = "debug-attachment-1"
-	daName2 = "debug-attachment-2"
-	// testNamespace = "squash-debugger-test2"
-	testNamespace = "stest"
-	testNSRoot    = "stest"
-	testsStarted  = 0
-)
 
 var _ = Describe("Single debug mode", func() {
 
-	seed := time.Now().UnixNano()
-	fmt.Printf("rand seed: %v\n", seed)
-	rand.Seed(seed)
+	It("Should create a debug session", func() {
+		plankNamespace := sqOpts.SquashNamespace
+		cs := &kubernetes.Clientset{}
+		By("should get a kube client")
+		restCfg, err := gokubeutils.GetConfig("", "")
+		check(err)
+		cs, err = kubernetes.NewForConfig(restCfg)
+		check(err)
 
-	var (
-		params testutils.E2eParams
-	)
+		By("should list no resources after delete")
+		// Run delete before testing to ensure there are no lingering artifacts
+		err = testutils.Squashctl("utils delete-attachments")
+		check(err)
+		str, err := testutils.SquashctlOut("utils list-attachments")
+		check(err)
+		validateUtilsListDebugAttachments(str, 0)
 
-	// Deploy the services that you will debug
-	BeforeEach(func() {
-		testsStarted++
-		// Use unique namespaces so we can start tests before namespace is deleted
-		// Use predictable namespaces so that we can establish watches
-		// (solo-kit does not have a "watch all namespaces" feature yet)
-		if os.Getenv("SERIALIZE_NAMESPACES") != "1" {
-			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, rand.Int31n(100000))
-		} else {
-			testNamespace = fmt.Sprintf("%v-%v", testNSRoot, testsStarted)
-		}
-		params = testutils.NewE2eParams(testNamespace, daName, GinkgoWriter)
-		params.SetupE2e()
+		// create namespace
+		testNamespace := fmt.Sprintf("testsquash-%v", rand.Intn(1000))
+		By("should create a demo namespace")
+		_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
+		check(err)
+
+		By("should deploy a demo app")
+		err = testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java", testNamespace, testNamespace))
+		check(err)
+
+		By("should find the demo deployment")
+		podName, err := waitForPod(cs, testNamespace, "example-service1")
+		check(err)
+
+		By("should attach a debugger")
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, podName))
+		check(err)
+		validateMachineDebugOutput(dbgStr)
+		fmt.Println(dbgStr)
+
+		By("should have created the required permissions")
+		check(ensurePlankPermissionsWereCreated(cs, plankNamespace))
+
+		By("should speak with dlv")
+		ensureDLVServerIsLive(dbgStr)
+
+		By("should list expected resources after debug session initiated")
+		attachmentList, err := testutils.SquashctlOut("utils list-attachments")
+		check(err)
+		validateUtilsListDebugAttachments(attachmentList, 1)
+
+		// cleanup
+		By("should cleanup")
+		check(cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{}))
 	})
-
-	// Delete the resources you created
-	AfterEach(params.CleanupE2e)
-
-	Describe("Single Container mode", func() {
-		It("should get a debug server endpoint", func() {
-			container := params.CurrentMicroservicePod.Spec.Containers[0]
-
-			time.Sleep(3 * time.Second)
-			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(9 * time.Second)
-
-			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
-
-			// TODO(mitchdraft) put selector spec in a shared package
-			nsPods, err := params.KubeClient.CoreV1().Pods(params.Namespace).List(metav1.ListOptions{LabelSelector: sqOpts.SquashLabelSelectorString})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(nsPods.Items)).To(Equal(1))
-
-		})
-
-		It("should get a debug server endpoint, specific process", func() {
-			container := params.CurrentMicroservicePod.Spec.Containers[0]
-
-			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "service1", "dlv")
-			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(5 * time.Second)
-
-			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
-		})
-
-		It("should get a debug server endpoint, specific process that doesn't exist", func() {
-			container := params.CurrentMicroservicePod.Spec.Containers[0]
-
-			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "processNameDoesntExist", "dlv")
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(time.Second)
-
-			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.Status.State).NotTo(Equal(core.Status_Accepted))
-		})
-		It("should attach to two micro services", func() {
-			container1 := params.CurrentMicroservicePod.Spec.Containers[0]
-			dbgattachment1, err := params.UserController.Attach(daName,
-				params.Namespace,
-				container1.Image,
-				params.CurrentMicroservicePod.ObjectMeta.Name,
-				container1.Name,
-				"",
-				"dlv")
-			time.Sleep(5 * time.Second)
-			Expect(err).NotTo(HaveOccurred())
-			updatedattachment1, err := squashcli.WaitCmd(testNamespace, dbgattachment1.Metadata.Name, 1.0)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment1.State).To(Equal(v1.DebugAttachment_Attached))
-
-			container2 := params.Current2MicroservicePod.Spec.Containers[0]
-			dbgattachment2, err := params.UserController.Attach(daName2,
-				params.Namespace,
-				container2.Image,
-				params.Current2MicroservicePod.ObjectMeta.Name,
-				container2.Name,
-				"",
-				"dlv")
-			time.Sleep(5 * time.Second)
-			Expect(err).NotTo(HaveOccurred())
-			updatedattachment2, err := squashcli.WaitCmd(testNamespace, dbgattachment2.Metadata.Name, 1.0)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment2.State).To(Equal(v1.DebugAttachment_Attached))
-		})
-
-		It("should attach and detatch", func() {
-			container := params.CurrentMicroservicePod.Spec.Containers[0]
-
-			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
-			Expect(err).NotTo(HaveOccurred())
-			testutils.ExpectCounts(params, daName).
-				SumPreAttachments(1).
-				Attachments(0).
-				SumPostAttachments(0)
-
-			time.Sleep(5 * time.Second)
-
-			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.State).To(Equal(v1.DebugAttachment_Attached))
-
-			testutils.ExpectCounts(params, daName).
-				SumPreAttachments(0).
-				Attachments(1).
-				SumPostAttachments(0)
-
-			dbgattachment, err = params.UserController.RequestDelete(params.Namespace, daName)
-			Expect(err).NotTo(HaveOccurred())
-
-			testutils.ExpectCounts(params, daName).
-				SumPreAttachments(0).
-				Attachments(0).
-				SumPostAttachments(1)
-
-			time.Sleep(5 * time.Second)
-			testutils.ExpectCounts(params, daName).
-				Total(0)
-		})
-
-		It("Be able to re-attach once session exited", func() {
-			container := params.CurrentMicroservicePod.Spec.Containers[0]
-
-			dbgattachment, err := params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
-			time.Sleep(5 * time.Second)
-			Expect(err).NotTo(HaveOccurred())
-			updatedattachment, err := squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
-
-			// Ok; now delete the attachment
-			dbgattachment, err = params.UserController.RequestDelete(dbgattachment.Metadata.Namespace, dbgattachment.Metadata.Name)
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(5 * time.Second)
-
-			// try again!
-			dbgattachment, err = params.UserController.Attach(daName, params.Namespace, container.Image, params.CurrentMicroservicePod.ObjectMeta.Name, container.Name, "", "dlv")
-			Expect(err).NotTo(HaveOccurred())
-
-			time.Sleep(5 * time.Second)
-			updatedattachment, err = squashcli.WaitCmd(testNamespace, dbgattachment.Metadata.Name, 1.0)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(updatedattachment.DebugServerAddress).ToNot(BeEmpty())
-		})
-	})
-
 })
+
+func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) (string, error) {
+	// this can be slow, pulls image for the first time - should store demo images in cache if possible
+	timeLimit := 100
+	timeStepSleepDuration := time.Second
+	for i := 0; i < timeLimit; i++ {
+		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{})
+		if err != nil {
+			return "", err
+		}
+		if podName, found := findPod(pods, deploymentName); found {
+			return podName, nil
+		}
+		time.Sleep(timeStepSleepDuration)
+	}
+	return "", fmt.Errorf("Pod for deployment %v not found", deploymentName)
+}
+
+func findPod(pods *v1.PodList, deploymentName string) (string, bool) {
+	for _, pod := range pods.Items {
+		if pod.Spec.Containers[0].Name == deploymentName && podReady(pod) {
+			return pod.Name, true
+		}
+	}
+	return "", false
+}
+
+func podReady(pod v1.Pod) bool {
+	switch pod.Status.Phase {
+	case v1.PodRunning:
+		return true
+	case v1.PodSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
+/* sample of expected output (case of 4 debug attachments across two namespaces)
+Existing debug attachments:
+dd, ea8f2f3omi
+dd, hm52rfvkbt
+default, cq13qxkxa2
+default, lmgv6h2g7o
+*/
+func validateUtilsListDebugAttachments(output string, expectedDaCount int) {
+	lines := strings.Split(output, "\n")
+	// should return one line per da + a header line
+	expectedLength := 1 + expectedDaCount
+	expectedHeader := "Existing debug attachments:"
+	if expectedDaCount == 0 {
+		expectedHeader = "Found no debug attachments"
+	}
+	Expect(lines[0]).To(Equal(expectedHeader))
+	Expect(len(lines)).To(Equal(expectedLength))
+	for i := 1; i < expectedLength; i++ {
+		validateUtilsListDebugAttachmentsLine(lines[i])
+	}
+}
+
+func validateUtilsListDebugAttachmentsLine(line string) {
+	cols := strings.Split(line, ", ")
+	Expect(len(cols)).To(Equal(2))
+}
+
+/* sample of expected output:
+{"PortForwardCmd":"kubectl port-forward plankhxpq4 :33303 -n squash-debugger"}
+*/
+func validateMachineDebugOutput(output string) {
+	re := regexp.MustCompile(`{"PortForwardCmd":"kubectl port-forward.*}`)
+	Expect(re.MatchString(output)).To(BeTrue())
+}
+
+// using the kubectl port-forward command spec provided by the Plank pod,
+// port forward, curl, and inspect the curl error message
+// expect to see the error associated with a rejection, rather than a failure to connect
+func ensureDLVServerIsLive(dbgJson string) {
+	ed := config.EditorData{}
+	check(json.Unmarshal([]byte(dbgJson), &ed))
+	cmdParts := strings.Split(ed.PortForwardCmd, " ")
+	// 0: kubectl
+	// 1:	port-forward
+	// 2: plankhxpq4
+	// 3: :33303
+	// 4: -n
+	// 5: squash-debugger
+	ports := strings.Split(cmdParts[3], ":")
+	remotePort := ports[1]
+	var localPort int
+	check(utils.FindAnyFreePort(&localPort))
+	cmdParts[3] = fmt.Sprintf("%v:%v", localPort, remotePort)
+	// the portforward spec includes "kubectl ..." but exec.Command requires the binary be called explicitly
+	pfCmd := exec.Command("kubectl", cmdParts[1:]...)
+	go func() {
+		out, _ := pfCmd.CombinedOutput()
+		fmt.Println(string(out))
+	}()
+	time.Sleep(2 * time.Second)
+	dlvAddr := fmt.Sprintf("localhost:%v", localPort)
+	curlOut, _ := testutils.Curl(dlvAddr)
+	// valid response signature: curl: (52) Empty reply from server
+	// invalid response signature: curl: (7) Failed to connect to localhost port 58239: Connection refused
+	re := regexp.MustCompile(`curl: \(52\) Empty reply from server`)
+	match := re.Match(curlOut)
+	Expect(match).To(BeTrue())
+	// dlvClient := rpc1.NewClient(dlvAddr)
+	// err, dlvState := dlvClient.GetState()
+	// check(err)
+	// fmt.Print
+}
+
+func ensurePlankPermissionsWereCreated(cs *kubernetes.Clientset, plankNs string) error {
+	if _, err := cs.CoreV1().ServiceAccounts(plankNs).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	if _, err := cs.Rbac().ClusterRoles().Get(sqOpts.PlankClusterRoleName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	if _, err := cs.Rbac().ClusterRoleBindings().Get(sqOpts.PlankClusterRoleBindingName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
