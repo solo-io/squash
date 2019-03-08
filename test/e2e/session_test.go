@@ -14,6 +14,7 @@ import (
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/config"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/test/testutils"
 	v1 "k8s.io/api/core/v1"
@@ -28,6 +29,7 @@ func check(err error) {
 var _ = Describe("Single debug mode", func() {
 
 	It("Should create a debug session", func() {
+		plankNamespace := sqOpts.SquashNamespace
 		cs := &kubernetes.Clientset{}
 		By("should get a kube client")
 		restCfg, err := gokubeutils.GetConfig("", "")
@@ -62,6 +64,9 @@ var _ = Describe("Single debug mode", func() {
 		check(err)
 		validateMachineDebugOutput(dbgStr)
 		fmt.Println(dbgStr)
+
+		By("should have created the required permissions")
+		check(ensurePlankPermissionsWereCreated(cs, plankNamespace))
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
@@ -154,6 +159,8 @@ func validateMachineDebugOutput(output string) {
 // expect to see the error associated with a rejection, rather than a failure to connect
 func ensureDLVServerIsLive(dbgJson string) {
 	ed := config.EditorData{}
+	fmt.Println("dbgJson")
+	fmt.Println(dbgJson)
 	check(json.Unmarshal([]byte(dbgJson), &ed))
 	cmdParts := strings.Split(ed.PortForwardCmd, " ")
 	// 0: kubectl
@@ -184,5 +191,18 @@ func ensureDLVServerIsLive(dbgJson string) {
 	// dlvClient := rpc1.NewClient(dlvAddr)
 	// err, dlvState := dlvClient.GetState()
 	// check(err)
-	// fmt.Println(dlvState)
+	// fmt.Print
+}
+
+func ensurePlankPermissionsWereCreated(cs *kubernetes.Clientset, plankNs string) error {
+	if _, err := cs.CoreV1().ServiceAccounts(plankNs).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	if _, err := cs.Rbac().ClusterRoles().Get(sqOpts.PlankClusterRoleName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	if _, err := cs.Rbac().ClusterRoleBindings().Get(sqOpts.PlankClusterRoleBindingName, metav1.GetOptions{}); err != nil {
+		return err
+	}
+	return nil
 }

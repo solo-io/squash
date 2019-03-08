@@ -73,7 +73,7 @@ steps:
   id: 'docker-login'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['docker']
+  args: ['-j', 'docker']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GOPATH=/workspace/gopath'
