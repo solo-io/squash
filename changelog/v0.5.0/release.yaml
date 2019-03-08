@@ -1,4 +1,4 @@
 changelog:
-- type: NEW_FEATURE
+- type: BREAKING_CHANGE
   description: "Implement Secure Mode to optionally restrict debug session permissions."
   issueLink: https://github.com/solo-io/squash/issues/122
