@@ -8,7 +8,7 @@
 <h4 align="center">Debug your microservice applications from your terminal or IDE <i>while</i> they run in Kubernetes.</h4>
 <BR>
 
-[**Installation**](https://squash.solo.io/overview/quick_start/) &nbsp; |
+[**Installation**](https://squash.solo.io/overview/) &nbsp; |
 &nbsp; [**Documentation**](https://squash.solo.io) &nbsp; |
 &nbsp; [**Blog**](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) &nbsp; |
 &nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
