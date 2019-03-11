@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	SquashRepoName  = "soloio"
+	SquashRepoName  = "quay.io/solo-io"
 	SquashName      = "squash"
 	SquashImageName = "squash"
 
