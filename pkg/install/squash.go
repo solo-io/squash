@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	SquashRepoName  = "soloio"
+	SquashRepoName  = "quay.io/solo-io"
 	SquashName      = "squash"
 	SquashImageName = "squash"
 
@@ -30,7 +30,7 @@ var (
 // ClusterRole - enabling pod creation
 // ClusterRoleBinding - bind ClusterRole to Squash's ServiceAccount
 // Deployment - Squash itself
-func InstallSquash(cs *kubernetes.Clientset, namespace string, preview bool) error {
+func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, containerVersion string, preview bool) error {
 
 	sa := v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -124,7 +124,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace string, preview bool) err
 					Containers: []v1.Container{
 						{
 							Name:  SquashName,
-							Image: fmt.Sprintf("%v/%v:%v", SquashRepoName, SquashImageName, version.SquashImageTag),
+							Image: fmt.Sprintf("%v/%v:%v", containerRepo, containerVersion, version.SquashImageTag),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,

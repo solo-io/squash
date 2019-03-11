@@ -53,6 +53,19 @@ steps:
   waitFor: ['get-creds']
   id: 'check-code-and-docs-gen'
 
+- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
+  env:
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
+  - 'GOPATH=/workspace/gopath'
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+  - 'RUN_KUBE_TESTS=1'
+  - 'DOCKER_CONFIG=/workspace/.docker/'
+  dir: './gopath/src/github.com/solo-io/squash'
+  args: ['-r', '-failFast', '-p']
+  waitFor: ['get-creds', 'check-code-and-docs-gen']
+  id: 'test'
+
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login quay.io --username "solo-io+solobot" --password $$QUAY_IO_PASSWORD']
@@ -60,7 +73,7 @@ steps:
   id: 'docker-login'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['docker']
+  args: ['-j', 'docker']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GOPATH=/workspace/gopath'
@@ -68,7 +81,7 @@ steps:
     - 'BUILD_ID=$BUILD_ID'
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['docker-login', 'check-code-and-docs-gen']
+  waitFor: ['test', 'docker-login', 'check-code-and-docs-gen']
   id: 'compile'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
@@ -104,5 +117,3 @@ secrets:
     VSCODE_TOKEN: CiQABlzmSepRzBG6r2UapqKVaJfx5X3PQgWpuKtIinDWI4IpZsASXQCCPGSGtYjgB1ARs6VcRy3J23Mlbo7zeqPamti48qk71axnOBu4pSomCTKj+4iB81E/dgJEmo9aXOIfPoSv7jEs1ijN7J326jA+AOS1M4eUQwfAWovUtmjecP0p+Q==
 
 timeout: 3000s
-options:
-  machineType: 'N1_HIGHCPU_8'

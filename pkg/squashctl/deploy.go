@@ -86,7 +86,7 @@ func (top *Options) deploySquashCmd(spOpts *SquashProcessOptions) *cobra.Command
 			if err := top.ensureSquashDeployOpts(spOpts); err != nil {
 				return err
 			}
-			return install.InstallSquash(top.KubeClient, spOpts.Namespace, spOpts.Preview)
+			return install.InstallSquash(top.KubeClient, spOpts.Namespace, top.Squash.DebugContainerRepo, top.Squash.DebugContainerVersion, spOpts.Preview)
 		},
 	}
 	f := cmd.Flags()
