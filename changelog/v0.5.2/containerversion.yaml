@@ -1,0 +1,7 @@
+changelog:
+- type: FIX
+  description: Use new container repo (quay) for Squash image.
+  issueLin: https://github.com/solo-io/squash/issues/130
+- type: NEW_FEATURE
+  description: Allow flags to override default Squash image.
+  issueLink: https://github.com/solo-io/squash/issues/132

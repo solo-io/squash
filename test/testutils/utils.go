@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	plankTestVersion = "0.4.7"
+	plankTestVersion = "0.5.1"
 	plankTestRepo    = "quay.io/solo-io"
 )
 
