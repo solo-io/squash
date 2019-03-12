@@ -1,0 +1,4 @@
+changelog:
+- type: FIX
+  description: Fix name of Squash image.
+  issueLink: https://github.com/solo-io/squash/issues/136
