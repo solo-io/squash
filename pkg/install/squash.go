@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	sqOpts "github.com/solo-io/squash/pkg/options"
-	"github.com/solo-io/squash/pkg/version"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -124,7 +123,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 					Containers: []v1.Container{
 						{
 							Name:  SquashName,
-							Image: fmt.Sprintf("%v/%v:%v", containerRepo, containerVersion, version.SquashImageTag),
+							Image: fmt.Sprintf("%v/%v:%v", containerRepo, SquashImageName, containerVersion),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,
