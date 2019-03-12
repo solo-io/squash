@@ -13,13 +13,9 @@ import (
 )
 
 var (
-	SquashRepoName  = "quay.io/solo-io"
-	SquashName      = "squash"
-	SquashImageName = "squash"
-
+	SquashName    = "squash"
 	ContainerPort = 1234
-
-	volumeName = "crisock"
+	volumeName    = "crisock"
 )
 
 // InstallSquash creates the resources needed for Squash to run in secure mode
@@ -123,7 +119,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 					Containers: []v1.Container{
 						{
 							Name:  SquashName,
-							Image: fmt.Sprintf("%v/%v:%v", containerRepo, SquashImageName, containerVersion),
+							Image: fmt.Sprintf("%v/%v:%v", containerRepo, SquashName, containerVersion),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,
