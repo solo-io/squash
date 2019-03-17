@@ -21,12 +21,17 @@ func MustPrepareReleaseJsPackage(ctx context.Context, version string) {
 	}
 	scanner := bufio.NewScanner(file)
 	out := ""
+	updatedVersion := false
 	for scanner.Scan() {
 		if jsPackageVersionLineMatch.MatchString(scanner.Text()) {
 			out += fmt.Sprintf(`  "version": "%v",%v`, version, "\n")
+			updatedVersion = true
 		} else {
 			out += scanner.Text() + "\n"
 		}
+	}
+	if !updatedVersion {
+		lo.Fatal(fmt.Errorf("Did not find version substitution string in package.json, version %v has not been applied", version))
 	}
 	file.Close()
 	writeOut, err := os.Create(jsPackage)

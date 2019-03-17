@@ -31,12 +31,12 @@ const (
 	outputLinux  = "_output/squashctl-linux"
 	outputDarwin = "_output/squashctl-darwin"
 
+	// This file interfaces the extension with the VS-Code marketplace
 	jsPackage = "editor/vscode/package.json"
 
+	// This file tells the vscode extension about the latest release of squashctl
 	squashConfig = "editor/vscode/src/squash.json"
 )
-
-// (End summary of functionality)
 
 const (
 	extensionBaseName = "squashctl"
