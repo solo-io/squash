@@ -3,6 +3,6 @@
 # Normally, the vscode extension config file is generated during the release process
 # If you are testing changes locally and want to set the values to a particular version
 # use this make target
-.PHONY: extension
-extension:
+.PHONY: extension-json
+extension-json:
 	go run ci/generate-extension-resources.go ${VERSION}
