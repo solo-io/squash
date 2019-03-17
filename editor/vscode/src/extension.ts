@@ -62,7 +62,6 @@ async function getremote(extPath: string): Promise<string> {
 
     let ks = getSquashctl();
 
-
     // exit this early until release is smoothed out
     if (fs.existsSync(execpath)) {
         let exechash = await hash(execpath);
@@ -182,6 +181,9 @@ class SquashExtension {
         }
         console.log("using squashctl from:");
         console.log(squashpath);
+        if ( get_conf_or("verbose", false) ) {
+            vscode.window.showInformationMessage("calling squashctl from: " + squashpath);
+        }
 
         if (!vscode.workspace.workspaceFolders) {
             throw new Error("no workspace folders");
@@ -476,7 +478,10 @@ interface SquashctlBinary {
 
 function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
     let link = "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
-    console.log("trying to dl from: " + link);
+    console.log("downloading from: " + link);
+    if ( get_conf_or("verbose", false) ) {
+        vscode.window.showInformationMessage("downloading from: " + link);
+    }
     return {
         link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
         checksum: checksum

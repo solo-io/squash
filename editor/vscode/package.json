@@ -1,5 +1,5 @@
 {
-  "version": "THIS_VALUE_WILL_BE_REPLACED_BY_BUILD_SCRIPT",
+  "version": "v0.0.999",
   "name": "squash",
   "displayName": "Squash",
   "description": "Debug your applications running on Kubernetes",
@@ -61,6 +61,11 @@
           "type": "string",
           "default": null,
           "description": "Path of the source files in the remote executable."
+        },
+        "squash.verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "If set, prints diagnostic information related to the extension."
         }
       }
     },

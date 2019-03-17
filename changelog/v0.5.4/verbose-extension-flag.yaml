@@ -1,0 +1,6 @@
+changelog:
+- type: NEW_FEATURE
+  description: Add optional verbose flag to vscode extension for self-diagnostics.
+  issueLink: https://github.com/solo-io/squash/issues/141
+- type: NON_USER_FACING
+  description: Script for pulling release shas from GitHub.
