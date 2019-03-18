@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
@@ -25,13 +24,8 @@ import (
 var _ = Describe("Single debug mode", func() {
 
 	It("Should create a debug session", func() {
-		plankNamespace := sqOpts.SquashNamespace
-		cs := &kubernetes.Clientset{}
 		By("should get a kube client")
-		restCfg, err := gokubeutils.GetConfig("", "")
-		check(err)
-		cs, err = kubernetes.NewForConfig(restCfg)
-		check(err)
+		cs := MustGetClientset()
 
 		By("should list no resources after delete")
 		// Run delete before testing to ensure there are no lingering artifacts
@@ -61,6 +55,7 @@ var _ = Describe("Single debug mode", func() {
 		fmt.Println(dbgStr)
 
 		By("should have created the required permissions")
+		plankNamespace := sqOpts.SquashNamespace
 		must(ensurePlankPermissionsWereCreated(cs, plankNamespace))
 
 		By("should speak with dlv")
