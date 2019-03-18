@@ -90,7 +90,10 @@ push-docs:
 # Squashctl
 #----------------------------------------------------------------------------------
 .PHONY: squashctl
-squashctl: $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-windows.exe
+squashctl: $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-windows.exe
+
+$(OUTPUT_DIR)/squashctl: $(SRCS)
+	go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
 $(OUTPUT_DIR)/squashctl-darwin: $(SRCS)
 	GOOS=darwin  GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
