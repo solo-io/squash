@@ -110,7 +110,7 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.Pod, "pod", "", "Pod to debug")
 	f.StringVar(&cfg.Container, "container", "", "Container to debug")
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
-	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resourcea will be deployed (default: %v)", options.SquashNamespace))
+	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resources will be deployed (default: %v)", options.SquashNamespace))
 }
 
 func initializeOptions(o *Options) error {

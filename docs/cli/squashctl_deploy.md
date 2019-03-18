@@ -32,7 +32,7 @@ deploy squash or a demo microservice
       --no-guess-debugger          don't auto detect debugger to use
       --no-guess-pod               don't auto detect pod to use
       --pod string                 Pod to debug
-      --squash-namespace string    the namespace where squash resourcea will be deployed (default: squash-debugger) (default "squash-debugger")
+      --squash-namespace string    the namespace where squash resources will be deployed (default: squash-debugger) (default "squash-debugger")
       --timeout int                timeout in seconds to wait for debug pod to be ready (default 300)
 ```
 
