@@ -7,7 +7,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/solo-kit/test/helpers"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"testing"
 )
@@ -26,4 +28,17 @@ var _ = BeforeSuite(func() {
 	seed := time.Now().UnixNano()
 	fmt.Printf("rand seed: %v\n", seed)
 	rand.Seed(seed)
+})
+
+// this list will be appened each time a test namespace is created
+var squashTestNamespaces = []string{sqOpts.SquashNamespace}
+var _ = AfterSuite(func() {
+	fmt.Println("clean up after test")
+	cs := MustGetClientset()
+	for _, ns := range squashTestNamespaces {
+		if err := cs.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{}); err != nil {
+			// don't fail if cleanup fails
+			fmt.Printf("Could not delete namespace %v, %v", ns, err)
+		}
+	}
 })
