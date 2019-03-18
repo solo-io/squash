@@ -71,11 +71,10 @@ func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName, 
 		},
 	}
 
-	createdDeployment, err := cs.AppsV1().Deployments(namespace).Create(deployment)
+	_, err := cs.AppsV1().Deployments(namespace).Create(deployment)
 	if err != nil {
 		return err
 	}
-	fmt.Println(createdDeployment)
 
 	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -97,11 +96,11 @@ func DeployTemplate(cs *kubernetes.Clientset, namespace, appName, templateName, 
 			},
 		},
 	}
-	createdService, err := cs.CoreV1().Services(namespace).Create(service)
+	_, err = cs.CoreV1().Services(namespace).Create(service)
 	if err != nil {
 		return err
 	}
-	fmt.Println(createdService)
+	fmt.Printf("Deployed demo app %v in namespace %v\n", appName, namespace)
 
 	return nil
 }

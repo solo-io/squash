@@ -13,3 +13,13 @@ vendor/*
 site/
 
 .vscode/*
+
+editor/vscode/binaries/
+
+# temp java example files
+contrib/example/service2-java/.classpath
+contrib/example/service2-java/.project
+contrib/example/service2-java/.settings/
+
+# temp go example files
+contrib/example/service1/.vscode/settings.json

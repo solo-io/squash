@@ -204,12 +204,8 @@ func (o *Options) createPlankPermissions() error {
 	// need to create the permissions in the namespace of the target process
 	namespace := o.Squash.SquashNamespace
 
-	// create namespace. ignore errors as it most likely exists and will error
-	cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
-
-	if _, err := cs.CoreV1().ServiceAccounts(namespace).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err != nil {
+	if _, err := cs.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		if !errors.IsAlreadyExists(err) {
-			// service account already exists, no need to create it
 			return err
 		}
 	}

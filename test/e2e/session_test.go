@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/squash/pkg/config"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/utils"
@@ -22,25 +21,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func check(err error) {
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}
-
 var _ = Describe("Single debug mode", func() {
 
 	It("Should create a debug session", func() {
-		plankNamespace := sqOpts.SquashNamespace
-		cs := &kubernetes.Clientset{}
 		By("should get a kube client")
-		restCfg, err := gokubeutils.GetConfig("", "")
-		check(err)
-		cs, err = kubernetes.NewForConfig(restCfg)
-		check(err)
+		cs := MustGetClientset()
 
 		By("should list no resources after delete")
 		// Run delete before testing to ensure there are no lingering artifacts
-		err = testutils.Squashctl("utils delete-attachments")
-		check(err)
+		must(testutils.Squashctl("utils delete-attachments"))
 		str, err := testutils.SquashctlOut("utils list-attachments")
 		check(err)
 		validateUtilsListDebugAttachments(str, 0)
@@ -50,10 +39,10 @@ var _ = Describe("Single debug mode", func() {
 		By("should create a demo namespace")
 		_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
 		check(err)
+		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
 
 		By("should deploy a demo app")
-		err = testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java", testNamespace, testNamespace))
-		check(err)
+		must(testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java", testNamespace, testNamespace)))
 
 		By("should find the demo deployment")
 		podName, err := waitForPod(cs, testNamespace, "example-service1")
@@ -66,7 +55,8 @@ var _ = Describe("Single debug mode", func() {
 		fmt.Println(dbgStr)
 
 		By("should have created the required permissions")
-		check(ensurePlankPermissionsWereCreated(cs, plankNamespace))
+		plankNamespace := sqOpts.SquashNamespace
+		must(ensurePlankPermissionsWereCreated(cs, plankNamespace))
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
