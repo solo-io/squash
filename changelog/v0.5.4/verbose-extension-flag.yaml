@@ -4,3 +4,6 @@ changelog:
   issueLink: https://github.com/solo-io/squash/issues/141
 - type: NON_USER_FACING
   description: Script for pulling release shas from GitHub.
+- type: FIX
+  description: When deploying demos, just print app type, not deployment details.
+  issueLink: https://github.com/solo-io/squash/issues/125
