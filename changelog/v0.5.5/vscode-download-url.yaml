@@ -1,0 +1,4 @@
+changelog:
+- type: FIX
+  description: Fix download url for squashctl.
+  issueLink: https://github.com/solo-io/squash/issues/145

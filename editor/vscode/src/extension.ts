@@ -477,13 +477,13 @@ interface SquashctlBinary {
 }
 
 function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
-    let link = "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
+    let link = "https://github.com/solo-io/squash/releases/download/v" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
     console.log("downloading from: " + link);
     if ( get_conf_or("verbose", false) ) {
         vscode.window.showInformationMessage("downloading from: " + link);
     }
     return {
-        link: "https://github.com/solo-io/squash/releases/download/" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os,
+        link,
         checksum: checksum
     };
 }
