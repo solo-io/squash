@@ -1,0 +1,4 @@
+changelog:
+- type: FIX 
+  description: Fix Role Binding for Custom Namespace.
+  issueLink: https://github.com/solo-io/squash/issues/147
