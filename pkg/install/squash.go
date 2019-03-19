@@ -85,7 +85,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 			rbacv1.Subject{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      sqOpts.SquashServiceAccountName,
-				Namespace: sqOpts.SquashNamespace,
+				Namespace: namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
