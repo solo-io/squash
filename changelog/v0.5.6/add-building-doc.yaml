@@ -1,0 +1,4 @@
+changelog:
+- type: FIX
+  description: Add document file that how to build squash
+  issueLink: https://github.com/solo-io/squash/issues/149
