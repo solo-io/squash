@@ -45,7 +45,7 @@ func NewMonitor() (Monitor, error) {
 	}
 	return Monitor{
 		ctx:      ctx,
-		daClient: daClient,
+		daClient: &daClient,
 	}, nil
 }
 
