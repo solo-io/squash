@@ -19,7 +19,7 @@ You can configure squash to use secure mode by setting the secure_mode value
 in your .squash config file.
 `
 
-func (o *Options) SquashCmd(top *Options) *cobra.Command {
+func (o *Options) SquashCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "squash",
 		Short: "manage the squash",

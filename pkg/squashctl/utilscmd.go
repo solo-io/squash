@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (o *Options) UtilsCmd(top *Options) *cobra.Command {
+func (o *Options) UtilsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "utils",
 		Short:   "call various squash utils",

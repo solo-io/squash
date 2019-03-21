@@ -66,11 +66,9 @@ func App(version string) (*cobra.Command, error) {
 		Short:   "debug microservices with squash",
 		Long:    descriptionUsage,
 		Version: version,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			opts.readConfigValues(&opts.Config)
 			opts.logCmd(cmd, args)
-
-			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// when no sub commands are specified, run w/wo RBAC according to settings
@@ -83,9 +81,9 @@ func App(version string) (*cobra.Command, error) {
 
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
-		opts.DeployCmd(opts),
-		opts.SquashCmd(opts),
-		opts.UtilsCmd(opts),
+		opts.DeployCmd(),
+		opts.SquashCmd(),
+		opts.UtilsCmd(),
 		completionCmd(),
 	)
 

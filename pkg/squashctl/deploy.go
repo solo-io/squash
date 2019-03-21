@@ -12,7 +12,7 @@ import (
 
 var defaultDemoNamespace = "default"
 
-func (o *Options) DeployCmd(top *Options) *cobra.Command {
+func (o *Options) DeployCmd() *cobra.Command {
 	dOpts := &o.DeployOptions
 	cmd := &cobra.Command{
 		Use:   "deploy",
