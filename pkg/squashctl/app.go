@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/go-utils/cliutils"
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
 	"github.com/solo-io/squash/pkg/config"
@@ -21,7 +20,6 @@ import (
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 /*
@@ -65,19 +63,21 @@ func App(version string) (*cobra.Command, error) {
 		Short:   "debug microservices with squash",
 		Long:    descriptionUsage,
 		Version: version,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := initializeOptions(opts); err != nil {
+				return err
+			}
+
 			opts.readConfigValues(&opts.Config)
 			opts.logCmd(cmd, args)
+
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// when no sub commands are specified, run w/wo RBAC according to settings
 			return opts.runBaseCommand()
 		},
 		SuggestionsMinimumDistance: 1,
-	}
-
-	if err := initializeOptions(opts); err != nil {
-		return &cobra.Command{}, err
 	}
 
 	app.SuggestionsMinimumDistance = 1
@@ -122,11 +122,9 @@ func initializeOptions(o *Options) error {
 	o.ctx = ctx
 	o.daClient = daClient
 
-	restCfg, err := gokubeutils.GetConfig("", "")
-	if err != nil {
-		return err
-	}
-	kubeClient, err := kubernetes.NewForConfig(restCfg)
+	o.Squash = config.NewSquashConfig()
+
+	kubeClient, err := squashkubeutils.GetKubeClient()
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
 	"io"
 	"os"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/debuggers/local"
@@ -396,20 +396,15 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 }
 
 func (s *Squash) getClientSet() kubernetes.Interface {
-	if s.clientset != nil {
-		return s.clientset
+	if s.clientset == nil {
+		cs, err := squashkubeutils.GetKubeClient()
+		if err != nil {
+			panic(err)
+		}
+		s.clientset = cs
 	}
-	restCfg, err := gokubeutils.GetConfig("", "")
-	if err != nil {
-		panic(err)
-	}
-	cs, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		panic(err)
-	}
-	s.clientset = cs
-	return s.clientset
 
+	return s.clientset
 }
 
 // DeletePlankPod deletes the plank pod that was created for the debug session

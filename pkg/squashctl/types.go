@@ -40,7 +40,6 @@ type Options struct {
 
 func NewOptions() *Options {
 	o := &Options{}
-	o.Squash = config.NewSquashConfig()
 	return o
 }
 

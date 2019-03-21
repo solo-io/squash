@@ -66,3 +66,15 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	}
 	return namespaces, nil
 }
+
+func GetKubeClient() (*kubernetes.Clientset, error) {
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return &kubernetes.Clientset{}, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return &kubernetes.Clientset{}, err
+	}
+	return kubeClient, nil
+}
