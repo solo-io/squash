@@ -1,6 +1,6 @@
 ## How to Build Squash
 
-### Pre-requirement
+### Requirements
 * [Git](https://git-scm.com/)
   * MAC(need [homebrew](https://docs.brew.sh/Installation))
     ```bash
@@ -56,7 +56,7 @@
 
 * make $GOPATH directory
   ```bash
-    mkdir -p $GOAPTH/src
+    mkdir -p $GOPATH/src
   ```
 
 ### Download the Squash source and install the dependencies
@@ -65,22 +65,20 @@
   ```bash
     # Download the source by using go get
     go get github.com/solo-io/squash
-  
+
     # or by using git clone
     # mkdir -p $GOPATH/src/github.com/solo-io
     # cd $GOPATH/src/github.com/solo-io
     # git clone https://github.com/solo-io/squash.git
-    
+
     cd $GOPATH/src/github.com/solo-io/squash
-    git checkout -b v0.5.5 tags/v0.5.5
+    git checkout -b master
   ```
 
 * install the dependencies
   ```bash
     # This job may take some time.
-    # To see the progress, check the pkg directory size:
-    # cd $GOPATH/pkg ; du -sh
-    dep ensure
+    dep ensure -v
   ```
 
 ### Now you can build Squash
@@ -88,3 +86,7 @@
     make build
   ```
 
+* Build artifacts can be found in the `_output` directory.
+
+### Note
+* Our canonical build process is described by the [`cloudbuild.yaml`](https://github.com/solo-io/squash/blob/master/cloudbuild.yaml) file.
