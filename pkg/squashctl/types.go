@@ -9,7 +9,7 @@ import (
 )
 
 type Options struct {
-	KubeClient *kubernetes.Clientset
+	kubeClient *kubernetes.Clientset
 
 	Url            string
 	Json           bool

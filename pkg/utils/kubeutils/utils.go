@@ -43,11 +43,11 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 func GetKubeClient() (*kubernetes.Clientset, error) {
 	restCfg, err := gokubeutils.GetConfig("", "")
 	if err != nil {
-		return &kubernetes.Clientset{}, errors.Wrapf(err, "No Kubernetes context config found; please double check your Kubernetes environment")
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "no Kubernetes context config found; please double check your Kubernetes environment")
 	}
 	kubeClient, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return &kubernetes.Clientset{}, errors.Wrapf(err, "Error connecting to current Kubernetes Context Host %s; please double check your Kubernetes environment", restCfg.Host)
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "error connecting to current Kubernetes Context Host %s; please double check your Kubernetes environment", restCfg.Host)
 	}
 	return kubeClient, nil
 }

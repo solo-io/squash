@@ -37,8 +37,12 @@ func (o *Options) getAllDebugAttachments() (v1.DebugAttachmentList, error) {
 		return v1.DebugAttachmentList{}, err
 	}
 	das := v1.DebugAttachmentList{}
+	daClient, err := o.getDAClient()
+	if err != nil {
+		return v1.DebugAttachmentList{}, err
+	}
 	for _, ns := range watchNamespaces {
-		nsDas, err := o.daClient.List(ns, clients.ListOpts{Ctx: o.ctx})
+		nsDas, err := daClient.List(ns, clients.ListOpts{Ctx: o.ctx})
 		if err != nil {
 			return v1.DebugAttachmentList{}, err
 		}
@@ -109,22 +113,22 @@ func RandKubeNameBytes(n int) string {
 	return strings.Join([]string{firstChar, suffix}, "")
 }
 
-func (top *Options) printVerbose(msg string) {
-	if top.Config.verbose && !top.Squash.Machine {
+func (o *Options) printVerbose(msg string) {
+	if o.Config.verbose && !o.Squash.Machine {
 		fmt.Println(msg)
 	}
 }
 
-func (top *Options) printVerbosef(tmpl string, args ...interface{}) {
-	if top.Config.verbose {
+func (o *Options) printVerbosef(tmpl string, args ...interface{}) {
+	if o.Config.verbose {
 		fmt.Printf(tmpl, args)
 	}
 }
 
 var logFileName = "cmd.log"
 
-func (top *Options) logCmd(cmd *cobra.Command, args []string) {
-	if !top.Config.logCmds {
+func (o *Options) logCmd(cmd *cobra.Command, args []string) {
+	if !o.Config.logCmds {
 		return
 	}
 
@@ -180,7 +184,7 @@ func getFlagSpec(cmd *cobra.Command) string {
 	return str
 }
 
-func (top *Options) chooseString(message string, choice *string, options []string) error {
+func (o *Options) chooseString(message string, choice *string, options []string) error {
 	question := &survey.Select{
 		Message: message,
 		Options: options,
