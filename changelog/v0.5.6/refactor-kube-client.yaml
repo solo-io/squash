@@ -1,0 +1,4 @@
+changelog:
+  - type: FIX
+    description: Consolidated code to get Kubernetes Context client, and added better error handling.
+    issueLink: https://github.com/solo-io/squash/issues/154

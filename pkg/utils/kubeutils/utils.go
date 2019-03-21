@@ -11,30 +11,21 @@ import (
 // MustGetNamespaces returns a list of all namespaces in a cluster - or panics.
 // If a clientset is passed, it will use that, otherwise it creates one.
 // In the event of any error it will panic.
-func MustGetNamespaces(clientset *kubernetes.Clientset) []string {
+func MustGetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	if clientset == nil {
-		restCfg, err := gokubeutils.GetConfig("", "")
+		cs, err := GetKubeClient()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-		cs, err := kubernetes.NewForConfig(restCfg)
-		if err != nil {
-			panic(err)
-		}
-		if err != nil {
-			panic(err)
-		}
+
 		clientset = cs
 	}
+
 	nss, err := GetNamespaces(clientset)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return nss
-}
-
-	if err != nil {
-	}
+	return nss, nil
 }
 
 func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
@@ -52,11 +43,11 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 func GetKubeClient() (*kubernetes.Clientset, error) {
 	restCfg, err := gokubeutils.GetConfig("", "")
 	if err != nil {
-		return &kubernetes.Clientset{}, err
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "No Kubernetes context config found; please double check your Kubernetes environment")
 	}
 	kubeClient, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return &kubernetes.Clientset{}, err
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "Error connecting to current Kubernetes Context Host %s; please double check your Kubernetes environment", restCfg.Host)
 	}
 	return kubeClient, nil
 }

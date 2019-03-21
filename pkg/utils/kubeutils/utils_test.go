@@ -30,7 +30,8 @@ var _ = Describe("Get namespaces", func() {
 		cs.CoreV1().Namespaces().Create(newNs)
 
 		// test function
-		ns := kubeutils.MustGetNamespaces(nil)
+		ns, err := kubeutils.MustGetNamespaces(nil)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(ns) > 0).To(BeTrue())
 		Expect(ns).To(ContainElement(name))
 
