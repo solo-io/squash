@@ -96,7 +96,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 }
 
 // for the debug controller, this function finds the debug target
-// from the squash spec that it recieves
+// from the squash spec that it receives
 // If it is able to find a unique target, it applies the target
 // values to the DebugTarget argument. Otherwise it errors.
 func (s *Squash) ExpectToGetUniqueDebugTargetFromSpec(dbt *DebugTarget) error {
