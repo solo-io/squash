@@ -224,7 +224,7 @@ func (o *Options) ensureMinimumSquashConfig() error {
 	if err := o.chooseDebugger(); err != nil {
 		return err
 	}
-	if err := o.GetMissing(); err != nil {
+	if err := o.getMissing(); err != nil {
 		return err
 	}
 	if err := o.ensureLocalPort(&o.Squash.LocalPort); err != nil {
@@ -276,7 +276,7 @@ func (o *Options) detectLang() string {
 	return ""
 }
 
-func (o *Options) GetMissing() error {
+func (o *Options) getMissing() error {
 
 	//	clientset.CoreV1().Namespace().
 	// see if namespace exist, and if not prompt for one.
