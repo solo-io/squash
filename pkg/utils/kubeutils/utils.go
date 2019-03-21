@@ -1,7 +1,7 @@
 package kubeutils
 
 import (
-	"fmt"
+	"github.com/solo-io/go-utils/errors"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,26 +33,8 @@ func MustGetNamespaces(clientset *kubernetes.Clientset) []string {
 	return nss
 }
 
-func GetPodNamespace(clientset *kubernetes.Clientset, podName string) (string, error) {
-	if podName == "" {
-		return "", fmt.Errorf("no pod name specified")
-	}
-	namespaces, err := GetNamespaces(clientset)
 	if err != nil {
-		return "", err
 	}
-	for _, ns := range namespaces {
-		pods, err := clientset.CoreV1().Pods(ns).List(metav1.ListOptions{})
-		if err != nil {
-			return "", fmt.Errorf("list pods for namespace %v", ns)
-		}
-		for _, pod := range pods.Items {
-			if pod.ObjectMeta.Name == podName {
-				return pod.ObjectMeta.Namespace, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("pod %v not found", podName)
 }
 
 func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
