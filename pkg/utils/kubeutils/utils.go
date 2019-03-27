@@ -1,7 +1,7 @@
 package kubeutils
 
 import (
-	"fmt"
+	"github.com/solo-io/go-utils/errors"
 
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,48 +11,21 @@ import (
 // MustGetNamespaces returns a list of all namespaces in a cluster - or panics.
 // If a clientset is passed, it will use that, otherwise it creates one.
 // In the event of any error it will panic.
-func MustGetNamespaces(clientset *kubernetes.Clientset) []string {
+func MustGetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	if clientset == nil {
-		restCfg, err := gokubeutils.GetConfig("", "")
+		cs, err := GetKubeClient()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-		cs, err := kubernetes.NewForConfig(restCfg)
-		if err != nil {
-			panic(err)
-		}
-		if err != nil {
-			panic(err)
-		}
+
 		clientset = cs
 	}
+
 	nss, err := GetNamespaces(clientset)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return nss
-}
-
-func GetPodNamespace(clientset *kubernetes.Clientset, podName string) (string, error) {
-	if podName == "" {
-		return "", fmt.Errorf("no pod name specified")
-	}
-	namespaces, err := GetNamespaces(clientset)
-	if err != nil {
-		return "", err
-	}
-	for _, ns := range namespaces {
-		pods, err := clientset.CoreV1().Pods(ns).List(metav1.ListOptions{})
-		if err != nil {
-			return "", fmt.Errorf("list pods for namespace %v", ns)
-		}
-		for _, pod := range pods.Items {
-			if pod.ObjectMeta.Name == podName {
-				return pod.ObjectMeta.Namespace, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("pod %v not found", podName)
+	return nss, nil
 }
 
 func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
@@ -65,4 +38,16 @@ func GetNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 		namespaces = append(namespaces, ns.ObjectMeta.Name)
 	}
 	return namespaces, nil
+}
+
+func GetKubeClient() (*kubernetes.Clientset, error) {
+	restCfg, err := gokubeutils.GetConfig("", "")
+	if err != nil {
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "no Kubernetes context config found; please double check your Kubernetes environment")
+	}
+	kubeClient, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return &kubernetes.Clientset{}, errors.Wrapf(err, "error connecting to current Kubernetes Context Host %s; please double check your Kubernetes environment", restCfg.Host)
+	}
+	return kubeClient, nil
 }

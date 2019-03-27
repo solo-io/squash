@@ -34,13 +34,13 @@ func writeDefaultConfigFile(fp string) error {
 // Note on use of config file:
 // - should implement a consistent way of reading all values
 // and harmonizing them with flags
-func (top *Options) readConfigValues(c *Config) error {
+func (o *Options) readConfigValues(c *Config) error {
 	// Only read the config once
-	if top.Internal.ConfigLoaded {
+	if o.Internal.ConfigLoaded {
 		return nil
 	}
 
-	if err := top.prepareViperConfig(); err != nil {
+	if err := o.prepareViperConfig(); err != nil {
 		return err
 	}
 
@@ -49,14 +49,14 @@ func (top *Options) readConfigValues(c *Config) error {
 	c.secureMode = viper.GetBool("secure_mode")
 	c.logCmds = viper.GetBool("log_commands")
 
-	top.Internal.ConfigRead = true
+	o.Internal.ConfigRead = true
 	return nil
 }
 
 // This needs to be called before viper can read any config values
-func (top *Options) prepareViperConfig() error {
+func (o *Options) prepareViperConfig() error {
 	// only load the config once
-	if top.Internal.ConfigLoaded {
+	if o.Internal.ConfigLoaded {
 		return nil
 	}
 	// read config file
@@ -64,7 +64,7 @@ func (top *Options) prepareViperConfig() error {
 	cfgFile := ""
 	if cfgFile != "" {
 		// Use config file from the flag.
-		top.printVerbosef("Reading squash config from %v\n", cfgFile)
+		o.printVerbosef("Reading squash config from %v\n", cfgFile)
 		viper.SetConfigFile(cfgFile)
 	} else {
 		squashDir, err := squashDir()
@@ -77,7 +77,7 @@ func (top *Options) prepareViperConfig() error {
 		squashConfigFile := filepath.Join(squashDir, squashConfigFileName)
 		if _, err := os.Stat(squashConfigFile); err == nil {
 			// path exists
-			top.printVerbosef("Reading squash config from %v\n", squashConfigFile)
+			o.printVerbosef("Reading squash config from %v\n", squashConfigFile)
 		} else {
 			if err := writeDefaultConfigFile(squashConfigFile); err != nil {
 				return err
@@ -90,7 +90,7 @@ func (top *Options) prepareViperConfig() error {
 	if err := viper.ReadInConfig(); err != nil {
 		return fmt.Errorf("Can't read config: %v", err)
 	}
-	top.Internal.ConfigLoaded = true
+	o.Internal.ConfigLoaded = true
 	return nil
 }
 

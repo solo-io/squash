@@ -19,7 +19,7 @@ You can configure squash to use secure mode by setting the secure_mode value
 in your .squash config file.
 `
 
-func (top *Options) SquashCmd(o *Options) *cobra.Command {
+func (o *Options) SquashCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "squash",
 		Short: "manage the squash",
@@ -30,24 +30,28 @@ func (top *Options) SquashCmd(o *Options) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		top.squashStatusCmd(),
-		top.squashDeleteCmd(),
+		o.squashStatusCmd(),
+		o.squashDeleteCmd(),
 	)
 
 	return cmd
 }
 
-func (top *Options) squashStatusCmd() *cobra.Command {
+func (o *Options) squashStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "list status of Squash process",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			nsList, err := kubeutils.GetNamespaces(top.KubeClient)
+			cs, err := o.getKubeClient()
+			if err != nil {
+				return err
+			}
+			nsList, err := kubeutils.GetNamespaces(cs)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("looking for Squash process in namespaces %v\n", strings.Join(nsList, ", "))
-			squashDeployments, err := squashutils.ListSquashDeployments(top.KubeClient, nsList)
+			squashDeployments, err := squashutils.ListSquashDeployments(cs, nsList)
 			if err != nil {
 				return err
 			}
@@ -72,7 +76,7 @@ func (top *Options) squashStatusCmd() *cobra.Command {
 	return cmd
 }
 
-func (top *Options) squashDeleteCmd() *cobra.Command {
+func (o *Options) squashDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",
 		Short: "delete Squash processes from your cluster by namespace",
@@ -82,7 +86,11 @@ func (top *Options) squashDeleteCmd() *cobra.Command {
 			}
 			ns := args[0]
 			fmt.Printf("Looking for Squash process in namespace %v\n", ns)
-			squashDeployments, err := squashutils.ListSquashDeployments(top.KubeClient, []string{ns})
+			cs, err := o.getKubeClient()
+			if err != nil {
+				return err
+			}
+			squashDeployments, err := squashutils.ListSquashDeployments(cs, []string{ns})
 			if err != nil {
 				return err
 			}
@@ -92,7 +100,7 @@ func (top *Options) squashDeleteCmd() *cobra.Command {
 				fmt.Println("Found no Squash deployments")
 				return nil
 			default:
-				count, err := squashutils.DeleteSquashDeployments(top.KubeClient, squashDeployments)
+				count, err := squashutils.DeleteSquashDeployments(cs, squashDeployments)
 				if err != nil {
 					return fmt.Errorf("Deleted %v deployments: %v", count, err)
 				}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/kubeutils"
 )
@@ -45,7 +45,7 @@ func NewMonitor() (Monitor, error) {
 	}
 	return Monitor{
 		ctx:      ctx,
-		daClient: daClient,
+		daClient: &daClient,
 	}, nil
 }
 
@@ -62,7 +62,10 @@ func (m *Monitor) Run() error {
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
 	// watch all namespaces
-	namespaces := kubeutils.MustGetNamespaces(nil)
+	namespaces, err := kubeutils.MustGetNamespaces(nil)
+	if err != nil {
+		return err
+	}
 	if customNamespaces == unspecifiedCustomNamespaces {
 		namespaces = strings.Split(customNamespaces, ",")
 	}

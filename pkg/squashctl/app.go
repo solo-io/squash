@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/pkg/errors"
 	"github.com/solo-io/go-utils/cliutils"
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/squash/pkg/actions"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/options"
 	sqOpts "github.com/solo-io/squash/pkg/options"
@@ -21,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"gopkg.in/AlecAivazis/survey.v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 /*
@@ -76,15 +77,13 @@ func App(version string) (*cobra.Command, error) {
 		SuggestionsMinimumDistance: 1,
 	}
 
-	if err := initializeOptions(opts); err != nil {
-		return &cobra.Command{}, err
-	}
+	initializeOptions(opts)
 
 	app.SuggestionsMinimumDistance = 1
 	app.AddCommand(
-		opts.DeployCmd(opts),
-		opts.SquashCmd(opts),
-		opts.UtilsCmd(opts),
+		opts.DeployCmd(),
+		opts.SquashCmd(),
+		opts.UtilsCmd(),
 		completionCmd(),
 	)
 
@@ -113,27 +112,34 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resources will be deployed (default: %v)", options.SquashNamespace))
 }
 
-func initializeOptions(o *Options) error {
-	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
-	if err != nil {
-		return err
-	}
-	o.ctx = ctx
-	o.daClient = daClient
+func initializeOptions(o *Options) {
+	o.ctx = context.Background()
 
-	restCfg, err := gokubeutils.GetConfig("", "")
-	if err != nil {
-		return err
-	}
-	kubeClient, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return err
-	}
-	o.KubeClient = kubeClient
+	o.Squash = config.NewSquashConfig()
 
 	o.DeployOptions = defaultDeployOptions()
-	return nil
+}
+
+func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
+	if o.daClient == nil {
+		daClient, err := utils.GetDebugAttachmentClient(o.ctx)
+		if err != nil {
+			return nil, err
+		}
+		o.daClient = daClient
+	}
+	return o.daClient, nil
+}
+
+func (o *Options) getKubeClient() (*kubernetes.Clientset, error) {
+	if o.kubeClient == nil {
+		kubeClient, err := squashkubeutils.GetKubeClient()
+		if err != nil {
+			return &kubernetes.Clientset{}, err
+		}
+		o.kubeClient = kubeClient
+	}
+	return o.kubeClient, nil
 }
 
 func (o *Options) runBaseCommand() error {
@@ -173,16 +179,16 @@ func (o *Options) runBaseCommand() error {
 	return nil
 }
 
-func (top *Options) runBaseCommandWithRbac() error {
-	if err := top.ensureSquashIsInCluster(); err != nil {
+func (o *Options) runBaseCommandWithRbac() error {
+	if err := o.ensureSquashIsInCluster(); err != nil {
 		return err
 	}
 
-	if err := top.createPlankPermissions(); err != nil {
+	if err := o.createPlankPermissions(); err != nil {
 		return err
 	}
 
-	if err := top.writeDebugAttachment(); err != nil {
+	if err := o.writeDebugAttachment(); err != nil {
 		return err
 	}
 
@@ -194,7 +200,7 @@ func (top *Options) runBaseCommandWithRbac() error {
 	// TODO(mitchdraft) - replace with watch on cmd stream
 	time.Sleep(3 * time.Second)
 
-	return top.Squash.ReportOrConnectToCreatedDebuggerPod()
+	return o.Squash.ReportOrConnectToCreatedDebuggerPod()
 }
 
 func (o *Options) writeDebugAttachment() error {
@@ -224,7 +230,7 @@ func (o *Options) ensureMinimumSquashConfig() error {
 	if err := o.chooseDebugger(); err != nil {
 		return err
 	}
-	if err := o.GetMissing(); err != nil {
+	if err := o.getMissing(); err != nil {
 		return err
 	}
 	if err := o.ensureLocalPort(&o.Squash.LocalPort); err != nil {
@@ -276,7 +282,7 @@ func (o *Options) detectLang() string {
 	return ""
 }
 
-func (o *Options) GetMissing() error {
+func (o *Options) getMissing() error {
 
 	//	clientset.CoreV1().Namespace().
 	// see if namespace exist, and if not prompt for one.
@@ -347,8 +353,11 @@ func chooseContainer(o *Options) error {
 }
 
 func (o *Options) chooseAllowedNamespace(target *string, question string) error {
-
-	namespaces, err := o.KubeClient.CoreV1().Namespaces().List(meta_v1.ListOptions{})
+	cs, err := o.getKubeClient()
+	if err != nil {
+		return err
+	}
+	namespaces, err := cs.CoreV1().Namespaces().List(meta_v1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "reading namespaces")
 	}
@@ -383,8 +392,11 @@ func (o *Options) chooseAllowedNamespace(target *string, question string) error 
 }
 
 func (o *Options) choosePod() error {
-
-	pods, err := o.KubeClient.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{})
+	cs, err := o.getKubeClient()
+	if err != nil {
+		return err
+	}
+	pods, err := cs.CoreV1().Pods(o.Squash.Namespace).List(meta_v1.ListOptions{})
 	if err != nil {
 		return errors.Wrap(err, "reading namesapces")
 	}
@@ -446,11 +458,15 @@ func (o *Options) ensureLocalPort(port *int) error {
 }
 
 func (o *Options) ensureSquashIsInCluster() error {
-	nsList, err := squashkubeutils.GetNamespaces(o.KubeClient)
+	cs, err := o.getKubeClient()
 	if err != nil {
 		return err
 	}
-	squashDeployments, err := utils.ListSquashDeployments(o.KubeClient, nsList)
+	nsList, err := squashkubeutils.GetNamespaces(cs)
+	if err != nil {
+		return err
+	}
+	squashDeployments, err := utils.ListSquashDeployments(cs, nsList)
 	if err != nil {
 		return err
 	}
@@ -465,13 +481,21 @@ func (o *Options) ensureSquashIsInCluster() error {
 func (o *Options) cleanupPreRun() error {
 	// look for an existing Debug Attachment CRD and clean up its old resources
 	it := o.Squash.GetIntent()
-	priorDas, err := it.GetDebugAttachments(o.daClient)
+	daClient, err := o.getDAClient()
+	if err != nil {
+		return err
+	}
+	priorDas, err := it.GetDebugAttachments(daClient)
 	if err != nil {
 		return errors.Wrap(err, "cleanup pre run list das")
 	}
+	cs, err := o.getKubeClient()
+	if err != nil {
+		return err
+	}
 	for _, priorDa := range priorDas {
 		// delete the prior plank pod
-		if err := o.KubeClient.
+		if err := cs.
 			CoreV1().
 			Pods(o.Squash.SquashNamespace).
 			Delete(priorDa.PlankName, &meta_v1.DeleteOptions{}); err != nil {
@@ -481,7 +505,7 @@ func (o *Options) cleanupPreRun() error {
 				fmt.Println(err)
 			}
 		}
-		if err := o.daClient.Delete(
+		if err := daClient.Delete(
 			priorDa.Metadata.Namespace,
 			priorDa.Metadata.Name,
 			clients.DeleteOpts{}); err != nil {
@@ -497,11 +521,15 @@ func (o *Options) cleanupPostRun() error {
 	// remove pod only if we are not in machine mode
 	if !o.Squash.Machine {
 		it := o.Squash.GetIntent()
-		priorDa, err := it.GetDebugAttachment(o.daClient)
+		daClient, err := o.getDAClient()
+		if err != nil {
+			return err
+		}
+		priorDa, err := it.GetDebugAttachment(daClient)
 		if err != nil {
 			return errors.Wrap(err, "cleanup pre run list das")
 		}
-		if err := o.daClient.Delete(
+		if err := daClient.Delete(
 			priorDa.Metadata.Namespace,
 			priorDa.Metadata.Name,
 			clients.DeleteOpts{}); err != nil {

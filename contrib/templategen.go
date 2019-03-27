@@ -21,8 +21,8 @@ func main() {
 	}
 	tmpl := template.Must(template.New("versioned").Parse(string(templatetxt)))
 	i := Info{
-		Repo : os.Getenv("SQUASH_REPO"),
-		Version : os.Getenv("SQUASH_VERSION"),
+		Repo:    os.Getenv("SQUASH_REPO"),
+		Version: os.Getenv("SQUASH_VERSION"),
 	}
 	tmpl.Execute(os.Stdout, i)
 

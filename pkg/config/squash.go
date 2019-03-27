@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
+	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/debuggers/local"
@@ -48,9 +49,7 @@ type Squash struct {
 }
 
 func NewSquashConfig() Squash {
-	s := Squash{}
-	s.clientset = s.getClientSet()
-	return s
+	return Squash{}
 }
 
 type DebugTarget struct {
@@ -59,16 +58,21 @@ type DebugTarget struct {
 }
 
 func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
-
 	dbgpod, err := s.debugPodFor()
 	if err != nil {
 		return nil, err
 	}
+
+	cs, err := s.getClientSet()
+	if err != nil {
+		return nil, err
+	}
+
 	// create namespace. ignore errors as it most likely exists and will error
-	s.getClientSet().CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.SquashNamespace}})
+	cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: meta_v1.ObjectMeta{Name: s.SquashNamespace}})
 
 	// create debugger pod
-	createdPod, err := s.getClientSet().CoreV1().Pods(s.SquashNamespace).Create(dbgpod)
+	createdPod, err := cs.CoreV1().Pods(s.SquashNamespace).Create(dbgpod)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create pod: %v", err)
 	}
@@ -76,6 +80,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	if !s.Machine && !s.NoClean {
 		// do not remove the pod on a debug server as it is waiting for a
 		// connection
+		// TODO: handle returned error
 		defer s.deletePod(createdPod)
 	}
 
@@ -96,7 +101,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 }
 
 // for the debug controller, this function finds the debug target
-// from the squash spec that it recieves
+// from the squash spec that it receives
 // If it is able to find a unique target, it applies the target
 // values to the DebugTarget argument. Otherwise it errors.
 func (s *Squash) ExpectToGetUniqueDebugTargetFromSpec(dbt *DebugTarget) error {
@@ -110,8 +115,11 @@ func (s *Squash) ExpectToGetUniqueDebugTargetFromSpec(dbt *DebugTarget) error {
 }
 
 func (s *Squash) GetDebugTargetPodFromSpec(dbt *DebugTarget) error {
-	var err error
-	dbt.Pod, err = s.getClientSet().CoreV1().Pods(s.Namespace).Get(s.Pod, meta_v1.GetOptions{})
+	cs, err := s.getClientSet()
+	if err != nil {
+		return err
+	}
+	dbt.Pod, err = cs.CoreV1().Pods(s.Namespace).Get(s.Pod, meta_v1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "fetching pod")
 	}
@@ -237,9 +245,13 @@ func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	return intent.GetDebugAttachment(daClient)
 }
 
-func (s *Squash) deletePod(createdPod *v1.Pod) {
+func (s *Squash) deletePod(createdPod *v1.Pod) error {
 	var options meta_v1.DeleteOptions
-	s.getClientSet().CoreV1().Pods(s.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
+	cs, err := s.getClientSet()
+	if err != nil {
+		return err
+	}
+	return cs.CoreV1().Pods(s.Namespace).Delete(createdPod.ObjectMeta.Name, &options)
 }
 
 func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan error {
@@ -257,8 +269,13 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 
 				var options meta_v1.GetOptions
 				options.ResourceVersion = createdPod.ResourceVersion
-				var err error
-				createdPod, err = s.getClientSet().CoreV1().Pods(s.SquashNamespace).Get(name, options)
+
+				cs, err := s.getClientSet()
+				if err != nil {
+					errchan <- err
+					return
+				}
+				createdPod, err = cs.CoreV1().Pods(s.SquashNamespace).Get(name, options)
 
 				if createdPod.Status.Phase == v1.PodPending {
 					if !s.Machine {
@@ -293,8 +310,14 @@ func (s *Squash) waitForPod(ctx context.Context, createdPod *v1.Pod) <-chan erro
 }
 
 func (s *Squash) printError(podName string) error {
+	cs, err := s.getClientSet()
+	if err != nil {
+		return err
+	}
+
 	var options v1.PodLogOptions
-	req := s.getClientSet().Core().Pods(s.Namespace).GetLogs(podName, &options)
+
+	req := cs.CoreV1().Pods(s.Namespace).GetLogs(podName, &options)
 
 	readCloser, err := req.Stream()
 	if err != nil {
@@ -323,7 +346,11 @@ func containerNameFromSpec(debugger string) string {
 func (s *Squash) debugPodFor() (*v1.Pod, error) {
 	it := s.GetIntent()
 	const crisockvolume = "crisock"
-	targetPod, err := s.getClientSet().CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
+	cs, err := s.getClientSet()
+	if err != nil {
+		return nil, err
+	}
+	targetPod, err := cs.CoreV1().Pods(it.Pod.Namespace).Get(it.Pod.Name, meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -395,21 +422,16 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 	return templatePod, nil
 }
 
-func (s *Squash) getClientSet() kubernetes.Interface {
-	if s.clientset != nil {
-		return s.clientset
+func (s *Squash) getClientSet() (kubernetes.Interface, error) {
+	if s.clientset == nil {
+		cs, err := squashkubeutils.GetKubeClient()
+		if err != nil {
+			return nil, err
+		}
+		s.clientset = cs
 	}
-	restCfg, err := gokubeutils.GetConfig("", "")
-	if err != nil {
-		panic(err)
-	}
-	cs, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		panic(err)
-	}
-	s.clientset = cs
-	return s.clientset
 
+	return s.clientset, nil
 }
 
 // DeletePlankPod deletes the plank pod that was created for the debug session
@@ -421,10 +443,16 @@ func (s *Squash) DeletePlankPod() error {
 	if err != nil {
 		return err
 	}
+
 	da, err := intent.GetDebugAttachment(daClient)
 	if err != nil {
 		return err
 	}
 
-	return s.clientset.CoreV1().Pods(s.SquashNamespace).Delete(da.PlankName, &meta_v1.DeleteOptions{})
+	cs, err := s.getClientSet()
+	if err != nil {
+		return err
+	}
+
+	return cs.CoreV1().Pods(s.SquashNamespace).Delete(da.PlankName, &meta_v1.DeleteOptions{})
 }

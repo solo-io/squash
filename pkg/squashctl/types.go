@@ -9,7 +9,7 @@ import (
 )
 
 type Options struct {
-	KubeClient *kubernetes.Clientset
+	kubeClient *kubernetes.Clientset
 
 	Url            string
 	Json           bool
@@ -40,7 +40,6 @@ type Options struct {
 
 func NewOptions() *Options {
 	o := &Options{}
-	o.Squash = config.NewSquashConfig()
 	return o
 }
 

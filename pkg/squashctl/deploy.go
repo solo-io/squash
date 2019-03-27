@@ -12,7 +12,7 @@ import (
 
 var defaultDemoNamespace = "default"
 
-func (top *Options) DeployCmd(o *Options) *cobra.Command {
+func (o *Options) DeployCmd() *cobra.Command {
 	dOpts := &o.DeployOptions
 	cmd := &cobra.Command{
 		Use:   "deploy",
@@ -20,26 +20,30 @@ func (top *Options) DeployCmd(o *Options) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		top.deployDemoCmd(&dOpts.DemoOptions),
-		top.deploySquashCmd(&dOpts.SquashProcessOptions),
+		o.deployDemoCmd(&dOpts.DemoOptions),
+		o.deploySquashCmd(&dOpts.SquashProcessOptions),
 	)
 
 	return cmd
 }
 
-func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
+func (o *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "demo",
 		Short: "deploy a demo microservice",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := top.ensureDemoDeployOpts(demoOpts); err != nil {
+			if err := o.ensureDemoDeployOpts(demoOpts); err != nil {
+				return err
+			}
+			cs, err := o.getKubeClient()
+			if err != nil {
 				return err
 			}
 			switch demoOpts.DemoId {
 			case demo.DemoGoGo:
-				return demo.DeployGoGo(top.KubeClient, demoOpts.Namespace1, demoOpts.Namespace2)
+				return demo.DeployGoGo(cs, demoOpts.Namespace1, demoOpts.Namespace2)
 			case demo.DemoGoJava:
-				return demo.DeployGoJava(top.KubeClient, demoOpts.Namespace1, demoOpts.Namespace2)
+				return demo.DeployGoJava(cs, demoOpts.Namespace1, demoOpts.Namespace2)
 			default:
 				return fmt.Errorf("Please choose a valid demo option: %v", strings.Join(demo.DemoIds, ", "))
 			}
@@ -53,40 +57,44 @@ func (top *Options) deployDemoCmd(demoOpts *DemoOptions) *cobra.Command {
 	return cmd
 }
 
-func (top *Options) ensureDemoDeployOpts(dOpts *DemoOptions) error {
+func (o *Options) ensureDemoDeployOpts(dOpts *DemoOptions) error {
 	if dOpts.Namespace1 == "" {
-		if top.Squash.Machine {
+		if o.Squash.Machine {
 			dOpts.Namespace1 = defaultDemoNamespace
 		} else {
-			top.chooseAllowedNamespace(&dOpts.Namespace1, "Select a namespace for service 1.")
+			o.chooseAllowedNamespace(&dOpts.Namespace1, "Select a namespace for service 1.")
 		}
 	}
 	if dOpts.Namespace2 == "" {
-		if top.Squash.Machine {
+		if o.Squash.Machine {
 			dOpts.Namespace2 = dOpts.Namespace1
 		} else {
-			top.chooseAllowedNamespace(&dOpts.Namespace2, "Select a namespace for service 2.")
+			o.chooseAllowedNamespace(&dOpts.Namespace2, "Select a namespace for service 2.")
 		}
 	}
 	if dOpts.DemoId == "" {
-		if top.Squash.Machine {
+		if o.Squash.Machine {
 			dOpts.DemoId = defaultDemoNamespace
 		} else {
-			top.chooseString("Choose a demo microservice to deploy", &dOpts.DemoId, demo.DemoIds)
+			o.chooseString("Choose a demo microservice to deploy", &dOpts.DemoId, demo.DemoIds)
 		}
 	}
 	return nil
 }
 
-func (top *Options) deploySquashCmd(spOpts *SquashProcessOptions) *cobra.Command {
+func (o *Options) deploySquashCmd(spOpts *SquashProcessOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "squash",
 		Short: "deploy Squash to cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := top.ensureSquashDeployOpts(spOpts); err != nil {
+			if err := o.ensureSquashDeployOpts(spOpts); err != nil {
 				return err
 			}
-			return install.InstallSquash(top.KubeClient, spOpts.Namespace, top.Squash.DebugContainerRepo, top.Squash.DebugContainerVersion, spOpts.Preview)
+			cs, err := o.getKubeClient()
+			if err != nil {
+				return err
+			}
+			return install.InstallSquash(cs, spOpts.Namespace, o.Squash.DebugContainerRepo, o.Squash.DebugContainerVersion, spOpts.Preview)
 		},
 	}
 	f := cmd.Flags()
@@ -94,7 +102,7 @@ func (top *Options) deploySquashCmd(spOpts *SquashProcessOptions) *cobra.Command
 	f.BoolVar(&spOpts.Preview, "preview", false, "If set, prints Squash installation yaml without installing Squash.")
 	return cmd
 }
-func (top *Options) ensureSquashDeployOpts(dOpts *SquashProcessOptions) error {
+func (o *Options) ensureSquashDeployOpts(dOpts *SquashProcessOptions) error {
 	// TODO(mitchdraft) - interactive mode
 	return nil
 }
