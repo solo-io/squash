@@ -1,0 +1,5 @@
+changelog:
+- type: FIX
+  description: Include process arguments in output from java port not found error.
+  issueLink: https://github.com/solo-io/squash/issues/156
+  resolvesIssue: false
