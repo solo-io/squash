@@ -61,7 +61,7 @@ func GetPortOfJavaProcess(pid int) (int, error) {
 		}
 	}
 	if port == 0 {
-		err = fmt.Errorf("Can't find port in java command line arguments for PID: %d", pid)
+		err = fmt.Errorf("Can't find port in java command line arguments for PID: %d, args: %v", pid, args)
 	}
 
 	return port, err
