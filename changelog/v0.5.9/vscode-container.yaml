@@ -1,0 +1,5 @@
+changelog:
+- type: FIX
+  description: Choose the container to debug via the VS Code extension.
+  issueLink: https://github.com/solo-io/squash/issues/160
+
