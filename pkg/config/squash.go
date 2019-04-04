@@ -136,7 +136,7 @@ func (s *Squash) GetDebugTargetContainerFromSpec(dbt *DebugTarget) error {
 		}
 	}
 	if dbt.Container == nil {
-		return errors.New(fmt.Sprintf("no such container image: %v", s.Container))
+		return errors.New(fmt.Sprintf("no such container name: %v", s.Container))
 	}
 	return nil
 }
