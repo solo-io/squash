@@ -36,7 +36,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		return nil, err
 	}

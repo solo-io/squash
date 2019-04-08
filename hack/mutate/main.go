@@ -8,7 +8,7 @@ import (
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
-	"github.com/solo-io/squash/pkg/api/v1"
+	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/utils"
 )
 
@@ -45,12 +45,12 @@ func run() error {
 type Mutator struct {
 	ctx context.Context
 
-	daClient *v1.DebugAttachmentClient
+	daClient v1.DebugAttachmentClient
 }
 
 func NewMutator() (Mutator, error) {
 	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		return Mutator{}, err
 	}
@@ -70,7 +70,7 @@ func (m *Mutator) writeResource(namespace, name string) error {
 		Debugger: "dlv",
 	}
 
-	wResponse, err := (*m.daClient).Write(da, clients.WriteOpts{})
+	wResponse, err := m.daClient.Write(da, clients.WriteOpts{})
 	if err != nil {
 		return err
 	}

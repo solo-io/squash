@@ -14,7 +14,7 @@ type UserController struct {
 
 func NewUserController() (UserController, error) {
 	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		return UserController{}, err
 	}

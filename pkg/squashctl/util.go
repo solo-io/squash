@@ -248,8 +248,7 @@ func (o *Options) createPlankPermissions() error {
 				APIGroups: []string{"squash.solo.io"},
 			},
 			{
-				// TODO remove the register permission when solo-kit is updated
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 				Resources: []string{"customresourcedefinitions"},
 				APIGroups: []string{"apiextensions.k8s.io"},
 			},

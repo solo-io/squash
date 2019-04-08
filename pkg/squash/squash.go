@@ -27,7 +27,7 @@ func RunSquash(debugger func(string) remote.Remote) error {
 	flag.Parse()
 
 	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		log.WithField("err", err).Error("RunDebugBridge")
 		return err

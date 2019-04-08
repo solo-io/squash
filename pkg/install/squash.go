@@ -69,8 +69,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 				APIGroups: []string{""},
 			},
 			{
-				// TODO remove the register permission when solo-kit is updated
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 				Resources: []string{"customresourcedefinitions"},
 				APIGroups: []string{"apiextensions.k8s.io"},
 			},

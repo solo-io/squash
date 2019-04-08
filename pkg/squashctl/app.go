@@ -122,7 +122,7 @@ func initializeOptions(o *Options) {
 
 func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
 	if o.daClient == nil {
-		daClient, err := utils.GetDebugAttachmentClient(o.ctx)
+		daClient, err := utils.GetBasicDebugAttachmentClient(o.ctx)
 		if err != nil {
 			return nil, err
 		}

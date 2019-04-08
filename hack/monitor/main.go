@@ -39,7 +39,7 @@ type Monitor struct {
 
 func NewMonitor() (Monitor, error) {
 	ctx := context.Background()
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		return Monitor{}, err
 	}
