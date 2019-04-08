@@ -6,6 +6,9 @@ import (
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	// required to add support for auth plugins such as oidc, azure, etc.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 // MustGetNamespaces returns a list of all namespaces in a cluster - or panics.
