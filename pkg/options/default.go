@@ -21,9 +21,9 @@ var (
 	// Examples of particular container names: <RootName>-dlv, <RootName>-gdb, etc.
 	ParticularContainerRootName = PlankContainerName
 
-	SquashLabelSelectorKey    = "squash"
-	SquashLabelSelectorValue  = PlankContainerName
-	SquashLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
+	SquashLabelSelectorKey   = "squash"
+	SquashLabelSelectorValue = PlankContainerName
+	PlankLabelSelectorString = fmt.Sprintf("%v=%v", SquashLabelSelectorKey, SquashLabelSelectorValue)
 
 	// TODO(mitchdraft) - enable these debuggers
 	// AvailableDebuggers = []string{"dlv", "gdb", "java", "java-port", "nodejs", "nodejs8", "python"}
