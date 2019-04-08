@@ -1,0 +1,3 @@
+changelog:
+- type: NEW_FEATURE
+  description: Added support for auth plugins in kube config
