@@ -59,7 +59,6 @@ export function deactivate() { }
 async function getremote(extPath: string): Promise<string> {
     let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
     let execpath = path.join(pathforbin, "squashctl");
-
     let ks = getSquashctl();
 
     // exit this early until release is smoothed out
@@ -164,6 +163,19 @@ export class PodPickItem implements vscode.QuickPickItem {
         this.pod = pod;
     }
 }
+export class ContainerPickItem implements vscode.QuickPickItem {
+    label: string;
+    description: string;
+    detail?: string;
+
+    container: kube.Container;
+
+    constructor(container: kube.Container) {
+        this.label = `${container.name} (${container.image})`
+        this.description = "container";
+        this.container = container;
+    }
+}
 class SquashExtension {
 
     context: vscode.ExtensionContext;
@@ -228,6 +240,27 @@ class SquashExtension {
         }
         let selectedPod = item.pod;
 
+        // Get the specific Container.
+        let containeroptions: vscode.QuickPickOptions = {
+            placeHolder: "Please select a container",
+        };
+
+        let containers: kube.Container[] = this.getContainers(selectedPod);
+        let containerItems: ContainerPickItem[] = containers.map(container => new ContainerPickItem(container));
+
+        let selectedContainer: ContainerPickItem;
+        if (containerItems.length === 1) {
+            // If there is only one Container, automatically choose it.
+            selectedContainer = containerItems[0];
+        } else {
+            const containerItem = await vscode.window.showQuickPick(containerItems, containeroptions);
+            if (!containerItem) {
+                console.log("choosing container canceled - debugging canceled");
+                return;
+            }
+            selectedContainer = containerItem;
+        }
+
         // choose debugger to use
         const debuggerList = ["dlv", "java"];
         let debuggerItems: DebuggerPickItem[] = debuggerList.map(name => new DebuggerPickItem(name));
@@ -243,7 +276,7 @@ class SquashExtension {
         let debuggerName = chosenDebugger.debugger;
 
         // now invoke squashctl
-        let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --debugger ${debuggerName}`;
+        let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --container ${selectedContainer.container.name} --debugger ${debuggerName}`;
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let responseData = JSON.parse(stdout);
@@ -341,6 +374,10 @@ class SquashExtension {
     async  getPods(): Promise<kube.Pod[]> {
         const podsjson = await kubectl_get<kube.PodList>("pods", "--all-namespaces");
         return podsjson.items;
+    }
+
+    getContainers(pod: kube.Pod): kube.Container[] {
+        return pod.spec.containers
     }
 
 }
