@@ -35,28 +35,38 @@ var _ = Describe("Single debug mode", func() {
 		validateUtilsListDebugAttachments(str, 0)
 
 		// create namespace
-		testNamespace := fmt.Sprintf("testsquash-%v", rand.Intn(1000))
+		testNamespace := fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
+		testPlankNamespace := fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
+		testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
 		By("should create a demo namespace")
 		_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
 		check(err)
+		_, _ = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
+		// TODO(mitchdraft) - use below format when SquashNamespace is generalized
+		//_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
+		//check(err)
 		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
+		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
 
 		By("should deploy a demo app")
-		must(testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java", testNamespace, testNamespace)))
+		must(testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java",
+			testNamespace,
+			testPlankNamespace)))
 
 		By("should find the demo deployment")
-		podName, err := waitForPod(cs, testNamespace, "example-service1")
+		goPodName, err := waitForPod(cs, testNamespace, "example-service1")
+		check(err)
+		javaPodName, err := waitForPod(cs, testPlankNamespace, "example-service2-java")
 		check(err)
 
-		By("should attach a debugger")
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, podName))
+		By("should attach a dlv debugger")
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, goPodName, testPlankNamespace))
 		check(err)
 		validateMachineDebugOutput(dbgStr)
 		fmt.Println(dbgStr)
 
 		By("should have created the required permissions")
-		plankNamespace := sqOpts.SquashNamespace
-		must(ensurePlankPermissionsWereCreated(cs, plankNamespace))
+		must(ensurePlankPermissionsWereCreated(cs, testPlankNamespace))
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
@@ -66,9 +76,23 @@ var _ = Describe("Single debug mode", func() {
 		check(err)
 		validateUtilsListDebugAttachments(attachmentList, 1)
 
+		By("utils delete-planks should not delete non-plank pods")
+		plankNsPods := mustGetActivePlankNsPods(cs, testPlankNamespace)
+		// should be one plank and one java demo service
+		Expect(len(plankNsPods)).To(Equal(2))
+		podsMustInclude(plankNsPods, javaPodName)
+		must(testutils.Squashctl(fmt.Sprintf("utils delete-planks")))
+		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
+		fmt.Println(plankNsPods)
+		ExpectWithOffset(1, len(plankNsPods)).To(Equal(1))
+		ExpectWithOffset(1, plankNsPods[0].Name).To(Equal(javaPodName))
+
 		// cleanup
 		By("should cleanup")
 		check(cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{}))
+	})
+	It("should delete planks only", func() {
+
 	})
 })
 
@@ -124,8 +148,8 @@ func validateUtilsListDebugAttachments(output string, expectedDaCount int) {
 	if expectedDaCount == 0 {
 		expectedHeader = "Found no debug attachments"
 	}
-	Expect(lines[0]).To(Equal(expectedHeader))
-	Expect(len(lines)).To(Equal(expectedLength))
+	ExpectWithOffset(1, lines[0]).To(Equal(expectedHeader))
+	ExpectWithOffset(1, len(lines)).To(Equal(expectedLength))
 	for i := 1; i < expectedLength; i++ {
 		validateUtilsListDebugAttachmentsLine(lines[i])
 	}
@@ -133,7 +157,7 @@ func validateUtilsListDebugAttachments(output string, expectedDaCount int) {
 
 func validateUtilsListDebugAttachmentsLine(line string) {
 	cols := strings.Split(line, ", ")
-	Expect(len(cols)).To(Equal(2))
+	ExpectWithOffset(3, len(cols)).To(Equal(2))
 }
 
 /* sample of expected output:
@@ -141,7 +165,8 @@ func validateUtilsListDebugAttachmentsLine(line string) {
 */
 func validateMachineDebugOutput(output string) {
 	re := regexp.MustCompile(`{"PortForwardCmd":"kubectl port-forward.*}`)
-	Expect(re.MatchString(output)).To(BeTrue())
+	By(output)
+	ExpectWithOffset(1, re.MatchString(output)).To(BeTrue())
 }
 
 // using the kubectl port-forward command spec provided by the Plank pod,
@@ -186,11 +211,33 @@ func ensurePlankPermissionsWereCreated(cs *kubernetes.Clientset, plankNs string)
 	if _, err := cs.CoreV1().ServiceAccounts(plankNs).Get(sqOpts.PlankServiceAccountName, metav1.GetOptions{}); err != nil {
 		return err
 	}
-	if _, err := cs.Rbac().ClusterRoles().Get(sqOpts.PlankClusterRoleName, metav1.GetOptions{}); err != nil {
+	if _, err := cs.RbacV1().ClusterRoles().Get(sqOpts.PlankClusterRoleName, metav1.GetOptions{}); err != nil {
 		return err
 	}
-	if _, err := cs.Rbac().ClusterRoleBindings().Get(sqOpts.PlankClusterRoleBindingName, metav1.GetOptions{}); err != nil {
+	if _, err := cs.RbacV1().ClusterRoleBindings().Get(sqOpts.PlankClusterRoleBindingName, metav1.GetOptions{}); err != nil {
 		return err
 	}
 	return nil
+}
+func mustGetActivePlankNsPods(cs *kubernetes.Clientset, plankNs string) []v1.Pod {
+	allPods, err := cs.CoreV1().Pods(plankNs).List(metav1.ListOptions{})
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, allPods).NotTo(BeNil())
+	pods := []v1.Pod{}
+	for _, p := range allPods.Items {
+		if p.ObjectMeta.DeletionTimestamp == nil {
+			pods = append(pods, p)
+		}
+	}
+	return pods
+}
+
+func podsMustInclude(pods []v1.Pod, name string) {
+	foundPod := false
+	for _, p := range pods {
+		if p.Name == name {
+			foundPod = true
+		}
+	}
+	ExpectWithOffset(1, foundPod).To(BeTrue())
 }
