@@ -63,7 +63,6 @@ var _ = Describe("Single debug mode", func() {
 		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, goPodName, testPlankNamespace))
 		check(err)
 		validateMachineDebugOutput(dbgStr)
-		fmt.Println(dbgStr)
 
 		By("should have created the required permissions")
 		must(ensurePlankPermissionsWereCreated(cs, testPlankNamespace))
@@ -83,7 +82,6 @@ var _ = Describe("Single debug mode", func() {
 		podsMustInclude(plankNsPods, javaPodName)
 		must(testutils.Squashctl(fmt.Sprintf("utils delete-planks")))
 		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
-		fmt.Println(plankNsPods)
 		ExpectWithOffset(1, len(plankNsPods)).To(Equal(1))
 		ExpectWithOffset(1, plankNsPods[0].Name).To(Equal(javaPodName))
 
@@ -204,7 +202,6 @@ func ensureDLVServerIsLive(dbgJson string) {
 	// dlvClient := rpc1.NewClient(dlvAddr)
 	// err, dlvState := dlvClient.GetState()
 	// check(err)
-	// fmt.Print
 }
 
 func ensurePlankPermissionsWereCreated(cs *kubernetes.Clientset, plankNs string) error {
