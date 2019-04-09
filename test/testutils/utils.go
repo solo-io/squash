@@ -70,6 +70,12 @@ func Curl(args string) ([]byte, error) {
 	return curl.CombinedOutput()
 }
 
-func MachineDebugArgs(debugger, ns, podName string) string {
-	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v`, debugger, ns, podName, plankTestVersion, plankTestRepo)
+func MachineDebugArgs(debugger, ns, podName, squashNamespace string) string {
+	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v --squash-namespace %v`,
+		debugger,
+		ns,
+		podName,
+		plankTestVersion,
+		plankTestRepo,
+		squashNamespace)
 }

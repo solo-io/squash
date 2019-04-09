@@ -1,0 +1,4 @@
+changelog:
+  - type: FIX
+    description: Fix `squashctl utils delete-planks` to only delete plank pods, rather than all pods in squash namespace.
+    issueLink: https://github.com/solo-io/squash/issues/162

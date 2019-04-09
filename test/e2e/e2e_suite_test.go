@@ -7,7 +7,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/solo-io/solo-kit/test/helpers"
-	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/test/testutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -31,7 +30,7 @@ var _ = BeforeSuite(func() {
 })
 
 // this list will be appened each time a test namespace is created
-var squashTestNamespaces = []string{sqOpts.SquashNamespace}
+var squashTestNamespaces = []string{}
 var _ = AfterSuite(func() {
 	fmt.Println("clean up after test")
 	cs := MustGetClientset()
