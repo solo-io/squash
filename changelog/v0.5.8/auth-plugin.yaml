@@ -1,0 +1,4 @@
+changelog:
+- type: NEW_FEATURE
+  description: Added support for auth plugins in kube config
+  issueLink: https://github.com/solo-io/squash/issues/168

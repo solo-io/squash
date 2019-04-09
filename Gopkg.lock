@@ -10,6 +10,19 @@
   version = "v0.36.0"
 
 [[projects]]
+  digest = "1:f1f464dded149767f5ceb579e73628139ee1a63d9022602109d439862b18f708"
+  name = "github.com/Azure/go-autorest"
+  packages = [
+    "autorest",
+    "autorest/adal",
+    "autorest/azure",
+    "autorest/date",
+  ]
+  pruneopts = ""
+  revision = "fc3b03a2d2d1f43fad3007038bd16f044f870722"
+  version = "v9.10.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3c9f2cb0cbd46ecc6f6992a26bc6fdefa7bd0be1b9cd558666c1b7e9f605c825"
   name = "github.com/bxcodec/faker"
@@ -58,6 +71,14 @@
   pruneopts = ""
   revision = "279a8a792e2748ba07be9ca15688d1871c0f1a5f"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:6098222470fe0172157ce9bbef5d2200df4edde17ee649c5d6e48330e4afa4c6"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = ""
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   digest = "1:b2ac39cf926d768133bdd17e53333235a3e1d6154ed806777f0ba5f43819fa2e"
@@ -166,6 +187,22 @@
   pruneopts = ""
   revision = "ee43cbb60db7bd22502942cccbc39059117352ab"
   version = "v0.1.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:537962aabc461d7349615554e235b894d150054bbb5bf7d4f9d513ffdb960e5c"
+  name = "github.com/gophercloud/gophercloud"
+  packages = [
+    ".",
+    "openstack",
+    "openstack/identity/v2/tenants",
+    "openstack/identity/v2/tokens",
+    "openstack/identity/v3/tokens",
+    "openstack/utils",
+    "pagination",
+  ]
+  pruneopts = ""
+  revision = "6c7ac67f8855bb8bdc19ef8356d303c02d976342"
 
 [[projects]]
   digest = "1:c3e611af9663f0a7a8f8f725d448af63d6dcfb2b9d39a70afebfe92708c33959"
@@ -1173,8 +1210,12 @@
     "pkg/apis/clientauthentication",
     "pkg/apis/clientauthentication/v1alpha1",
     "pkg/version",
+    "plugin/pkg/client/auth",
+    "plugin/pkg/client/auth/azure",
     "plugin/pkg/client/auth/exec",
     "plugin/pkg/client/auth/gcp",
+    "plugin/pkg/client/auth/oidc",
+    "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
     "third_party/forked/golang/template",
@@ -1288,6 +1329,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/plugin/pkg/client/auth",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
     "k8s.io/kubernetes/pkg/kubelet/apis/cri",
