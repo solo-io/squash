@@ -1,0 +1,5 @@
+changelog:
+- type: FIX
+  description: squashctl's --container flag is now the container's name, not image.
+  issueLink: https://github.com/solo-io/squash/issues/159
+
