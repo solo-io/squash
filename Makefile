@@ -75,7 +75,6 @@ clean:
 generatecode:
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
-	# go run cmd/generate-docs/main.go # Re-enable this when squashctl does not create resources on init
 	gofmt -w ci cmd pkg test
 	goimports -w ci cmd pkg test
 
