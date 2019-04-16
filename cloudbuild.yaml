@@ -17,6 +17,7 @@ steps:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GIT_SSH_CONFIG=FALSE'
   id: 'dep'
+  waitFor: ['download-untar-dep-cache']
 
 # Run some basic checks on the repo
 # 1) check formatting of go files
