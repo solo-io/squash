@@ -220,8 +220,10 @@ docker-push: docker
 	docker push $(CONTAINER_REPO_ORG)/plank-dlv:$(IMAGE_TAG) && \
 	docker push $(CONTAINER_REPO_ORG)/plank-gdb:$(IMAGE_TAG) && \
 	docker push $(CONTAINER_REPO_ORG)/squash:$(IMAGE_TAG)
+
+# TODO(mitchdraft) - replace this with a go lib when it's available
 $(OUTPUT_DIR)/buildtimevalues.yaml:
-	echo plank_image_tag: $(IMAGE_TAG) >> $@
+	echo plank_image_tag: $(IMAGE_TAG) > $@
 	echo plank_image_repo: $(CONTAINER_REPO_ORG) >> $@
 
 .PHONY: mktest
