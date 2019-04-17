@@ -4,25 +4,72 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/solo-io/squash/pkg/squashctl"
 )
 
 const (
-	plankTestVersion = "0.5.1"
-	plankTestRepo    = "quay.io/solo-io"
+	plankImageTagEnvVar  = "PLANK_IMAGE_TAG"
+	plankImageRepoEnvVar = "PLANK_IMAGE_REPO"
+	buildOutputFilepath  = "../../_output/buildtimevalues.yaml"
 )
 
-func DeclareTestConditions() {
-	fmt.Printf(`Squash tests are running under the following conditions:
-plank repo: %v
-plank tag: %v
+type TestConditions struct {
+	PlankImageTag  string `yaml:"plank_image_tag"`
+	PlankImageRepo string `yaml:"plank_image_repo"`
+	Source         string `yaml:"source"`
+}
 
-If Plank has changed, you should update these values.
-`, plankTestRepo, plankTestVersion)
+func getBuildValue(filepath string, tc *TestConditions) error {
+	content, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return err
+	}
+	if err := yaml.Unmarshal(content, tc); err != nil {
+		return err
+	}
+	return nil
+}
+
+func InitializeTestConditionsFromBuildTimeFile(tc *TestConditions) error {
+	tc.Source = fmt.Sprintf("build time values in %s", buildOutputFilepath)
+	if err := getBuildValue(buildOutputFilepath, tc); err != nil {
+		return err
+	}
+	if tc.PlankImageTag == "" {
+		return fmt.Errorf("must set plank_image_tag in %s", buildOutputFilepath)
+	}
+	if tc.PlankImageRepo == "" {
+		return fmt.Errorf("must set plank_image_repo in %s", buildOutputFilepath)
+	}
+	return nil
+}
+
+func InitializeTestConditionsFromEnv(tc *TestConditions) error {
+	tc.Source = "environment variables"
+	tc.PlankImageTag = os.Getenv(plankImageTagEnvVar)
+	tc.PlankImageRepo = os.Getenv(plankImageRepoEnvVar)
+	if tc.PlankImageTag == "" {
+		return fmt.Errorf("must set %s env var", plankImageTagEnvVar)
+	}
+	if tc.PlankImageRepo == "" {
+		return fmt.Errorf("must set %s env var", plankImageRepoEnvVar)
+	}
+	return nil
+}
+
+func SummarizeTestConditions(tc TestConditions) string {
+	return fmt.Sprintf(`Squash tests are running under the following conditions:
+plank repo: %s
+plank tag: %s
+values set from %s
+`, tc.PlankImageRepo, tc.PlankImageTag, tc.Source)
 }
 
 func Squashctl(args string) error {
@@ -70,12 +117,12 @@ func Curl(args string) ([]byte, error) {
 	return curl.CombinedOutput()
 }
 
-func MachineDebugArgs(debugger, ns, podName, squashNamespace string) string {
+func MachineDebugArgs(tc TestConditions, debugger, ns, podName, squashNamespace string) string {
 	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v --squash-namespace %v`,
 		debugger,
 		ns,
 		podName,
-		plankTestVersion,
-		plankTestRepo,
+		tc.PlankImageTag,
+		tc.PlankImageRepo,
 		squashNamespace)
 }

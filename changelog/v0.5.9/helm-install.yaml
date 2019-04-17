@@ -2,3 +2,4 @@ description:
 - type: NEW_FEATURE
   description: Enable squash installation through helm chart.
   issueLink: https://github.com/solo-io/squash/issues/174
+  resolvesIssue: false

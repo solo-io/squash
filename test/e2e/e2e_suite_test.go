@@ -6,6 +6,8 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/solo-io/solo-kit/test/helpers"
 	"github.com/solo-io/squash/test/testutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +15,10 @@ import (
 	"testing"
 )
 
+/* In order for these tests to run, the following env vars must be set:
+PLANK_IMAGE_TAG
+PLANK_IMAGE_REPO
+*/
 func TestE2e(t *testing.T) {
 
 	helpers.RegisterCommonFailHandlers()
@@ -21,8 +27,16 @@ func TestE2e(t *testing.T) {
 	RunSpecs(t, "E2e Squash Suite")
 }
 
+var testConditions = testutils.TestConditions{}
+
 var _ = BeforeSuite(func() {
-	testutils.DeclareTestConditions()
+	// Allow test conditions to be set from Env or from buildtimevalues.yaml
+	err := testutils.InitializeTestConditionsFromEnv(&testConditions)
+	if err != nil {
+		fileErr := testutils.InitializeTestConditionsFromBuildTimeFile(&testConditions)
+		Expect(fileErr).NotTo(HaveOccurred())
+	}
+	fmt.Println(testutils.SummarizeTestConditions(testConditions))
 
 	seed := time.Now().UnixNano()
 	fmt.Printf("rand seed: %v\n", seed)
