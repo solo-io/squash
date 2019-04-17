@@ -226,10 +226,6 @@ $(OUTPUT_DIR)/buildtimevalues.yaml:
 	echo plank_image_tag: $(IMAGE_TAG) > $@
 	echo plank_image_repo: $(CONTAINER_REPO_ORG) >> $@
 
-.PHONY: mktest
-mktest: $(OUTPUT_DIR)/buildtimevalues.yaml
-	pwd
-
 #----------------------------------------------------------------------------------
 # Release
 #----------------------------------------------------------------------------------
