@@ -78,18 +78,6 @@ steps:
   id: 'docker-login'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['-j', 'docker']
-  env:
-    - 'PROJECT_ROOT=github.com/solo-io/squash'
-    - 'GOPATH=/workspace/gopath'
-    - 'TAGGED_VERSION=$TAG_NAME'
-    - 'BUILD_ID=$BUILD_ID'
-    - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
-  dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['dep', 'check-code-and-docs-gen']
-  id: 'compile'
-
-- name: 'gcr.io/$PROJECT_ID/go-make'
   args: ['docker-push', 'upload-github-release-assets', 'push-docs']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
@@ -99,7 +87,7 @@ steps:
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN']
-  waitFor: ['docker-login', 'compile']
+  waitFor: ['docker-login', 'dep', 'check-code-and-docs-gen']
   id: 'push-github-resources'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
