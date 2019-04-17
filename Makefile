@@ -118,7 +118,7 @@ squash: $(OUTPUT_DIR)/squash-container
 $(OUTPUT_DIR)/squash: $(SRCS)
 	GOOS=linux go build -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/squash/squash cmd/squash/main.go
 $(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
-	docker build -f cmd/squash/Dockerfile -t $(CONTAINER_REPO_ORG)/squash:$(VERSION) $(OUTPUT_DIR)/squash/
+	docker build -f cmd/squash/Dockerfile -t $(CONTAINER_REPO_ORG)/squash:$(IMAGE_TAG) $(OUTPUT_DIR)/squash/
 	touch $@
 
 #----------------------------------------------------------------------------------
@@ -138,14 +138,14 @@ $(OUTPUT_DIR)/plank/Dockerfile.dlv:    | $(OUTPUT_DIR)/plank/
 $(OUTPUT_DIR)/plank/Dockerfile.dlv: cmd/plank/Dockerfile.dlv
 	cp cmd/plank/Dockerfile.dlv $(OUTPUT_DIR)/plank/Dockerfile.dlv
 $(OUTPUT_DIR)/plank-dlv-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.dlv
-	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.dlv -t $(CONTAINER_REPO_ORG)/plank-dlv:$(VERSION) $(OUTPUT_DIR)/plank/
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.dlv -t $(CONTAINER_REPO_ORG)/plank-dlv:$(IMAGE_TAG) $(OUTPUT_DIR)/plank/
 	touch $@
 
 $(OUTPUT_DIR)/plank/Dockerfile.gdb:    | $(OUTPUT_DIR)/plank/
 $(OUTPUT_DIR)/plank/Dockerfile.gdb: cmd/plank/Dockerfile.gdb
 	cp cmd/plank/Dockerfile.gdb $(OUTPUT_DIR)/plank/Dockerfile.gdb
 $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.gdb
-	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(CONTAINER_REPO_ORG)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(CONTAINER_REPO_ORG)/plank-gdb:$(IMAGE_TAG) $(OUTPUT_DIR)/plank/
 	touch $@
 
 #----------------------------------------------------------------------------------
