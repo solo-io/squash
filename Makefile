@@ -168,8 +168,10 @@ endif
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
+ifeq ($(RELEASE),"true")
 	go run ci/bump_extension_version.go $(VERSION)
 	touch $@
+endif
 
 #----------------------------------------------------------------------------------
 # Deployment Manifests / Helm
