@@ -57,19 +57,6 @@ steps:
   waitFor: ['get-creds']
   id: 'check-code-and-docs-gen'
 
-- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
-  env:
-  - 'PROJECT_ROOT=github.com/solo-io/squash'
-  - 'GOPATH=/workspace/gopath'
-  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-  - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
-  - 'RUN_KUBE_TESTS=1'
-  - 'DOCKER_CONFIG=/workspace/.docker/'
-  dir: './gopath/src/github.com/solo-io/squash'
-  args: ['-r', '-failFast', '-p']
-  waitFor: ['get-creds', 'check-code-and-docs-gen']
-  id: 'test'
-
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args: ['-c', 'docker login quay.io --username "solo-io+solobot" --password $$QUAY_IO_PASSWORD']
@@ -89,6 +76,19 @@ steps:
   secretEnv: ['GITHUB_TOKEN']
   waitFor: ['docker-login', 'dep', 'check-code-and-docs-gen']
   id: 'push-github-resources'
+
+- name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
+  env:
+  - 'PROJECT_ROOT=github.com/solo-io/squash'
+  - 'GOPATH=/workspace/gopath'
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+  - 'RUN_KUBE_TESTS=1'
+  - 'DOCKER_CONFIG=/workspace/.docker/'
+  dir: './gopath/src/github.com/solo-io/squash'
+  args: ['-r', '-failFast', '-p']
+  waitFor: ['get-creds', 'check-code-and-docs-gen', 'push-github-resources']
+  id: 'e2e-test'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
   entrypoint: make
