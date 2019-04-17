@@ -3,25 +3,34 @@
 #----------------------------------------------------------------------------------
 
 ROOTDIR := $(shell pwd)
-OUTPUT_DIR ?= $(ROOTDIR)/_output
-DOCKER_REPO ?= quay.io/solo-io
+OUTPUT_DIR := $(ROOTDIR)/_output
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
+
+GCLOUD_PROJECT_ID ?= solo-public
+VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
+LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
+# Note: need to evaluate this with := to avoid re-evaluation
+STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
+IMAGE_TAG ?= $(LAST_COMMIT)-$(STAMP_DDHHMMSS)-pre
+CONTAINER_REPO_ORG ?= gcr.io/$(GCLOUD_PROJECT_ID)
 
 # produce a release if TAGGED_VERSION is set
 RELEASE := "true"
 ifeq ($(TAGGED_VERSION),)
-	TAGGED_VERSION := vdev
-	RELEASE := "false"
+	RELEASE = "false"
+else
+  RELEASE = "true"
+  CONTAINER_REPO_ORG = quay.io/solo-io
+  IMAGE_TAG = $(VERSION)
 endif
-VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
 
 # Pass in build-time variables
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
 -X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.SquashImageTag=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.ImageRepo=$(DOCKER_REPO)"
+-X github.com/solo-io/squash/pkg/version.ImageRepo=$(CONTAINER_REPO_ORG)"
 
 .PHONY: all
 all: release-binaries containers ## (default) Builds binaries and containers
@@ -66,7 +75,6 @@ clean:
 	rm -rf $(OUTPUT_DIR)
 	rm -rf site
 
-
 #----------------------------------------------------------------------------------
 # Generated Code and Docs
 #----------------------------------------------------------------------------------
@@ -85,7 +93,6 @@ generatecode:
 push-docs:
 	go run ci/push_docs.go
 
-
 #----------------------------------------------------------------------------------
 # Squashctl
 #----------------------------------------------------------------------------------
@@ -102,7 +109,6 @@ $(OUTPUT_DIR)/squashctl-linux: $(SRCS)
 $(OUTPUT_DIR)/squashctl-windows.exe: $(SRCS)
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
 
-
 #----------------------------------------------------------------------------------
 # Squash
 #----------------------------------------------------------------------------------
@@ -112,9 +118,8 @@ squash: $(OUTPUT_DIR)/squash-container
 $(OUTPUT_DIR)/squash: $(SRCS)
 	GOOS=linux go build -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/squash/squash cmd/squash/main.go
 $(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
-	docker build -f cmd/squash/Dockerfile -t $(DOCKER_REPO)/squash:$(VERSION) $(OUTPUT_DIR)/squash/
+	docker build -f cmd/squash/Dockerfile -t $(CONTAINER_REPO_ORG)/squash:$(VERSION) $(OUTPUT_DIR)/squash/
 	touch $@
-
 
 #----------------------------------------------------------------------------------
 # Plank
@@ -133,16 +138,15 @@ $(OUTPUT_DIR)/plank/Dockerfile.dlv:    | $(OUTPUT_DIR)/plank/
 $(OUTPUT_DIR)/plank/Dockerfile.dlv: cmd/plank/Dockerfile.dlv
 	cp cmd/plank/Dockerfile.dlv $(OUTPUT_DIR)/plank/Dockerfile.dlv
 $(OUTPUT_DIR)/plank-dlv-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.dlv
-	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.dlv -t $(DOCKER_REPO)/plank-dlv:$(VERSION) $(OUTPUT_DIR)/plank/
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.dlv -t $(CONTAINER_REPO_ORG)/plank-dlv:$(VERSION) $(OUTPUT_DIR)/plank/
 	touch $@
 
 $(OUTPUT_DIR)/plank/Dockerfile.gdb:    | $(OUTPUT_DIR)/plank/
 $(OUTPUT_DIR)/plank/Dockerfile.gdb: cmd/plank/Dockerfile.gdb
 	cp cmd/plank/Dockerfile.gdb $(OUTPUT_DIR)/plank/Dockerfile.gdb
 $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank/Dockerfile.gdb
-	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(DOCKER_REPO)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
+	docker build -f $(OUTPUT_DIR)/plank/Dockerfile.gdb -t $(CONTAINER_REPO_ORG)/plank-gdb:$(VERSION) $(OUTPUT_DIR)/plank/
 	touch $@
-
 
 #----------------------------------------------------------------------------------
 # VS-Code extension
@@ -167,13 +171,11 @@ bump-extension-version:  ## (vscode) Bumps extension version
 	go run ci/bump_extension_version.go $(VERSION)
 	touch $@
 
-
 #----------------------------------------------------------------------------------
 # Build All
 #----------------------------------------------------------------------------------
 .PHONY: build
 build: squashctl squash plank
-
 
 #----------------------------------------------------------------------------------
 # Docker
@@ -181,19 +183,11 @@ build: squashctl squash plank
 .PHONY: docker
 docker: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container $(OUTPUT_DIR)/squash-container
 
-DOCKER_IMAGES :=
-ifeq ($(RELEASE),"true")
-	DOCKER_IMAGES := docker
-endif
-
 .PHONY: docker-push
-docker-push: $(DOCKER_IMAGES)
-ifeq ($(RELEASE),"true")
-	docker push $(DOCKER_REPO)/plank-dlv:$(VERSION) && \
-	docker push $(DOCKER_REPO)/plank-gdb:$(VERSION) && \
-	docker push $(DOCKER_REPO)/squash:$(VERSION)
-endif
-
+docker-push: docker
+	docker push $(CONTAINER_REPO_ORG)/plank-dlv:$(IMAGE_TAG) && \
+	docker push $(CONTAINER_REPO_ORG)/plank-gdb:$(IMAGE_TAG) && \
+	docker push $(CONTAINER_REPO_ORG)/squash:$(IMAGE_TAG)
 
 #----------------------------------------------------------------------------------
 # Release
@@ -201,7 +195,6 @@ endif
 .PHONY: upload-github-release-assets
 upload-github-release-assets: squashctl
 	go run ci/upload_github_release_assets.go
-
 
 #----------------------------------------------------------------------------------
 # Development utils
