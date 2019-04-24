@@ -66,6 +66,16 @@
           "type": "boolean",
           "default": false,
           "description": "If set, prints diagnostic information related to the extension."
+        },
+        "squash.extraArgs": {
+          "type": "string",
+          "default": null,
+          "description": "Extra arguments to pass to the squashctl binary."
+        },
+        "squash.kubeConfig": {
+          "type": "string",
+          "default": null,
+          "description": "Path kubeconfig file to use to talk with kubernetes."
         }
       }
     },
