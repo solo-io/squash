@@ -8,14 +8,14 @@ weight: 5
 
 
 ### Package: `squash.solo.io` 
-##### Types:
+#### Types:
 
 
-- [DebugAttachment](#DebugAttachment) **Top-Level Resource**
-- [State](#State)
-- [Intent](#Intent)
-- [Plank](#Plank)
-- [PortSpec](#PortSpec)
+- [DebugAttachment](#debugattachment) **Top-Level Resource**
+- [State](#state)
+- [Intent](#intent)
+- [Plank](#plank)
+- [PortSpec](#portspec)
   
 
 
@@ -27,7 +27,7 @@ weight: 5
 
 
 ---
-### <a name="DebugAttachment">DebugAttachment</a>
+### DebugAttachment
 
  
 
@@ -36,41 +36,41 @@ Attachments store the information needed for squash to coordinate a debugging se
 ```yaml
 "metadata": .core.solo.io.Metadata
 "status": .core.solo.io.Status
-"plank_name": string
+"plankName": string
 "debugger": string
 "image": string
-"process_name": string
+"processName": string
 "node": string
-"match_request": bool
-"debug_server_address": string
+"matchRequest": bool
+"debugServerAddress": string
 "pod": string
 "container": string
-"debug_namespace": string
+"debugNamespace": string
 "state": .squash.solo.io.DebugAttachment.State
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#Metadata) |  |  |
-| `status` | [.core.solo.io.Status](../../../../solo-kit/api/v1/status.proto.sk#Status) |  |  |
-| `plank_name` | `string` |  |  |
+| `metadata` | [.core.solo.io.Metadata](../../../../solo-kit/api/v1/metadata.proto.sk#metadata) |  |  |
+| `status` | [.core.solo.io.Status](../../../../solo-kit/api/v1/status.proto.sk#status) |  |  |
+| `plankName` | `string` |  |  |
 | `debugger` | `string` |  |  |
 | `image` | `string` |  |  |
-| `process_name` | `string` |  |  |
+| `processName` | `string` |  |  |
 | `node` | `string` |  |  |
-| `match_request` | `bool` |  |  |
-| `debug_server_address` | `string` |  |  |
+| `matchRequest` | `bool` |  |  |
+| `debugServerAddress` | `string` |  |  |
 | `pod` | `string` |  |  |
 | `container` | `string` |  |  |
-| `debug_namespace` | `string` |  |  |
-| `state` | [.squash.solo.io.DebugAttachment.State](../debug_attachment.proto.sk#State) |  |  |
+| `debugNamespace` | `string` |  |  |
+| `state` | [.squash.solo.io.DebugAttachment.State](../debug_attachment.proto.sk#state) |  |  |
 
 
 
 
 ---
-### <a name="State">State</a>
+### State
 
 
 
@@ -86,7 +86,7 @@ Attachments store the information needed for squash to coordinate a debugging se
 
 
 ---
-### <a name="Intent">Intent</a>
+### Intent
 
  
 Describes the user's debug intentions
@@ -94,43 +94,43 @@ Describes the user's debug intentions
 ```yaml
 "debugger": string
 "pod": .core.solo.io.ResourceRef
-"container_name": string
-"process_matcher": string
+"containerName": string
+"processMatcher": string
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
 | `debugger` | `string` | type of debugger to use |  |
-| `pod` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#ResourceRef) | pod to debug |  |
-| `container_name` | `string` | name of container to debug |  |
-| `process_matcher` | `string` | NOT YET IMPLEMENTED if a container has multiple processes and you do not want to debug the first process, this string is used to select a specific process |  |
+| `pod` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | pod to debug |  |
+| `containerName` | `string` | name of container to debug |  |
+| `processMatcher` | `string` | NOT YET IMPLEMENTED if a container has multiple processes and you do not want to debug the first process, this string is used to select a specific process |  |
 
 
 
 
 ---
-### <a name="Plank">Plank</a>
+### Plank
 
  
 Describes the pod squash spawns for managing a particular debug session
 
 ```yaml
 "pod": .core.solo.io.ResourceRef
-"ready_for_connect": bool
+"readyForConnect": bool
 
 ```
 
 | Field | Type | Description | Default |
 | ----- | ---- | ----------- |----------- | 
-| `pod` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#ResourceRef) | plank pod reference |  |
-| `ready_for_connect` | `bool` | indicates when plank has completed the debugger-specify preparation |  |
+| `pod` | [.core.solo.io.ResourceRef](../../../../solo-kit/api/v1/ref.proto.sk#resourceref) | plank pod reference |  |
+| `readyForConnect` | `bool` | indicates when plank has completed the debugger-specify preparation |  |
 
 
 
 
 ---
-### <a name="PortSpec">PortSpec</a>
+### PortSpec
 
  
 Contains port information needed to connect or find a debugger
