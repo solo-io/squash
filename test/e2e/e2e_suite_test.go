@@ -27,10 +27,12 @@ func TestE2e(t *testing.T) {
 	RunSpecs(t, "E2e Squash Suite")
 }
 
+const pathToBuildSpec = "../../solo-project.yaml"
+
 var testConditions = testutils.TestConditions{}
 
 var _ = BeforeSuite(func() {
-	err := testutils.InitializeTestConditions(&testConditions)
+	err := testutils.InitializeTestConditions(&testConditions, pathToBuildSpec)
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(testutils.SummarizeTestConditions(testConditions))
 

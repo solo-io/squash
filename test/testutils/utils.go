@@ -8,6 +8,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
+
+	"github.com/solo-io/build/pkg/constants"
+
 	"github.com/solo-io/build/pkg/ingest"
 
 	"github.com/solo-io/squash/pkg/squashctl"
@@ -19,8 +23,18 @@ type TestConditions struct {
 	Source         string
 }
 
-func InitializeTestConditions(tc *TestConditions) error {
+func InitializeTestConditions(tc *TestConditions, pathToBuildSpec string) (err error) {
 	tc.Source = "build tool"
+	initialEnvVar := os.Getenv(constants.EnvVarConfigFileName)
+	defer func() {
+		if fErr := os.Setenv(constants.EnvVarConfigFileName, initialEnvVar); fErr != nil {
+			err = errors.Wrapf(err, "unable to reset env: %v", fErr)
+		}
+	}()
+	// clean this up when https://github.com/solo-io/build/issues/4 is ready
+	if err := os.Setenv(constants.EnvVarConfigFileName, pathToBuildSpec); err != nil {
+		return err
+	}
 	buildRun, err := ingest.InitializeBuildRun()
 	if err != nil {
 		return err
