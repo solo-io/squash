@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/solo-io/go-utils/contextutils"
 )
@@ -17,7 +18,7 @@ func MustCreateDevResources(ctx context.Context, version string) {
 		Win32:  MustDownloadSha(ctx, version, osShaIdWin32),
 	}
 	squashSpec := SquashSpec{
-		Version:  version,
+		Version:  strings.TrimPrefix(version, "v"),
 		BaseName: extensionBaseName,
 		Binaries: bins,
 	}

@@ -274,9 +274,10 @@ class SquashExtension {
         }
         console.log("You chose debugger: " + JSON.stringify(chosenDebugger));
         let debuggerName = chosenDebugger.debugger;
+        let extraArgs = get_conf_or("extraArgs", "");
 
         // now invoke squashctl
-        let cmdSpec = `${squashpath} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --container ${selectedContainer.container.name} --debugger ${debuggerName}`;
+        let cmdSpec = `${squashpath} ${extraArgs} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --container ${selectedContainer.container.name} --debugger ${debuggerName}`;
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let responseData = JSON.parse(stdout);
@@ -410,7 +411,7 @@ function kubectl_portforward(cmd: string): Promise<number> {
                 console.log(`port forward ended unexpectly: ${code} ${stdout} ${stderr} `);
             }
         };
-        let child = shelljs.exec(cmd, handler);
+        let child = shelljs.exec(maybeKubeEnv() + cmd, handler);
         let stdout = "";
         child.stdout.on('data', function (data) {
             stdout += data;
@@ -432,7 +433,29 @@ function kubectl_get<T=any>(cmd: string, ...args: string[]): Promise<T> {
 }
 
 function kubectl(cmd: string): Promise<string> {
-    return exec("kubectl" + " " + cmd);
+    return exec("kubectl" + maybeKubeConfig() + " " + cmd);
+}
+
+function maybeKubeConfig(): string {
+
+    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
+    if (!maybeKubeConfig) {
+        maybeKubeConfig = "";
+    } else {
+        maybeKubeConfig = ` --kubeconfig="${maybeKubeConfig}" `;
+    }
+    return maybeKubeConfig;
+}
+
+function maybeKubeEnv(): string {
+
+    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
+    if (!maybeKubeConfig) {
+        maybeKubeConfig = "";
+    } else {
+        maybeKubeConfig = `KUBECONFIG="${maybeKubeConfig}" `;
+    }
+    return maybeKubeConfig;
 }
 
 // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
@@ -468,7 +491,7 @@ async function exec(cmd: string): Promise<string> {
             async: true,
             stdio: ['ignore', 'pipe', 'pipe'],
         };
-        shelljs.exec(cmd, options, handler);
+        shelljs.exec(maybeKubeEnv() + cmd, options, handler);
     });
 
     return promise;
