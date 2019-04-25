@@ -603,7 +603,7 @@
   version = "v1.0.5"
 
 [[projects]]
-  digest = "1:f45786187243d05207feb9274c3616cb6a04f8177a1dd1631133cf7584b92595"
+  digest = "1:8772691e1891817a740d30ae1cb4403979b5e5ab76713a265c74523cea3b29b7"
   name = "github.com/solo-io/build"
   packages = [
     "pkg/api/v1",
@@ -614,7 +614,7 @@
     "pkg/version",
   ]
   pruneopts = ""
-  revision = "3f09af72a2d610c59e6aed060a97f72ecbbce9b7"
+  revision = "fd3be00345c0dff27934703e81d1a24eab8df7b3"
 
 [[projects]]
   digest = "1:b0a5012b843bcca5063b5a2db2886f97214f537a7125e1dd2c4a6a203f33825b"
@@ -644,7 +644,8 @@
     "versionutils",
   ]
   pruneopts = ""
-  revision = "015705a1de53e99297ad3b3a34bb273d8c1e574d"
+  revision = "7689982a1f5578696be98cedde309559e29cbbca"
+  version = "v0.7.17"
 
 [[projects]]
   digest = "1:3e784bba1c021077d82fd8dac67eced001ce45b80b4a0e5138bdc32ac8748929"
