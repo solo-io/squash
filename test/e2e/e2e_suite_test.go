@@ -15,10 +15,6 @@ import (
 	"testing"
 )
 
-/* In order for these tests to run, the following env vars must be set:
-PLANK_IMAGE_TAG
-PLANK_IMAGE_REPO
-*/
 func TestE2e(t *testing.T) {
 
 	helpers.RegisterCommonFailHandlers()
