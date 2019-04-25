@@ -30,6 +30,7 @@ steps:
   env:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   entrypoint: 'make'
   args: ['check-format']
@@ -53,6 +54,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   - 'TAGGED_VERSION=$TAG_NAME'
+  - 'BUILD_ID=$BUILD_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   waitFor: ['get-creds']
   id: 'check-code-and-docs-gen'
@@ -84,6 +86,7 @@ steps:
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
   - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
   - 'RUN_KUBE_TESTS=1'
+  - 'BUILD_ID=$BUILD_ID'
   - 'DOCKER_CONFIG=/workspace/.docker/'
   dir: './gopath/src/github.com/solo-io/squash'
   args: ['-r', '-failFast', '-p']
@@ -95,6 +98,7 @@ steps:
   args: ['publish-extension']
   env:
   - 'TAGGED_VERSION=$TAG_NAME'
+  - 'BUILD_ID=$BUILD_ID'
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
