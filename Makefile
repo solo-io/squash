@@ -1,17 +1,20 @@
 #----------------------------------------------------------------------------------
-# Base
+# This portion is managed by github.com/solo-io/build
 #----------------------------------------------------------------------------------
+# NOTE! All make targets that use the computed values must depend on the "must"
+# target to ensure the expected computed values were recieved
+.PHONY: must
+must: validate-computed-values
 
-ROOTDIR := $(shell pwd)
-OUTPUT_DIR := $(ROOTDIR)/_output
-DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
-SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
-
+# Read computed values into variables that can be used by make
+# Since both stdout and stderr are passed, our make targets validate the variables
 RELEASE := $(shell go run buildcmd/main.go parse-env release)
 VERSION := $(shell go run buildcmd/main.go parse-env version)
 IMAGE_TAG := $(shell go run buildcmd/main.go parse-env image-tag)
 CONTAINER_REPO_ORG := $(shell go run buildcmd/main.go parse-env container-prefix)
 
+# use this, or the shorter alias "must", as a dependency for any target that uses
+# values produced by the build tool
 .PHONY: validate-computed-values
 validate-computed-values:
 	go run buildcmd/main.go validate-operating-parameters \
@@ -21,21 +24,23 @@ validate-computed-values:
 		$(IMAGE_TAG)
 
 .PHONY: preview-computed-values
-preview-computed-values:
-	echo hello \
-		$(RELEASE) \
-		$(VERSION) \
-		$(CONTAINER_REPO_ORG) \
-		$(IMAGE_TAG)
+preview-computed-values: must
+	echo summary of computed values - \
+		release: $(RELEASE), \
+		version: $(VERSION), \
+		container-prefix: $(CONTAINER_REPO_ORG), \
+		image-tag: $(IMAGE_TAG)
 
+#### END OF MANAGED PORTION
 
-.PHONY: report-release-status
-preport-release-status:
-ifeq ($(RELEASE), TRUE)
-	echo "is a release"
-else
-	echo "is NOT a release"
-endif
+#----------------------------------------------------------------------------------
+# Base
+#----------------------------------------------------------------------------------
+
+ROOTDIR := $(shell pwd)
+OUTPUT_DIR := $(ROOTDIR)/_output
+DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
+SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 
 # Pass in build-time variables
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
@@ -45,7 +50,7 @@ LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
 -X github.com/solo-io/squash/pkg/version.ImageRepo=$(CONTAINER_REPO_ORG)"
 
 .PHONY: all
-all: release-binaries containers ## (default) Builds binaries and containers
+all: must release-binaries containers ## (default) Builds binaries and containers
 
 .PHONY: help
 help:
@@ -92,7 +97,7 @@ clean:
 #----------------------------------------------------------------------------------
 # Generated code
 .PHONY: generatecode
-generatecode:
+generatecode: must
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
 	gofmt -w ci cmd pkg test
@@ -102,14 +107,14 @@ generatecode:
 # if any docs have changed, this will create a PR on the solo-io/solo-docs repo
 # assumes TAGGED_VERSION and GITHUB_TOKEN are in env
 .PHONY: push-docs
-push-docs:
+push-docs: must
 	go run ci/push_docs.go
 
 #----------------------------------------------------------------------------------
 # Squashctl
 #----------------------------------------------------------------------------------
 .PHONY: squashctl
-squashctl: $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-windows.exe
+squashctl: must $(OUTPUT_DIR)/squashctl $(OUTPUT_DIR)/squashctl-darwin $(OUTPUT_DIR)/squashctl-linux $(OUTPUT_DIR)/squashctl-windows.exe
 
 $(OUTPUT_DIR)/squashctl: $(SRCS)
 	go build -a -tags netgo -ldflags=$(LDFLAGS) -o $@ ./cmd/squashctl
@@ -125,7 +130,7 @@ $(OUTPUT_DIR)/squashctl-windows.exe: $(SRCS)
 # Squash
 #----------------------------------------------------------------------------------
 .PHONY: squash
-squash: $(OUTPUT_DIR)/squash-container
+squash: must $(OUTPUT_DIR)/squash-container
 
 $(OUTPUT_DIR)/squash: $(SRCS)
 	GOOS=linux go build -ldflags=$(LDFLAGS) -o $(OUTPUT_DIR)/squash/squash cmd/squash/main.go
@@ -137,7 +142,7 @@ $(OUTPUT_DIR)/squash-container: $(OUTPUT_DIR)/squash
 # Plank
 #----------------------------------------------------------------------------------
 .PHONY: plank
-plank: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+plank: must $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
 
 $(OUTPUT_DIR)/plank/:
 	[ -d $@ ] || mkdir -p $@
@@ -164,14 +169,14 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 # VS-Code extension
 #----------------------------------------------------------------------------------
 .PHONY: publish-extension
-publish-extension: package-extension ## (vscode) Publishes extension
+publish-extension: must package-extension ## (vscode) Publishes extension
 ifeq ($(RELEASE),TRUE)
 	./hack/publish-extension.sh
 	touch $@
 endif
 
 .PHONY: package-extension
-package-extension: bump-extension-version ## (vscode) Packages extension
+package-extension: must bump-extension-version ## (vscode) Packages extension
 ifeq ($(RELEASE),TRUE)
 	cd editor/vscode && npm install --unsafe-perm
 	cd editor/vscode && vsce package
@@ -179,7 +184,7 @@ ifeq ($(RELEASE),TRUE)
 endif
 
 .PHONY: bump-extension-version
-bump-extension-version:  ## (vscode) Bumps extension version
+bump-extension-version: must  ## (vscode) Bumps extension version
 ifeq ($(RELEASE),TRUE)
 	go run ci/bump_extension_version.go $(VERSION)
 	touch $@
@@ -194,15 +199,15 @@ HELM_DIR := install/helm/$(SOLO_NAME)
 INSTALL_NAMESPACE ?= $(SOLO_NAME)
 
 .PHONY: manifest
-manifest: prepare-helm install/squash.yaml update-helm-chart
+manifest: must prepare-helm install/squash.yaml update-helm-chart
 
 # creates Chart.yaml, values.yaml
 .PHONY: prepare-helm
-prepare-helm:
+prepare-helm: must
 	go run install/helm/squash/generate/cmd/generate.go $(IMAGE_TAG) $(CONTAINER_REPO_ORG)
 
 .PHONY: update-helm-chart
-update-helm-chart:
+update-helm-chart: must
 	mkdir -p $(HELM_SYNC_DIR)/charts
 	helm package --destination $(HELM_SYNC_DIR)/charts $(HELM_DIR)
 	helm repo index $(HELM_SYNC_DIR)
@@ -213,36 +218,31 @@ install/$(SOLO_NAME).yaml: prepare-helm
 	helm template install/helm/squash $(HELMFLAGS) > $@
 
 .PHONY: render-yaml
-render-yaml: install/squash.yaml
+render-yaml: must install/squash.yaml
 
 #----------------------------------------------------------------------------------
 # Build All
 #----------------------------------------------------------------------------------
 .PHONY: build
-build: squashctl squash plank
+build: must squashctl squash plank
 
 #----------------------------------------------------------------------------------
 # Docker
 #----------------------------------------------------------------------------------
 .PHONY: docker
-docker: $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container $(OUTPUT_DIR)/squash-container
+docker: must $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container $(OUTPUT_DIR)/squash-container
 
 .PHONY: docker-push
-docker-push: docker
+docker-push: must docker
 	docker push $(CONTAINER_REPO_ORG)/plank-dlv:$(IMAGE_TAG) && \
 	docker push $(CONTAINER_REPO_ORG)/plank-gdb:$(IMAGE_TAG) && \
 	docker push $(CONTAINER_REPO_ORG)/squash:$(IMAGE_TAG)
-
-# TODO(mitchdraft) - replace this with a go lib when it's available
-$(OUTPUT_DIR)/buildtimevalues.yaml:
-	echo plank_image_tag: $(IMAGE_TAG) > $@
-	echo plank_image_repo: $(CONTAINER_REPO_ORG) >> $@
 
 #----------------------------------------------------------------------------------
 # Release
 #----------------------------------------------------------------------------------
 .PHONY: upload-github-release-assets
-upload-github-release-assets: squashctl
+upload-github-release-assets: must squashctl
 	go run ci/upload_github_release_assets.go
 
 #----------------------------------------------------------------------------------
@@ -251,13 +251,13 @@ upload-github-release-assets: squashctl
 # Helpers for development: build and push (locally) only the things you changed
 # first run `eval $(minikube docker-env)` then any of these commands
 .PHONY: dev-squashctl-darwin
-dev-squashctl-darwin: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
+dev-squashctl-darwin: must $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squashctl-darwin
 
 .PHONY: dev-squashctl-win
-dev-squashct-win: $(OUTPUT_DIR)/squashctl-windows
+dev-squashct-win: must $(OUTPUT_DIR)/squashctl-windows
 
 .PHONY: dev-planks
-dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
+dev-planks: must $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/plank-dlv-container $(OUTPUT_DIR)/plank-gdb-container
 
 .PHONY: dev-squash
-dev-planks: $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container
+dev-planks: must $(OUTPUT_DIR) $(SRCS) $(OUTPUT_DIR)/squash-container

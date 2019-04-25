@@ -63,7 +63,7 @@
 
 [[constraint]]
   name = "github.com/solo-io/build"
-  revision = "fd3be00345c0dff27934703e81d1a24eab8df7b3"
+  revision = "v0.0.1"
 
 [[override]]
   name = "gopkg.in/fsnotify.v1"
