@@ -603,17 +603,18 @@
   version = "v1.0.5"
 
 [[projects]]
-  digest = "1:7d7002a37b1bb45751f7107236f083dc8098145052aa50453f625eec6972c908"
+  digest = "1:f45786187243d05207feb9274c3616cb6a04f8177a1dd1631133cf7584b92595"
   name = "github.com/solo-io/build"
   packages = [
     "pkg/api/v1",
     "pkg/cli",
     "pkg/constants",
+    "pkg/envutils",
     "pkg/ingest",
     "pkg/version",
   ]
   pruneopts = ""
-  revision = "c9a91fd8e073039b89685ed34eca0bf6f3c84461"
+  revision = "3f09af72a2d610c59e6aed060a97f72ecbbce9b7"
 
 [[projects]]
   digest = "1:b0a5012b843bcca5063b5a2db2886f97214f537a7125e1dd2c4a6a203f33825b"
@@ -624,7 +625,7 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:13a24065310af93f4679f585b0a525ab04c548463ca3371a8ba6a4d5c7936fd9"
+  digest = "1:5b070047c89a9f43d41cf8ec30bec8327da928e5a06ad27b9b89016ae7008a8d"
   name = "github.com/solo-io/go-utils"
   packages = [
     "changelogutils",
@@ -643,8 +644,7 @@
     "versionutils",
   ]
   pruneopts = ""
-  revision = "0615c838ea7df7a3f83f6a8551e186ad60966547"
-  version = "v0.7.16"
+  revision = "015705a1de53e99297ad3b3a34bb273d8c1e574d"
 
 [[projects]]
   digest = "1:3e784bba1c021077d82fd8dac67eced001ce45b80b4a0e5138bdc32ac8748929"

@@ -7,22 +7,34 @@ OUTPUT_DIR := $(ROOTDIR)/_output
 DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 
-GCLOUD_PROJECT_ID ?= solo-public
-VERSION ?= $(shell echo $(TAGGED_VERSION) | cut -c 2-)
-LAST_COMMIT = $(shell git rev-parse HEAD | cut -c 1-6)
-# Note: need to evaluate this with := to avoid re-evaluation
-STAMP_DDHHMMSS := $(shell date +%d%H%M%S)
-IMAGE_TAG ?= $(LAST_COMMIT)-$(STAMP_DDHHMMSS)-pre
-CONTAINER_REPO_ORG ?= gcr.io/$(GCLOUD_PROJECT_ID)
+RELEASE := $(shell go run buildcmd/main.go parse-env release)
+VERSION := $(shell go run buildcmd/main.go parse-env version)
+IMAGE_TAG := $(shell go run buildcmd/main.go parse-env image-tag)
+CONTAINER_REPO_ORG := $(shell go run buildcmd/main.go parse-env container-prefix)
 
-# produce a release if TAGGED_VERSION is set
-RELEASE := "true"
-ifeq ($(TAGGED_VERSION),)
-	RELEASE = "false"
+.PHONY: validate-computed-values
+validate-computed-values:
+	go run buildcmd/main.go validate-operating-parameters \
+		$(RELEASE) \
+		$(VERSION) \
+		$(CONTAINER_REPO_ORG) \
+		$(IMAGE_TAG)
+
+.PHONY: preview-computed-values
+preview-computed-values:
+	echo hello \
+		$(RELEASE) \
+		$(VERSION) \
+		$(CONTAINER_REPO_ORG) \
+		$(IMAGE_TAG)
+
+
+.PHONY: report-release-status
+preport-release-status:
+ifeq ($(RELEASE), TRUE)
+	echo "is a release"
 else
-  RELEASE = "true"
-  CONTAINER_REPO_ORG = quay.io/solo-io
-  IMAGE_TAG = $(VERSION)
+	echo "is NOT a release"
 endif
 
 # Pass in build-time variables
@@ -153,14 +165,14 @@ $(OUTPUT_DIR)/plank-gdb-container: $(OUTPUT_DIR)/plank/plank $(OUTPUT_DIR)/plank
 #----------------------------------------------------------------------------------
 .PHONY: publish-extension
 publish-extension: package-extension ## (vscode) Publishes extension
-ifeq ($(RELEASE),"true")
+ifeq ($(RELEASE),TRUE)
 	./hack/publish-extension.sh
 	touch $@
 endif
 
 .PHONY: package-extension
 package-extension: bump-extension-version ## (vscode) Packages extension
-ifeq ($(RELEASE),"true")
+ifeq ($(RELEASE),TRUE)
 	cd editor/vscode && npm install --unsafe-perm
 	cd editor/vscode && vsce package
 	touch $@
@@ -168,7 +180,7 @@ endif
 
 .PHONY: bump-extension-version
 bump-extension-version:  ## (vscode) Bumps extension version
-ifeq ($(RELEASE),"true")
+ifeq ($(RELEASE),TRUE)
 	go run ci/bump_extension_version.go $(VERSION)
 	touch $@
 endif
