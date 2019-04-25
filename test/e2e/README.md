@@ -1,14 +1,12 @@
 ## How to run the end to end tests
 ```bash
-make docker-push
+BUILD_ID=desired-image-tag make docker-push
 ginkgo -r -v .
 ```
 
 ### Override container values used in tests
-- By default, the test will choose which plank container repo and image tag by parsing the `_output/buildtimevalues.yaml` file produced during build.
-- This ensures that the test will run the expected containers.
-- **To override** set the following environment values:
-```bash
-export PLANK_IMAGE_TAG=<preferred_image_tag>
-export PLANK_IMAGE_REPO=<preferred_repo>
-```
+- The container repo is set from the `solo-project.yaml` file in the root directory.
+  - To change the value, change the `test_container_registry` values to your liking.
+  - Refer to the [build tool's repo](https://github.com/solo-io/build) for examples of other configurations.
+- The image tag is set by the environment variable `BUILD_ID`.
+  - This must be set for the build to succeed. You can use any value.

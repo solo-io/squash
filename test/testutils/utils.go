@@ -4,62 +4,34 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/solo-io/build/pkg/ingest"
 
 	"github.com/solo-io/squash/pkg/squashctl"
 )
 
-const (
-	plankImageTagEnvVar  = "PLANK_IMAGE_TAG"
-	plankImageRepoEnvVar = "PLANK_IMAGE_REPO"
-	buildOutputFilepath  = "../../_output/buildtimevalues.yaml"
-)
-
 type TestConditions struct {
-	PlankImageTag  string `yaml:"plank_image_tag"`
-	PlankImageRepo string `yaml:"plank_image_repo"`
-	Source         string `yaml:"source"`
+	PlankImageTag  string
+	PlankImageRepo string
+	Source         string
 }
 
-func getBuildValue(filepath string, tc *TestConditions) error {
-	content, err := ioutil.ReadFile(filepath)
+func InitializeTestConditions(tc *TestConditions) error {
+	tc.Source = "build tool"
+	buildRun, err := ingest.InitializeBuildRun()
 	if err != nil {
 		return err
 	}
-	if err := yaml.Unmarshal(content, tc); err != nil {
-		return err
-	}
-	return nil
-}
-
-func InitializeTestConditionsFromBuildTimeFile(tc *TestConditions) error {
-	tc.Source = fmt.Sprintf("build time values in %s", buildOutputFilepath)
-	if err := getBuildValue(buildOutputFilepath, tc); err != nil {
-		return err
-	}
+	tc.PlankImageTag = buildRun.Config.ComputedBuildVars.ImageTag
+	tc.PlankImageRepo = buildRun.Config.ComputedBuildVars.ContainerPrefix
 	if tc.PlankImageTag == "" {
-		return fmt.Errorf("must set plank_image_tag in %s", buildOutputFilepath)
+		return fmt.Errorf("unable to read image tag from %s", tc.Source)
 	}
 	if tc.PlankImageRepo == "" {
-		return fmt.Errorf("must set plank_image_repo in %s", buildOutputFilepath)
-	}
-	return nil
-}
-
-func InitializeTestConditionsFromEnv(tc *TestConditions) error {
-	tc.Source = "environment variables"
-	tc.PlankImageTag = os.Getenv(plankImageTagEnvVar)
-	tc.PlankImageRepo = os.Getenv(plankImageRepoEnvVar)
-	if tc.PlankImageTag == "" {
-		return fmt.Errorf("must set %s env var", plankImageTagEnvVar)
-	}
-	if tc.PlankImageRepo == "" {
-		return fmt.Errorf("must set %s env var", plankImageRepoEnvVar)
+		return fmt.Errorf("unable to read container repo from %s", tc.Source)
 	}
 	return nil
 }
@@ -72,6 +44,7 @@ values set from %s
 `, tc.PlankImageRepo, tc.PlankImageTag, tc.Source)
 }
 
+// TOOD - replace with the clicore lib
 func Squashctl(args string) error {
 	app, err := squashctl.App("test")
 	if err != nil {
@@ -100,12 +73,12 @@ func SquashctlOut(args string) (string, error) {
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, _ = io.Copy(&buf, r)
 		outC <- buf.String()
 	}()
 
 	// back to normal state
-	w.Close()
+	_ = w.Close()
 	os.Stdout = stdOut // restoring the real stdout
 	out := <-outC
 

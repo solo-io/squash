@@ -30,12 +30,8 @@ func TestE2e(t *testing.T) {
 var testConditions = testutils.TestConditions{}
 
 var _ = BeforeSuite(func() {
-	// Allow test conditions to be set from Env or from buildtimevalues.yaml
-	err := testutils.InitializeTestConditionsFromEnv(&testConditions)
-	if err != nil {
-		fileErr := testutils.InitializeTestConditionsFromBuildTimeFile(&testConditions)
-		Expect(fileErr).NotTo(HaveOccurred())
-	}
+	err := testutils.InitializeTestConditions(&testConditions)
+	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(testutils.SummarizeTestConditions(testConditions))
 
 	seed := time.Now().UnixNano()
@@ -43,7 +39,7 @@ var _ = BeforeSuite(func() {
 	rand.Seed(seed)
 })
 
-// this list will be appened each time a test namespace is created
+// this list will be append each time a test namespace is created
 var squashTestNamespaces = []string{}
 var _ = AfterSuite(func() {
 	fmt.Println("clean up after test")
