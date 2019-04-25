@@ -8,23 +8,57 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
+
+	"github.com/solo-io/build/pkg/constants"
+
+	"github.com/solo-io/build/pkg/ingest"
+
 	"github.com/solo-io/squash/pkg/squashctl"
 )
 
-const (
-	plankTestVersion = "0.5.1"
-	plankTestRepo    = "quay.io/solo-io"
-)
-
-func DeclareTestConditions() {
-	fmt.Printf(`Squash tests are running under the following conditions:
-plank repo: %v
-plank tag: %v
-
-If Plank has changed, you should update these values.
-`, plankTestRepo, plankTestVersion)
+type TestConditions struct {
+	PlankImageTag  string
+	PlankImageRepo string
+	Source         string
 }
 
+func InitializeTestConditions(tc *TestConditions, pathToBuildSpec string) (err error) {
+	tc.Source = "build tool"
+	initialEnvVar := os.Getenv(constants.EnvVarConfigFileName)
+	defer func() {
+		if fErr := os.Setenv(constants.EnvVarConfigFileName, initialEnvVar); fErr != nil {
+			err = errors.Wrapf(err, "unable to reset env: %v", fErr)
+		}
+	}()
+	// clean this up when https://github.com/solo-io/build/issues/4 is ready
+	if err := os.Setenv(constants.EnvVarConfigFileName, pathToBuildSpec); err != nil {
+		return err
+	}
+	buildRun, err := ingest.InitializeBuildRun()
+	if err != nil {
+		return err
+	}
+	tc.PlankImageTag = buildRun.Config.ComputedBuildVars.ImageTag
+	tc.PlankImageRepo = buildRun.Config.ComputedBuildVars.ContainerPrefix
+	if tc.PlankImageTag == "" {
+		return fmt.Errorf("unable to read image tag from %s", tc.Source)
+	}
+	if tc.PlankImageRepo == "" {
+		return fmt.Errorf("unable to read container repo from %s", tc.Source)
+	}
+	return nil
+}
+
+func SummarizeTestConditions(tc TestConditions) string {
+	return fmt.Sprintf(`Squash tests are running under the following conditions:
+plank repo: %s
+plank tag: %s
+values set from %s
+`, tc.PlankImageRepo, tc.PlankImageTag, tc.Source)
+}
+
+// TOOD - replace with the clicore lib
 func Squashctl(args string) error {
 	app, err := squashctl.App("test")
 	if err != nil {
@@ -53,12 +87,12 @@ func SquashctlOut(args string) (string, error) {
 	// copy the output in a separate goroutine so printing can't block indefinitely
 	go func() {
 		var buf bytes.Buffer
-		io.Copy(&buf, r)
+		_, _ = io.Copy(&buf, r)
 		outC <- buf.String()
 	}()
 
 	// back to normal state
-	w.Close()
+	_ = w.Close()
 	os.Stdout = stdOut // restoring the real stdout
 	out := <-outC
 
@@ -70,12 +104,12 @@ func Curl(args string) ([]byte, error) {
 	return curl.CombinedOutput()
 }
 
-func MachineDebugArgs(debugger, ns, podName, squashNamespace string) string {
+func MachineDebugArgs(tc TestConditions, debugger, ns, podName, squashNamespace string) string {
 	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v --squash-namespace %v`,
 		debugger,
 		ns,
 		podName,
-		plankTestVersion,
-		plankTestRepo,
+		tc.PlankImageTag,
+		tc.PlankImageRepo,
 		squashNamespace)
 }

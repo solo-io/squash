@@ -15,7 +15,7 @@ API Version: `squash.solo.io.v1`
 
 
 ### API Resources:
-- [DebugAttachment](../github.com/solo-io/squash/api/v1/debug_attachment.proto.sk#DebugAttachment)
+- [DebugAttachment](../github.com/solo-io/squash/api/v1/debug_attachment.proto.sk#debugattachment)
 
 <!-- Start of HubSpot Embed Code -->
 <script type="text/javascript" id="hs-script-loader" async defer src="//js.hs-scripts.com/5130874.js"></script>

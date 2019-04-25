@@ -650,6 +650,20 @@
   version = "v1.0.5"
 
 [[projects]]
+  digest = "1:76cf93ed7763ebc19b27072db569934a3e016c7e1dbcdbede1d2c368822772eb"
+  name = "github.com/solo-io/build"
+  packages = [
+    "pkg/api/v1",
+    "pkg/cli",
+    "pkg/constants",
+    "pkg/envutils",
+    "pkg/ingest",
+    "pkg/version",
+  ]
+  pruneopts = ""
+  revision = "v0.0.1"
+
+[[projects]]
   digest = "1:b0a5012b843bcca5063b5a2db2886f97214f537a7125e1dd2c4a6a203f33825b"
   name = "github.com/solo-io/go-checkpoint"
   packages = ["."]
@@ -658,10 +672,13 @@
   version = "0.0.4"
 
 [[projects]]
-  digest = "1:f3c05862357a0aac4a5e416c933dd665eae23b3edb9d63839489acf8d0b62377"
+  digest = "1:5b070047c89a9f43d41cf8ec30bec8327da928e5a06ad27b9b89016ae7008a8d"
   name = "github.com/solo-io/go-utils"
   packages = [
     "changelogutils",
+    "clicore",
+    "clicore/constants",
+    "clicore/internal/clibufferpool",
     "clidoc",
     "cliutils",
     "contextutils",
@@ -675,14 +692,15 @@
     "versionutils",
   ]
   pruneopts = ""
-  revision = "a27432d89f419897df796a17456410e49a9727c3"
-  version = "v0.7.11"
+  revision = "7689982a1f5578696be98cedde309559e29cbbca"
+  version = "v0.7.17"
 
 [[projects]]
-  digest = "1:1c0b84e64555e5e23b21af53d0aafbe2038da94545d54d0f8d06beb1b18948bc"
+  digest = "1:3e784bba1c021077d82fd8dac67eced001ce45b80b4a0e5138bdc32ac8748929"
   name = "github.com/solo-io/solo-kit"
   packages = [
     "pkg/api/v1/clients",
+    "pkg/api/v1/clients/common",
     "pkg/api/v1/clients/configmap",
     "pkg/api/v1/clients/consul",
     "pkg/api/v1/clients/factory",
@@ -698,6 +716,7 @@
     "pkg/api/v1/clients/kubesecret",
     "pkg/api/v1/clients/memory",
     "pkg/api/v1/clients/vault",
+    "pkg/api/v1/eventloop",
     "pkg/api/v1/reconcile",
     "pkg/api/v1/resources",
     "pkg/api/v1/resources/core",
@@ -713,7 +732,6 @@
     "pkg/code-generator/model",
     "pkg/code-generator/parser",
     "pkg/errors",
-    "pkg/utils/contextutils",
     "pkg/utils/errutils",
     "pkg/utils/fileutils",
     "pkg/utils/hashutils",
@@ -726,8 +744,8 @@
     "test/tests/typed",
   ]
   pruneopts = ""
-  revision = "25c8016fed9ef58f7c53283a7a62ad661e0afb40"
-  version = "v0.2.29"
+  revision = "87812f959e22cd2a5d64777dc112c52be5216894"
+  version = "v0.6.5"
 
 [[projects]]
   digest = "1:d3e2e29bc7342053edc85e1ad751275694a96d58516f749cf3413db1a0eca2ba"
@@ -1445,6 +1463,7 @@
     "github.com/onsi/gomega",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
+    "github.com/solo-io/build/pkg/cli",
     "github.com/solo-io/go-checkpoint",
     "github.com/solo-io/go-utils/clidoc",
     "github.com/solo-io/go-utils/cliutils",
@@ -1461,13 +1480,13 @@
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/memory",
+    "github.com/solo-io/solo-kit/pkg/api/v1/eventloop",
     "github.com/solo-io/solo-kit/pkg/api/v1/reconcile",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources",
     "github.com/solo-io/solo-kit/pkg/api/v1/resources/core",
     "github.com/solo-io/solo-kit/pkg/code-generator/cmd",
     "github.com/solo-io/solo-kit/pkg/code-generator/docgen/options",
     "github.com/solo-io/solo-kit/pkg/errors",
-    "github.com/solo-io/solo-kit/pkg/utils/contextutils",
     "github.com/solo-io/solo-kit/pkg/utils/errutils",
     "github.com/solo-io/solo-kit/pkg/utils/hashutils",
     "github.com/solo-io/solo-kit/pkg/utils/log",

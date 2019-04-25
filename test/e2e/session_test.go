@@ -60,7 +60,7 @@ var _ = Describe("Single debug mode", func() {
 		check(err)
 
 		By("should attach a dlv debugger")
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs("dlv", testNamespace, goPodName, testPlankNamespace))
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace))
 		check(err)
 		validateMachineDebugOutput(dbgStr)
 

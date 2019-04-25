@@ -6,6 +6,8 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/solo-io/solo-kit/test/helpers"
 	"github.com/solo-io/squash/test/testutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,15 +23,21 @@ func TestE2e(t *testing.T) {
 	RunSpecs(t, "E2e Squash Suite")
 }
 
+const pathToBuildSpec = "../../solo-project.yaml"
+
+var testConditions = testutils.TestConditions{}
+
 var _ = BeforeSuite(func() {
-	testutils.DeclareTestConditions()
+	err := testutils.InitializeTestConditions(&testConditions, pathToBuildSpec)
+	Expect(err).NotTo(HaveOccurred())
+	fmt.Println(testutils.SummarizeTestConditions(testConditions))
 
 	seed := time.Now().UnixNano()
 	fmt.Printf("rand seed: %v\n", seed)
 	rand.Seed(seed)
 })
 
-// this list will be appened each time a test namespace is created
+// this list will be append each time a test namespace is created
 var squashTestNamespaces = []string{}
 var _ = AfterSuite(func() {
 	fmt.Println("clean up after test")

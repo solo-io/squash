@@ -57,6 +57,7 @@ var _ = Describe("V1Emitter", func() {
 			Cfg:         cfg,
 			SharedCache: kuberc.NewKubeCache(context.TODO()),
 		}
+
 		debugAttachmentClient, err = NewDebugAttachmentClient(debugAttachmentClientFactory)
 		Expect(err).NotTo(HaveOccurred())
 		emitter = NewApiEmitter(debugAttachmentClient)
@@ -88,12 +89,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectDebugattachments {
-						if _, err := snap.Debugattachments.List().Find(expected.Metadata.Ref().Strings()); err != nil {
+						if _, err := snap.Debugattachments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectDebugattachments {
-						if _, err := snap.Debugattachments.List().Find(unexpected.Metadata.Ref().Strings()); err == nil {
+						if _, err := snap.Debugattachments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -124,16 +125,16 @@ var _ = Describe("V1Emitter", func() {
 
 		assertSnapshotDebugattachments(DebugAttachmentList{debugAttachment1a, debugAttachment1b, debugAttachment2a, debugAttachment2b}, nil)
 
-		err = debugAttachmentClient.Delete(debugAttachment2a.Metadata.Namespace, debugAttachment2a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment2a.GetMetadata().Namespace, debugAttachment2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = debugAttachmentClient.Delete(debugAttachment2b.Metadata.Namespace, debugAttachment2b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment2b.GetMetadata().Namespace, debugAttachment2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotDebugattachments(DebugAttachmentList{debugAttachment1a, debugAttachment1b}, DebugAttachmentList{debugAttachment2a, debugAttachment2b})
 
-		err = debugAttachmentClient.Delete(debugAttachment1a.Metadata.Namespace, debugAttachment1a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment1a.GetMetadata().Namespace, debugAttachment1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = debugAttachmentClient.Delete(debugAttachment1b.Metadata.Namespace, debugAttachment1b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment1b.GetMetadata().Namespace, debugAttachment1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotDebugattachments(nil, DebugAttachmentList{debugAttachment1a, debugAttachment1b, debugAttachment2a, debugAttachment2b})
@@ -161,12 +162,12 @@ var _ = Describe("V1Emitter", func() {
 				select {
 				case snap = <-snapshots:
 					for _, expected := range expectDebugattachments {
-						if _, err := snap.Debugattachments.List().Find(expected.Metadata.Ref().Strings()); err != nil {
+						if _, err := snap.Debugattachments.List().Find(expected.GetMetadata().Ref().Strings()); err != nil {
 							continue drain
 						}
 					}
 					for _, unexpected := range unexpectDebugattachments {
-						if _, err := snap.Debugattachments.List().Find(unexpected.Metadata.Ref().Strings()); err == nil {
+						if _, err := snap.Debugattachments.List().Find(unexpected.GetMetadata().Ref().Strings()); err == nil {
 							continue drain
 						}
 					}
@@ -197,16 +198,16 @@ var _ = Describe("V1Emitter", func() {
 
 		assertSnapshotDebugattachments(DebugAttachmentList{debugAttachment1a, debugAttachment1b, debugAttachment2a, debugAttachment2b}, nil)
 
-		err = debugAttachmentClient.Delete(debugAttachment2a.Metadata.Namespace, debugAttachment2a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment2a.GetMetadata().Namespace, debugAttachment2a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = debugAttachmentClient.Delete(debugAttachment2b.Metadata.Namespace, debugAttachment2b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment2b.GetMetadata().Namespace, debugAttachment2b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotDebugattachments(DebugAttachmentList{debugAttachment1a, debugAttachment1b}, DebugAttachmentList{debugAttachment2a, debugAttachment2b})
 
-		err = debugAttachmentClient.Delete(debugAttachment1a.Metadata.Namespace, debugAttachment1a.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment1a.GetMetadata().Namespace, debugAttachment1a.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
-		err = debugAttachmentClient.Delete(debugAttachment1b.Metadata.Namespace, debugAttachment1b.Metadata.Name, clients.DeleteOpts{Ctx: ctx})
+		err = debugAttachmentClient.Delete(debugAttachment1b.GetMetadata().Namespace, debugAttachment1b.GetMetadata().Name, clients.DeleteOpts{Ctx: ctx})
 		Expect(err).NotTo(HaveOccurred())
 
 		assertSnapshotDebugattachments(nil, DebugAttachmentList{debugAttachment1a, debugAttachment1b, debugAttachment2a, debugAttachment2b})
