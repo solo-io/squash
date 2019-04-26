@@ -30,8 +30,9 @@ func (g *gdbDebugServer) HostType() DebugHostType {
 	return DebugHostTypeClient
 }
 
-func (d *gdbDebugServer) Cmd() *exec.Cmd {
-	return nil
+func (g *gdbDebugServer) Cmd() *exec.Cmd {
+	return g.cmd
+	//return nil
 }
 
 func (g *GdbInterface) Attach(pid int) (DebugServer, error) {
