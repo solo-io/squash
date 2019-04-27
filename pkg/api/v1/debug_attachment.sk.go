@@ -5,7 +5,6 @@ package v1
 import (
 	"sort"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -15,22 +14,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// TODO: modify as needed to populate additional fields
 func NewDebugAttachment(namespace, name string) *DebugAttachment {
-	return &DebugAttachment{
-		Metadata: core.Metadata{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-}
-
-func (r *DebugAttachment) SetStatus(status core.Status) {
-	r.Status = status
+	debugattachment := &DebugAttachment{}
+	debugattachment.SetMetadata(core.Metadata{
+		Name:      name,
+		Namespace: namespace,
+	})
+	return debugattachment
 }
 
 func (r *DebugAttachment) SetMetadata(meta core.Metadata) {
 	r.Metadata = meta
+}
+
+func (r *DebugAttachment) SetStatus(status core.Status) {
+	r.Status = status
 }
 
 func (r *DebugAttachment) Hash() uint64 {
@@ -58,8 +56,8 @@ type DebugattachmentsByNamespace map[string]DebugAttachmentList
 // namespace is optional, if left empty, names can collide if the list contains more than one with the same name
 func (list DebugAttachmentList) Find(namespace, name string) (*DebugAttachment, error) {
 	for _, debugAttachment := range list {
-		if debugAttachment.Metadata.Name == name {
-			if namespace == "" || debugAttachment.Metadata.Namespace == namespace {
+		if debugAttachment.GetMetadata().Name == name {
+			if namespace == "" || debugAttachment.GetMetadata().Namespace == namespace {
 				return debugAttachment, nil
 			}
 		}
@@ -86,7 +84,7 @@ func (list DebugAttachmentList) AsInputResources() resources.InputResourceList {
 func (list DebugAttachmentList) Names() []string {
 	var names []string
 	for _, debugAttachment := range list {
-		names = append(names, debugAttachment.Metadata.Name)
+		names = append(names, debugAttachment.GetMetadata().Name)
 	}
 	return names
 }
@@ -94,14 +92,14 @@ func (list DebugAttachmentList) Names() []string {
 func (list DebugAttachmentList) NamespacesDotNames() []string {
 	var names []string
 	for _, debugAttachment := range list {
-		names = append(names, debugAttachment.Metadata.Namespace+"."+debugAttachment.Metadata.Name)
+		names = append(names, debugAttachment.GetMetadata().Namespace+"."+debugAttachment.GetMetadata().Name)
 	}
 	return names
 }
 
 func (list DebugAttachmentList) Sort() DebugAttachmentList {
 	sort.SliceStable(list, func(i, j int) bool {
-		return list[i].Metadata.Less(list[j].Metadata)
+		return list[i].GetMetadata().Less(list[j].GetMetadata())
 	})
 	return list
 }
@@ -109,7 +107,7 @@ func (list DebugAttachmentList) Sort() DebugAttachmentList {
 func (list DebugAttachmentList) Clone() DebugAttachmentList {
 	var debugAttachmentList DebugAttachmentList
 	for _, debugAttachment := range list {
-		debugAttachmentList = append(debugAttachmentList, proto.Clone(debugAttachment).(*DebugAttachment))
+		debugAttachmentList = append(debugAttachmentList, resources.Clone(debugAttachment).(*DebugAttachment))
 	}
 	return debugAttachmentList
 }
@@ -130,7 +128,7 @@ func (list DebugAttachmentList) AsInterfaces() []interface{} {
 
 func (byNamespace DebugattachmentsByNamespace) Add(debugAttachment ...*DebugAttachment) {
 	for _, item := range debugAttachment {
-		byNamespace[item.Metadata.Namespace] = append(byNamespace[item.Metadata.Namespace], item)
+		byNamespace[item.GetMetadata().Namespace] = append(byNamespace[item.GetMetadata().Namespace], item)
 	}
 }
 

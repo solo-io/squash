@@ -1,0 +1,10 @@
+config:
+  release_container_registry:
+    quay:
+      base_url: quay.io
+      organization: solo-io
+  test_container_registry:
+    gcr:
+      base_url: gcr.io
+      project_name: solo-public
+

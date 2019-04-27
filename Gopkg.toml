@@ -55,11 +55,15 @@
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "0.2.29"
+  version = "0.6.5"
 
 [[constraint]]
   name = "github.com/solo-io/go-utils"
-  version = "0.2.12"
+  version = "0.7.17"
+
+[[constraint]]
+  name = "github.com/solo-io/build"
+  revision = "v0.0.1"
 
 [[override]]
   name = "gopkg.in/fsnotify.v1"

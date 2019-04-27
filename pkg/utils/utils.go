@@ -39,7 +39,7 @@ func GetCmdArgsByPid(pid int) ([]string, error) {
 func ListSquashDeployments(kc *kubernetes.Clientset, nsList []string) ([]appsv1.Deployment, error) {
 	matches := []appsv1.Deployment{}
 	for _, ns := range nsList {
-		deps, err := kc.Apps().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.SquashName)})
+		deps, err := kc.AppsV1().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.SquashName)})
 		if err != nil {
 			return []appsv1.Deployment{}, err
 		}

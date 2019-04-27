@@ -13,6 +13,7 @@ vendor/*
 site/
 
 .vscode/*
+contrib/example/service2-java/.vscode/
 
 editor/vscode/binaries/
 
@@ -23,3 +24,6 @@ contrib/example/service2-java/.settings/
 
 # temp go example files
 contrib/example/service1/.vscode/settings.json
+
+# helm
+install/squash.yaml

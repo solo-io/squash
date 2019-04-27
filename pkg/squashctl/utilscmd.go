@@ -174,7 +174,7 @@ func (o *Options) deletePlankPods() error {
 		return err
 	}
 	namespace := o.Squash.SquashNamespace
-	planks, err := cs.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	planks, err := cs.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: sqOpts.PlankLabelSelectorString})
 	if err != nil {
 		return err
 	}

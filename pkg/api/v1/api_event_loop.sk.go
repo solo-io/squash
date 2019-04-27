@@ -9,9 +9,10 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
+	"github.com/solo-io/solo-kit/pkg/api/v1/eventloop"
 	"github.com/solo-io/solo-kit/pkg/errors"
-	"github.com/solo-io/solo-kit/pkg/utils/contextutils"
 	"github.com/solo-io/solo-kit/pkg/utils/errutils"
 )
 
@@ -31,16 +32,12 @@ func (s ApiSyncers) Sync(ctx context.Context, snapshot *ApiSnapshot) error {
 	return multiErr.ErrorOrNil()
 }
 
-type ApiEventLoop interface {
-	Run(namespaces []string, opts clients.WatchOpts) (<-chan error, error)
-}
-
 type apiEventLoop struct {
 	emitter ApiEmitter
 	syncer  ApiSyncer
 }
 
-func NewApiEventLoop(emitter ApiEmitter, syncer ApiSyncer) ApiEventLoop {
+func NewApiEventLoop(emitter ApiEmitter, syncer ApiSyncer) eventloop.EventLoop {
 	return &apiEventLoop{
 		emitter: emitter,
 		syncer:  syncer,

@@ -158,6 +158,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	s.Pod = da.Pod
 	s.Container = da.Image
 
+	// TODO(mitchdraft) - set this from an os.Env read
 	s.SquashNamespace = options.SquashNamespace
 
 	dbt := config.DebugTarget{}
