@@ -1,6 +1,8 @@
 package local
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -16,13 +18,17 @@ func (g *GdbInterface) GetEditorRemoteConnectionCmd(plankName, plankNamespace, p
 }
 
 func (d *GdbInterface) GetDebugCmd(localPort int) *exec.Cmd {
-	// TODO
-	return nil
+	fmt.Printf("gdb debug port available on local port %v.\n", localPort)
+	// TODO(mitchdraft) - do this in a less hacky way
+	cmd := exec.Command("sleep", "200000")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd
 }
 
 func (d *GdbInterface) ExpectRunningPlank() bool {
-	// TODO
-	return false
+	return true
 }
 
 func (g *GdbInterface) WindowsSupportWarning() string {
