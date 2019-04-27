@@ -1,0 +1,4 @@
+description:
+- type: NEW_FEATURE
+  description: Eliminate need for user to have CRD registration permissions.
+  issueLink: https://github.com/solo-io/squash/pull/166
