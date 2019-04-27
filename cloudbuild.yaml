@@ -93,18 +93,18 @@ steps:
   waitFor: ['get-creds', 'check-code-and-docs-gen', 'push-github-resources']
   id: 'e2e-test'
 
-- name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
-  entrypoint: make
-  args: ['publish-extension']
-  env:
-  - 'TAGGED_VERSION=$TAG_NAME'
-  - 'BUILD_ID=$BUILD_ID'
-  - 'PROJECT_ROOT=github.com/solo-io/squash'
-  - 'GOPATH=/workspace/gopath'
-  dir: './gopath/src/github.com/solo-io/squash'
-  secretEnv: ['VSCODE_TOKEN']
-  waitFor: ['e2e-test','push-github-resources']
-  id: 'extension'
+#- name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
+#  entrypoint: make
+#  args: ['publish-extension']
+#  env:
+#  - 'TAGGED_VERSION=$TAG_NAME'
+#  - 'BUILD_ID=$BUILD_ID'
+#  - 'PROJECT_ROOT=github.com/solo-io/squash'
+#  - 'GOPATH=/workspace/gopath'
+#  dir: './gopath/src/github.com/solo-io/squash'
+#  secretEnv: ['VSCODE_TOKEN']
+#  waitFor: ['e2e-test','push-github-resources']
+#  id: 'extension'
 
 secrets:
 - kmsKeyName: projects/solo-public/locations/global/keyRings/build/cryptoKeys/build-key
