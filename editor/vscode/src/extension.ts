@@ -163,6 +163,21 @@ export class PodPickItem implements vscode.QuickPickItem {
         this.pod = pod;
     }
 }
+
+export class NamespacePickItem implements vscode.QuickPickItem {
+    label: string;
+    description: string;
+    detail?: string;
+
+    namespace: kube.Namespace;
+
+    constructor(namespace: kube.Namespace) {
+        this.label = namespace.metadata.name;
+        this.description = "namespace";
+        this.namespace = namespace;
+    }
+}
+
 export class ContainerPickItem implements vscode.QuickPickItem {
     label: string;
     description: string;
@@ -222,9 +237,24 @@ class SquashExtension {
                 return;
             }
         }
+        //get namespace 
+        let namespaces = await this.getNamespaces();
 
-        // get namespace and pod
-        let pods = await this.getPods();
+        let namespaceoptions: vscode.QuickPickOptions = {
+            placeHolder: "Please select a namespace",
+        };
+
+        let namespaceItems: NamespacePickItem[] = namespaces.map(namespace => new NamespacePickItem(namespace));
+
+        const ns_item = await vscode.window.showQuickPick(namespaceItems, namespaceoptions);
+
+        if (!ns_item) {
+            console.log("chosing namespace canceled - debugging canceled");
+            return;
+        }
+        let selectedNamespace = ns_item.namespace;
+        // get pod
+        let pods = await this.getPods(selectedNamespace.metadata.name);
 
         let podoptions: vscode.QuickPickOptions = {
             placeHolder: "Please select a pod",
@@ -371,9 +401,14 @@ class SquashExtension {
 
     }
 
-    async  getPods(): Promise<kube.Pod[]> {
-        const podsjson = await kubectl_get<kube.PodList>("pods", "--all-namespaces");
+    async  getPods(namespace: string): Promise<kube.Pod[]> {
+        const podsjson = await kubectl_get<kube.PodList>("pods", "-n",namespace);
         return podsjson.items;
+    }
+
+    async  getNamespaces(): Promise<kube.Namespace[]> {
+        const namespacesjson = await kubectl_get<kube.NamespaceList>("namespaces");
+        return namespacesjson.items;
     }
 
     getContainers(pod: kube.Pod): kube.Container[] {
