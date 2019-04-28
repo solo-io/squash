@@ -86,6 +86,7 @@ steps:
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
   - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
   - 'RUN_KUBE_TESTS=1'
+  - 'TAGGED_VERSION=$TAG_NAME'
   - 'BUILD_ID=$BUILD_ID'
   - 'DOCKER_CONFIG=/workspace/.docker/'
   dir: './gopath/src/github.com/solo-io/squash'
