@@ -1,0 +1,3 @@
+description:
+- type: NON_USER_FACING
+  description: Restore extension in cloud build.
