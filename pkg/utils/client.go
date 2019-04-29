@@ -27,7 +27,7 @@ func getDebugAttachmentClient(ctx context.Context, withRegistration bool) (v1.De
 		Crd:             v1.DebugAttachmentCrd,
 		Cfg:             cfg,
 		SharedCache:     cache,
-		SkipCrdCreation: withRegistration,
+		SkipCrdCreation: !withRegistration,
 	}
 	client, err := v1.NewDebugAttachmentClient(rcFactory)
 	if err != nil {

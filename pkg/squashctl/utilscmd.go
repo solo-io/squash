@@ -28,6 +28,7 @@ func (o *Options) UtilsCmd() *cobra.Command {
 		o.deletePermissionsCmd(),
 		o.deletePlankPodsCmd(),
 		o.deleteAttachmentsCmd(),
+		o.registerResourcesCmd(),
 	)
 
 	return cmd
@@ -94,6 +95,36 @@ func (o *Options) deleteAttachmentsCmd() *cobra.Command {
 				fmt.Println(err)
 			}
 			return o.deletePlankPods()
+		},
+	}
+	return cmd
+}
+
+func (o *Options) registerResourcesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "register-resources",
+		Short: "register the custom resource definitions (CRDs) needed by squash",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cs, err := o.getKubeClient()
+			if err != nil {
+				return err
+			}
+			nsList, err := kubeutils.GetNamespaces(cs)
+			if err != nil {
+				return err
+			}
+			daClient, err := squashutils.GetDebugAttachmentClientWithRegistration(o.ctx)
+			if err != nil {
+				return err
+			}
+			// do a trivial operation with the client to ensure that it is expressed
+			_, err = squashutils.GetAllDebugAttachments(o.ctx, daClient, nsList)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("Registered DebugAttachment CRD")
+			return nil
 		},
 	}
 	return cmd
