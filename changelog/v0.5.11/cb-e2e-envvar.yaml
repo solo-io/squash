@@ -1,0 +1,3 @@
+description:
+- type: NON_USER_FACING
+  description: "Include TAGGED_VERSION in the cloudbuild e2e step."

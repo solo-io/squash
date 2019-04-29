@@ -23,6 +23,14 @@ export interface Container {
     image: string;
 }
 
+export interface Namespace {
+    metadata: Metadata;
+}
+
+export interface NamespaceList {
+    items: Namespace[];
+}
+
 export interface ServiceSpec {
     selector: { [key: string]: string; };
 }
