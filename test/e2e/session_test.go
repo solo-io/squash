@@ -35,10 +35,13 @@ var _ = Describe("Single debug mode", func() {
 	var (
 		testNamespace      string
 		testPlankNamespace string
+		goPodName          string
+		javaPodName        string
+		cs                 *kubernetes.Clientset
 	)
 
 	BeforeEach(func() {
-		cs := MustGetClientset()
+		cs = MustGetClientset()
 		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
 		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
 		testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
@@ -55,51 +58,54 @@ var _ = Describe("Single debug mode", func() {
 		applyPullSecretsMessage, err := applyImagePullSecretsToDefaultServiceAccount(cs, namespaceOfSeedImagePullSecret, sqOpts.SquashServiceAccountImagePullSecretName, []string{testNamespace, testPlankNamespace})
 		Expect(err).NotTo(HaveOccurred())
 		By(applyPullSecretsMessage)
+
+		// Run delete before testing to ensure there are no lingering artifacts
+		By("should list no resources after delete")
+		err = testutils.Squashctl("utils delete-attachments")
+		Expect(err).NotTo(HaveOccurred())
+		str, err := testutils.SquashctlOut("utils list-attachments")
+		Expect(err).NotTo(HaveOccurred())
+		validateUtilsListDebugAttachments(str, 0)
+		By("should deploy a demo app")
+		err = testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java",
+			testNamespace,
+			testPlankNamespace))
+		Expect(err).NotTo(HaveOccurred())
+
+		By("should find the demo deployment")
+		goPodName, err = waitForPod(cs, testNamespace, "example-service1")
+		Expect(err).NotTo(HaveOccurred())
+		javaPodName, err = waitForPod(cs, testPlankNamespace, "example-service2-java")
+		Expect(err).NotTo(HaveOccurred())
 	})
+
 	AfterEach(func() {
 		cfg, err := kubeutils.GetConfig("", "")
 		Expect(err).NotTo(HaveOccurred())
 		extClient, err := apiexts.NewForConfig(cfg)
 		err = extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(squashv1.DebugAttachmentCrd.FullName(), &metav1.DeleteOptions{})
 		Expect(err).NotTo(HaveOccurred())
+		cs := MustGetClientset()
+		err = cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("Should create a debug session", func() {
-		By("should get a kube client")
-		cs := MustGetClientset()
-
-		By("should list no resources after delete")
-		// Run delete before testing to ensure there are no lingering artifacts
-		must(testutils.Squashctl("utils delete-attachments"))
-		str, err := testutils.SquashctlOut("utils list-attachments")
-		check(err)
-		validateUtilsListDebugAttachments(str, 0)
-
-		By("should deploy a demo app")
-		must(testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java",
-			testNamespace,
-			testPlankNamespace)))
-
-		By("should find the demo deployment")
-		goPodName, err := waitForPod(cs, testNamespace, "example-service1")
-		check(err)
-		javaPodName, err := waitForPod(cs, testPlankNamespace, "example-service2-java")
-		check(err)
-
 		By("should attach a dlv debugger")
 		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace))
-		check(err)
+		Expect(err).NotTo(HaveOccurred())
 		validateMachineDebugOutput(dbgStr)
 
 		By("should have created the required permissions")
-		must(ensurePlankPermissionsWereCreated(cs, testPlankNamespace))
+		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
 
 		By("should list expected resources after debug session initiated")
 		attachmentList, err := testutils.SquashctlOut("utils list-attachments")
-		check(err)
+		Expect(err).NotTo(HaveOccurred())
 		validateUtilsListDebugAttachments(attachmentList, 1)
 
 		By("utils delete-planks should not delete non-plank pods")
@@ -107,14 +113,11 @@ var _ = Describe("Single debug mode", func() {
 		// should be one plank and one java demo service
 		Expect(len(plankNsPods)).To(Equal(2))
 		podsMustInclude(plankNsPods, javaPodName)
-		must(testutils.Squashctl(fmt.Sprintf("utils delete-planks")))
+		err = testutils.Squashctl(fmt.Sprintf("utils delete-planks"))
+		Expect(err).NotTo(HaveOccurred())
 		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
-		ExpectWithOffset(1, len(plankNsPods)).To(Equal(1))
-		ExpectWithOffset(1, plankNsPods[0].Name).To(Equal(javaPodName))
-
-		// cleanup
-		By("should cleanup")
-		check(cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{}))
+		Expect(len(plankNsPods)).To(Equal(1))
+		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
 	})
 })
 
@@ -196,7 +199,8 @@ func validateMachineDebugOutput(output string) {
 // expect to see the error associated with a rejection, rather than a failure to connect
 func ensureDLVServerIsLive(dbgJson string) {
 	ed := config.EditorData{}
-	check(json.Unmarshal([]byte(dbgJson), &ed))
+	err := json.Unmarshal([]byte(dbgJson), &ed)
+	Expect(err).NotTo(HaveOccurred())
 	cmdParts := strings.Split(ed.PortForwardCmd, " ")
 	// 0: kubectl
 	// 1:	port-forward
@@ -207,7 +211,8 @@ func ensureDLVServerIsLive(dbgJson string) {
 	ports := strings.Split(cmdParts[3], ":")
 	remotePort := ports[1]
 	var localPort int
-	check(utils.FindAnyFreePort(&localPort))
+	err = utils.FindAnyFreePort(&localPort)
+	Expect(err).NotTo(HaveOccurred())
 	cmdParts[3] = fmt.Sprintf("%v:%v", localPort, remotePort)
 	// the portforward spec includes "kubectl ..." but exec.Command requires the binary be called explicitly
 	pfCmd := exec.Command("kubectl", cmdParts[1:]...)
