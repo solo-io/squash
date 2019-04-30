@@ -9,6 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/solo-io/go-utils/kubeutils"
+
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+
+	squashv1 "github.com/solo-io/squash/pkg/api/v1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,11 +23,51 @@ import (
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/test/testutils"
 	v1 "k8s.io/api/core/v1"
+	apiexts "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 var _ = Describe("Single debug mode", func() {
+	const namespaceOfSeedImagePullSecret = "default"
+	var (
+		testNamespace      string
+		testPlankNamespace string
+		imagePullSecret    *v1.Secret
+	)
+
+	BeforeEach(func() {
+		cs := MustGetClientset()
+		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
+		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
+		testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
+		// create namespace
+		By("should create a demo namespace")
+		_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
+		Expect(err).NotTo(HaveOccurred())
+		_, _ = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
+		// TODO(mitchdraft) - use below format when SquashNamespace is generalized
+		//_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
+		//check(err)
+		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
+		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
+		// TODO move imagePullSecret to a higher scope
+		imagePullSecret, err = cs.CoreV1().Secrets(namespaceOfSeedImagePullSecret).Get(sqOpts.SquashServiceAccountImagePullSecretName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		plankNsSecretRef := core.ResourceRef{Namespace: testPlankNamespace, Name: sqOpts.SquashServiceAccountImagePullSecretName}
+		squashNsSecretRef := core.ResourceRef{Namespace: testNamespace, Name: sqOpts.SquashServiceAccountImagePullSecretName}
+		err = copyImagePullSecretAndGrantToServiceAccount(cs, imagePullSecret, plankNsSecretRef, "default")
+		Expect(err).NotTo(HaveOccurred())
+		err = copyImagePullSecretAndGrantToServiceAccount(cs, imagePullSecret, squashNsSecretRef, "default")
+		Expect(err).NotTo(HaveOccurred())
+	})
+	AfterEach(func() {
+		cfg, err := kubeutils.GetConfig("", "")
+		Expect(err).NotTo(HaveOccurred())
+		extClient, err := apiexts.NewForConfig(cfg)
+		err = extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(squashv1.DebugAttachmentCrd.FullName(), &metav1.DeleteOptions{})
+		Expect(err).NotTo(HaveOccurred())
+	})
 
 	It("Should create a debug session", func() {
 		By("should get a kube client")
@@ -33,20 +79,6 @@ var _ = Describe("Single debug mode", func() {
 		str, err := testutils.SquashctlOut("utils list-attachments")
 		check(err)
 		validateUtilsListDebugAttachments(str, 0)
-
-		// create namespace
-		testNamespace := fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
-		testPlankNamespace := fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
-		testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
-		By("should create a demo namespace")
-		_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
-		check(err)
-		_, _ = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
-		// TODO(mitchdraft) - use below format when SquashNamespace is generalized
-		//_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
-		//check(err)
-		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
-		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
 
 		By("should deploy a demo app")
 		must(testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java",
@@ -88,9 +120,6 @@ var _ = Describe("Single debug mode", func() {
 		// cleanup
 		By("should cleanup")
 		check(cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{}))
-	})
-	It("should delete planks only", func() {
-
 	})
 })
 
@@ -237,4 +266,26 @@ func podsMustInclude(pods []v1.Pod, name string) {
 		}
 	}
 	ExpectWithOffset(1, foundPod).To(BeTrue())
+}
+
+func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, imagePullSecret *v1.Secret, toSecretRef core.ResourceRef, toServiceAccountName string) error {
+	imagePullSecret.ObjectMeta.Namespace = toSecretRef.Namespace
+	_, err := cs.CoreV1().Secrets(toSecretRef.Namespace).Create(&v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imagePullSecret.ObjectMeta.Name,
+			Namespace: toSecretRef.Namespace,
+		},
+		Data: imagePullSecret.Data,
+		Type: imagePullSecret.Type,
+	})
+	if err != nil {
+		return err
+	}
+	sa, err := cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Get(toServiceAccountName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	sa.ImagePullSecrets = append(sa.ImagePullSecrets, v1.LocalObjectReference{Name: sqOpts.SquashServiceAccountImagePullSecretName})
+	_, err = cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Update(sa)
+	return err
 }

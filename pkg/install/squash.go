@@ -31,6 +31,9 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sqOpts.SquashServiceAccountName,
 		},
+		ImagePullSecrets: []v1.LocalObjectReference{{
+			Name: sqOpts.SquashServiceAccountImagePullSecretName,
+		}},
 	}
 
 	cr := &rbacv1.ClusterRole{

@@ -35,6 +35,8 @@ var (
 	SquashServiceAccountName     = "squash"
 	SquashClusterRoleName        = "squash-cr-pods"
 	SquashClusterRoleBindingName = "squash-crb-pods"
+	// optional secret for image pulls
+	SquashServiceAccountImagePullSecretName = "squash-sa-image-pull-secret"
 
 	// plank permissions
 	PlankServiceAccountName     = "squash-plank"
