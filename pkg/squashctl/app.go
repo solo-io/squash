@@ -122,11 +122,18 @@ func initializeOptions(o *Options) {
 
 func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
 	if o.daClient == nil {
-		daClient, err := utils.GetBasicDebugAttachmentClient(o.ctx)
-		if err != nil {
-			return nil, err
+		var err error
+		if o.Config.secureMode {
+			o.daClient, err = utils.GetBasicDebugAttachmentClient(o.ctx)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			o.daClient, err = utils.GetDebugAttachmentClientWithRegistration(o.ctx)
+			if err != nil {
+				return nil, err
+			}
 		}
-		o.daClient = daClient
 	}
 	return o.daClient, nil
 }
