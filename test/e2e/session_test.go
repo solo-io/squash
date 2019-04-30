@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/solo-io/go-utils/kubeutils"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
@@ -33,7 +35,6 @@ var _ = Describe("Single debug mode", func() {
 	var (
 		testNamespace      string
 		testPlankNamespace string
-		imagePullSecret    *v1.Secret
 	)
 
 	BeforeEach(func() {
@@ -51,15 +52,9 @@ var _ = Describe("Single debug mode", func() {
 		//check(err)
 		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
 		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
-		// TODO move imagePullSecret to a higher scope
-		imagePullSecret, err = cs.CoreV1().Secrets(namespaceOfSeedImagePullSecret).Get(sqOpts.SquashServiceAccountImagePullSecretName, metav1.GetOptions{})
+		applyPullSecretsMessage, err := applyImagePullSecretsToDefaultServiceAccount(cs, namespaceOfSeedImagePullSecret, sqOpts.SquashServiceAccountImagePullSecretName, []string{testNamespace, testPlankNamespace})
 		Expect(err).NotTo(HaveOccurred())
-		plankNsSecretRef := core.ResourceRef{Namespace: testPlankNamespace, Name: sqOpts.SquashServiceAccountImagePullSecretName}
-		squashNsSecretRef := core.ResourceRef{Namespace: testNamespace, Name: sqOpts.SquashServiceAccountImagePullSecretName}
-		err = copyImagePullSecretAndGrantToServiceAccount(cs, imagePullSecret, plankNsSecretRef, "default")
-		Expect(err).NotTo(HaveOccurred())
-		err = copyImagePullSecretAndGrantToServiceAccount(cs, imagePullSecret, squashNsSecretRef, "default")
-		Expect(err).NotTo(HaveOccurred())
+		By(applyPullSecretsMessage)
 	})
 	AfterEach(func() {
 		cfg, err := kubeutils.GetConfig("", "")
@@ -125,7 +120,7 @@ var _ = Describe("Single debug mode", func() {
 
 func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) (string, error) {
 	// this can be slow, pulls image for the first time - should store demo images in cache if possible
-	timeLimit := 100
+	timeLimit := 80
 	timeStepSleepDuration := time.Second
 	for i := 0; i < timeLimit; i++ {
 		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{})
@@ -268,7 +263,26 @@ func podsMustInclude(pods []v1.Pod, name string) {
 	ExpectWithOffset(1, foundPod).To(BeTrue())
 }
 
-func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, imagePullSecret *v1.Secret, toSecretRef core.ResourceRef, toServiceAccountName string) error {
+// This util does two things, you may only need one of them:
+// 1. Copies the specified secret to the specified namespaces
+// 2. Grants the secret as an ImagePullSecret to each of the default service accounts in the specified namespaces
+// If your pod specifies an image pull secret, you need (1)
+// If the namespace's default service account is pulling the images, you need (2)
+func applyImagePullSecretsToDefaultServiceAccount(cs *kubernetes.Clientset, fromNs, secretName string, toNamespaces []string) (string, error) {
+	imagePullSecret, err := cs.CoreV1().Secrets(fromNs).Get(secretName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return "NOT applying image pull secrets", nil
+	}
+	Expect(err).NotTo(HaveOccurred())
+	for _, ns := range toNamespaces {
+		secretRef := core.ResourceRef{Namespace: ns, Name: sqOpts.SquashServiceAccountImagePullSecretName}
+		copyImagePullSecretAndGrantToServiceAccount(cs, imagePullSecret, secretRef, "default")
+	}
+	// make sure that the service account updates before the image pull begins
+	time.Sleep(200 * time.Millisecond)
+	return fmt.Sprintf("Applied %v image pull secrets", len(toNamespaces)), nil
+}
+func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, imagePullSecret *v1.Secret, toSecretRef core.ResourceRef, toServiceAccountName string) {
 	imagePullSecret.ObjectMeta.Namespace = toSecretRef.Namespace
 	_, err := cs.CoreV1().Secrets(toSecretRef.Namespace).Create(&v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -278,14 +292,18 @@ func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, image
 		Data: imagePullSecret.Data,
 		Type: imagePullSecret.Type,
 	})
-	if err != nil {
-		return err
-	}
+	Expect(err).NotTo(HaveOccurred())
 	sa, err := cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Get(toServiceAccountName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
+	Expect(err).NotTo(HaveOccurred())
 	sa.ImagePullSecrets = append(sa.ImagePullSecrets, v1.LocalObjectReference{Name: sqOpts.SquashServiceAccountImagePullSecretName})
 	_, err = cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Update(sa)
-	return err
+	// retry once if there's an error
+	if errors.IsConflict(err) {
+		time.Sleep(200 * time.Millisecond)
+		sa, err := cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Get(toServiceAccountName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		sa.ImagePullSecrets = append(sa.ImagePullSecrets, v1.LocalObjectReference{Name: sqOpts.SquashServiceAccountImagePullSecretName})
+		_, err = cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Update(sa)
+		Expect(err).NotTo(HaveOccurred())
+	}
 }

@@ -383,6 +383,9 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 			HostPID:            true,
 			RestartPolicy:      v1.RestartPolicyNever,
 			NodeName:           targetPod.Spec.NodeName,
+			ImagePullSecrets: []v1.LocalObjectReference{{
+				Name: sqOpts.SquashServiceAccountImagePullSecretName,
+			}},
 			Containers: []v1.Container{{
 				Name:      sqOpts.PlankContainerName,
 				Image:     targetImage,
