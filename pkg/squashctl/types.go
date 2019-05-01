@@ -35,7 +35,8 @@ type Options struct {
 	Internal Internal
 
 	// Config may be blended into other options
-	Config Config
+	Config         Config
+	ConfigFilename string
 }
 
 func NewOptions() *Options {

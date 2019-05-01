@@ -1,0 +1,5 @@
+# Squash config file for test usage
+# applies secure mode
+secure_mode: true
+createdby: solo-for-testing
+

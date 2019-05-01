@@ -1,17 +1,22 @@
 package e2e_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/schema/v1alpha2"
 
+	skube "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
 	"github.com/solo-io/go-utils/kubeutils"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 
@@ -38,13 +43,22 @@ var _ = Describe("Single debug mode", func() {
 		goPodName          string
 		javaPodName        string
 		cs                 *kubernetes.Clientset
+		logCtx             context.Context
+		cancelFunc         context.CancelFunc
 	)
 
 	BeforeEach(func() {
 		cs = MustGetClientset()
+		logCtx, cancelFunc = context.WithCancel(context.Background())
+		go func() {
+			if err := dumpLogsBackground(logCtx); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
 		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
 		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
-		testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
+		//testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
 		// create namespace
 		By("should create a demo namespace")
 		_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
@@ -52,7 +66,7 @@ var _ = Describe("Single debug mode", func() {
 		_, _ = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
 		// TODO(mitchdraft) - use below format when SquashNamespace is generalized
 		//_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
-		//check(err)
+		Expect(err).NotTo(HaveOccurred())
 		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
 		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
 		applyPullSecretsMessage, err := applyImagePullSecretsToDefaultServiceAccount(cs, namespaceOfSeedImagePullSecret, sqOpts.SquashServiceAccountImagePullSecretName, []string{testNamespace, testPlankNamespace})
@@ -88,17 +102,23 @@ var _ = Describe("Single debug mode", func() {
 		cs := MustGetClientset()
 		err = cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
 		Expect(err).NotTo(HaveOccurred())
+		testutils.Squashctl("utils delete-permissions")
+		cancelFunc()
 	})
 
 	It("Should create a debug session", func() {
 		By("should attach a dlv debugger")
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace))
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, ""))
 		Expect(err).NotTo(HaveOccurred())
-		validateMachineDebugOutput(dbgStr)
 
 		By("should have created the required permissions")
 		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
+		//time.Sleep(120 * time.Second)
 		Expect(err).NotTo(HaveOccurred())
+		validateMachineDebugOutput(dbgStr)
+
+		//err = ensurePlankPermissionsWereCreated(cs, testNamespace)
+		//Expect(err).NotTo(HaveOccurred())
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
@@ -113,10 +133,57 @@ var _ = Describe("Single debug mode", func() {
 		// should be one plank and one java demo service
 		Expect(len(plankNsPods)).To(Equal(2))
 		podsMustInclude(plankNsPods, javaPodName)
-		err = testutils.Squashctl(fmt.Sprintf("utils delete-planks"))
+		err = testutils.Squashctl(fmt.Sprintf("utils delete-planks --squash-namespace %v", testPlankNamespace))
 		Expect(err).NotTo(HaveOccurred())
 		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
 		Expect(len(plankNsPods)).To(Equal(1))
+		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
+	})
+
+	It("Should create a debug session - secure mode", func() {
+		configFile := "secure_mode_test_config.yaml"
+		err := testutils.Squashctl(fmt.Sprintf("deploy squash --squash-namespace %v --container-repo %v --container-version %v --config %v",
+			testPlankNamespace,
+			testConditions.PlankImageRepo,
+			testConditions.PlankImageTag,
+			configFile,
+		))
+		Expect(err).NotTo(HaveOccurred())
+
+		By("should have created a squash pod")
+		squashPodName, err := waitForPod(cs, testPlankNamespace, sqOpts.SquashPodName)
+		fmt.Println(squashPodName)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("should attach a dlv debugger")
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, configFile))
+		Expect(err).NotTo(HaveOccurred())
+		validateMachineDebugOutput(dbgStr)
+
+		By("should have created the required permissions")
+		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
+		Expect(err).NotTo(HaveOccurred())
+		//err = ensurePlankPermissionsWereCreated(cs, testNamespace)
+		//Expect(err).NotTo(HaveOccurred())
+
+		By("should speak with dlv")
+		ensureDLVServerIsLive(dbgStr)
+
+		By("should list expected resources after debug session initiated")
+		attachmentList, err := testutils.SquashctlOut("utils list-attachments")
+		Expect(err).NotTo(HaveOccurred())
+		validateUtilsListDebugAttachments(attachmentList, 1)
+
+		By("utils delete-planks should not delete non-plank pods")
+		plankNsPods := mustGetActivePlankNsPods(cs, testPlankNamespace)
+		// should be one squash, one plank, and one java demo service
+		Expect(len(plankNsPods)).To(Equal(3))
+		podsMustInclude(plankNsPods, javaPodName)
+		err = testutils.Squashctl(fmt.Sprintf("utils delete-planks --squash-namespace %v", testPlankNamespace))
+		Expect(err).NotTo(HaveOccurred())
+		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
+		// should include one squash and one java demo service
+		Expect(len(plankNsPods)).To(Equal(2))
 		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
 	})
 })
@@ -190,7 +257,7 @@ func validateUtilsListDebugAttachmentsLine(line string) {
 */
 func validateMachineDebugOutput(output string) {
 	re := regexp.MustCompile(`{"PortForwardCmd":"kubectl port-forward.*}`)
-	By(output)
+	By(fmt.Sprintf("Output from validateMachineDebugOutput: %v", output))
 	ExpectWithOffset(1, re.MatchString(output)).To(BeTrue())
 }
 
@@ -297,6 +364,10 @@ func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, image
 		Data: imagePullSecret.Data,
 		Type: imagePullSecret.Type,
 	})
+	if errors.IsAlreadyExists(err) {
+		By(fmt.Sprintf("secret %v already exists, bailing from copyImagePullSecretAndGrantToServiceAccount", toSecretRef.Name))
+		return
+	}
 	Expect(err).NotTo(HaveOccurred())
 	sa, err := cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Get(toServiceAccountName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred())
@@ -311,4 +382,38 @@ func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, image
 		_, err = cs.CoreV1().ServiceAccounts(toSecretRef.Namespace).Update(sa)
 		Expect(err).NotTo(HaveOccurred())
 	}
+}
+
+type podFilter struct {
+	name string
+}
+
+func (pf podFilter) Select(pod *v1.Pod) bool {
+	return true // for now anyway
+	//if pod.Name == pf.name {
+	//	return true
+	//}
+	//return false
+}
+
+type color int
+
+func (pf podFilter) Pick(pod *v1.Pod) color {
+	// just return red for now
+	return 31
+}
+
+func dumpLogsBackground(ctx context.Context) error {
+	ps := &podFilter{name: "tmp"}
+	arts := []*v1alpha2.Artifact{{
+		ImageName: "",
+		Workspace: "",
+	}}
+	cp := skube.NewColorPicker(arts)
+	la := skube.NewLogAggregator(os.Stdout, ps, cp)
+	fmt.Println("about to start agg")
+	if err := la.Start(ctx); err != nil {
+		return err
+	}
+	return nil
 }

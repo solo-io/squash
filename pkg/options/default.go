@@ -29,6 +29,7 @@ var (
 	// AvailableDebuggers = []string{"dlv", "gdb", "java", "java-port", "nodejs", "nodejs8", "python"}
 	AvailableDebuggers = []string{"dlv", "java", "java-port", "gdb"}
 
+	SquashPodName   = "squash"
 	SquashNamespace = "squash-debugger"
 
 	// squash permissions
@@ -45,6 +46,7 @@ var (
 
 	PlankEnvDebugAttachmentNamespace = "SQUASH_DEBUG_ATTACHMENT_NAMESPACE"
 	PlankEnvDebugAttachmentName      = "SQUASH_DEBUG_ATTACHMENT_NAME"
+	PlankEnvDebugSquashNamespace     = "SQUASH_DEBUG_SQUASH_NAMESPACE"
 
 	KubeEnvPodName = "HOSTNAME"
 

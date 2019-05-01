@@ -22,7 +22,6 @@ func TestE2e(t *testing.T) {
 			testutils.PrintTrimmedStack()
 		})
 	testutils.RegisterCommonFailHandlers()
-	//RegisterFailHandler(Fail)
 
 	RunSpecs(t, "E2e Squash Suite")
 }

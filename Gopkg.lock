@@ -23,6 +23,18 @@
   version = "v9.10.0"
 
 [[projects]]
+  digest = "1:8c79a3263de0511c6c55053443f1bf6beb0320afbd5381d72986e9daa7c80d27"
+  name = "github.com/GoogleContainerTools/skaffold"
+  packages = [
+    "pkg/skaffold/constants",
+    "pkg/skaffold/kubernetes",
+    "pkg/skaffold/schema/v1alpha2",
+  ]
+  pruneopts = ""
+  revision = "71021311d4f4db76044e5fcf8d862bd644744e79"
+  version = "v0.7.0"
+
+[[projects]]
   digest = "1:22105f92bcc87302c07d8806a79c41cc29356b1e74b9a8607678fd3ba4af2bf0"
   name = "github.com/avast/retry-go"
   packages = ["."]
@@ -685,10 +697,12 @@
     "docsutils",
     "errors",
     "githubutils",
+    "kubeinstallutils",
     "kubeutils",
     "logger",
     "pkgmgmtutils",
     "protoutils",
+    "testutils",
     "versionutils",
   ]
   pruneopts = ""
@@ -1451,6 +1465,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes",
     "github.com/davecgh/go-spew/spew",
     "github.com/derekparker/delve/service/rpc1",
     "github.com/gogo/protobuf/gogoproto",
@@ -1476,6 +1491,7 @@
     "github.com/solo-io/go-utils/kubeutils",
     "github.com/solo-io/go-utils/logger",
     "github.com/solo-io/go-utils/pkgmgmtutils",
+    "github.com/solo-io/go-utils/testutils",
     "github.com/solo-io/go-utils/versionutils",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients",
     "github.com/solo-io/solo-kit/pkg/api/v1/clients/factory",
@@ -1519,6 +1535,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",

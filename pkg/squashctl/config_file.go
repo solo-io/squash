@@ -61,7 +61,7 @@ func (o *Options) prepareViperConfig() error {
 	}
 	// read config file
 	// TODO(mitchdraft) - get this from an optional flag
-	cfgFile := ""
+	cfgFile := o.ConfigFilename
 	if cfgFile != "" {
 		// Use config file from the flag.
 		o.printVerbosef("Reading squash config from %v\n", cfgFile)

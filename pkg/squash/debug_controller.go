@@ -2,6 +2,7 @@ package squash
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
@@ -9,7 +10,7 @@ import (
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/debuggers/remote"
-	"github.com/solo-io/squash/pkg/options"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	"github.com/solo-io/squash/pkg/version"
 )
 
@@ -158,8 +159,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	s.Pod = da.Pod
 	s.Container = da.Image
 
-	// TODO(mitchdraft) - set this from an os.Env read
-	s.SquashNamespace = options.SquashNamespace
+	s.SquashNamespace = os.Getenv(sqOpts.PlankEnvDebugSquashNamespace)
 
 	dbt := config.DebugTarget{}
 	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {

@@ -88,6 +88,7 @@ func App(version string) (*cobra.Command, error) {
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
+	app.PersistentFlags().StringVar(&opts.ConfigFilename, "config", "", "optional, path to squash config (defaults to ~/.squash/config.yaml)")
 	applySquashFlags(&opts.Squash, app.PersistentFlags())
 
 	return app, nil
