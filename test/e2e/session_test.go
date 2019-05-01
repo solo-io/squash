@@ -51,21 +51,17 @@ var _ = Describe("Single debug mode", func() {
 		cs = MustGetClientset()
 		logCtx, cancelFunc = context.WithCancel(context.Background())
 		go func() {
-			if err := dumpLogsBackground(logCtx); err != nil {
+			if err := dumpLogsBackground(logCtx, true); err != nil {
 				log.Fatal(err)
 			}
 		}()
 
 		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
 		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
-		//testPlankNamespace = sqOpts.SquashNamespace // TODO(mitchdraft) - unhardcode this when plank reads from os.Env
-		// create namespace
 		By("should create a demo namespace")
 		_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
 		Expect(err).NotTo(HaveOccurred())
-		_, _ = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
-		// TODO(mitchdraft) - use below format when SquashNamespace is generalized
-		//_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
+		_, err = cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlankNamespace}})
 		Expect(err).NotTo(HaveOccurred())
 		squashTestNamespaces = append(squashTestNamespaces, testNamespace)
 		squashTestNamespaces = append(squashTestNamespaces, testPlankNamespace)
@@ -94,15 +90,15 @@ var _ = Describe("Single debug mode", func() {
 	})
 
 	AfterEach(func() {
-		cfg, err := kubeutils.GetConfig("", "")
-		Expect(err).NotTo(HaveOccurred())
-		extClient, err := apiexts.NewForConfig(cfg)
-		err = extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(squashv1.DebugAttachmentCrd.FullName(), &metav1.DeleteOptions{})
-		Expect(err).NotTo(HaveOccurred())
+		unregisterDebugAttachmentCRD()
 		cs := MustGetClientset()
-		err = cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
+		err := cs.CoreV1().Namespaces().Delete(testNamespace, &metav1.DeleteOptions{})
 		Expect(err).NotTo(HaveOccurred())
-		testutils.Squashctl("utils delete-permissions")
+		// need to delete permissions after each test, not only for good citizenship, but because squash only supports
+		// one instance of the permission set right now, and if a new plank namespace is used (as in these tests), the
+		// old permission set will not work as expected
+		err = testutils.Squashctl("utils delete-permissions")
+		Expect(err).NotTo(HaveOccurred())
 		cancelFunc()
 	})
 
@@ -113,12 +109,8 @@ var _ = Describe("Single debug mode", func() {
 
 		By("should have created the required permissions")
 		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
-		//time.Sleep(120 * time.Second)
 		Expect(err).NotTo(HaveOccurred())
 		validateMachineDebugOutput(dbgStr)
-
-		//err = ensurePlankPermissionsWereCreated(cs, testNamespace)
-		//Expect(err).NotTo(HaveOccurred())
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
@@ -163,8 +155,6 @@ var _ = Describe("Single debug mode", func() {
 		By("should have created the required permissions")
 		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
 		Expect(err).NotTo(HaveOccurred())
-		//err = ensurePlankPermissionsWereCreated(cs, testNamespace)
-		//Expect(err).NotTo(HaveOccurred())
 
 		By("should speak with dlv")
 		ensureDLVServerIsLive(dbgStr)
@@ -384,6 +374,18 @@ func copyImagePullSecretAndGrantToServiceAccount(cs *kubernetes.Clientset, image
 	}
 }
 
+func unregisterDebugAttachmentCRD() {
+	cfg, err := kubeutils.GetConfig("", "")
+	Expect(err).NotTo(HaveOccurred())
+	extClient, err := apiexts.NewForConfig(cfg)
+	err = extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(squashv1.DebugAttachmentCrd.FullName(), &metav1.DeleteOptions{})
+	if !errors.IsNotFound(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// very basic use of skaffold's log aggregation utilities: dump everything
+// will polish this later with a go-util
 type podFilter struct {
 	name string
 }
@@ -403,15 +405,21 @@ func (pf podFilter) Pick(pod *v1.Pod) color {
 	return 31
 }
 
-func dumpLogsBackground(ctx context.Context) error {
+// you should call cancel on your context when done with the logs
+func dumpLogsBackground(ctx context.Context, onFailOnly bool) error {
+	// these are mostly placeholders
 	ps := &podFilter{name: "tmp"}
 	arts := []*v1alpha2.Artifact{{
 		ImageName: "",
 		Workspace: "",
 	}}
 	cp := skube.NewColorPicker(arts)
-	la := skube.NewLogAggregator(os.Stdout, ps, cp)
-	fmt.Println("about to start agg")
+	la := &skube.LogAggregator{}
+	if onFailOnly {
+		la = skube.NewLogAggregator(GinkgoWriter, ps, cp)
+	} else {
+		la = skube.NewLogAggregator(os.Stdout, ps, cp)
+	}
 	if err := la.Start(ctx); err != nil {
 		return err
 	}

@@ -31,6 +31,7 @@ const pathToBuildSpec = "../../solo-project.yaml"
 var testConditions = sqtestutils.TestConditions{}
 
 var _ = BeforeSuite(func() {
+	unregisterDebugAttachmentCRD()
 	err := sqtestutils.InitializeTestConditions(&testConditions, pathToBuildSpec)
 	Expect(err).NotTo(HaveOccurred())
 	fmt.Println(sqtestutils.SummarizeTestConditions(testConditions))
