@@ -345,7 +345,6 @@ func containerNameFromSpec(debugger string) string {
 
 func (s *Squash) debugPodFor() (*v1.Pod, error) {
 	it := s.GetIntent()
-	//contextutils.LoggerFrom(context.TODO()).Infow("just got the intent","intent", it)
 	const crisockvolume = "crisock"
 	cs, err := s.getClientSet()
 	if err != nil {
