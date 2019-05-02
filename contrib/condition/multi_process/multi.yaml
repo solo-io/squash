@@ -1,0 +1,20 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: squash-demo-multiprocess
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: squash-demo-multiprocess
+  template:
+    metadata:
+      labels:
+        app: squash-demo-multiprocess
+    spec:
+      containers:
+      - name: squash-demo-multiprocess
+        image: soloio/multi_process:dev
+        ports:
+        - containerPort: 8080
+          protocol: TCP
