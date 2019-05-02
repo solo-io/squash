@@ -12,7 +12,7 @@ This directory includes files needed to build and deploy a sample app as the fir
 
 ```bash
 export CONTAINER_REPO_ORG = docker.io/soloio
-IMAGE_TAG=v0.0.1 make all
+IMAGE_TAG=v0.0.2 make all
 ```
 
 ## Deploy the containers

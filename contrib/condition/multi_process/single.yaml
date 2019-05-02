@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: squash-demo-multiprocess-base
-        image: soloio/multi_process_base:dev
+        image: soloio/multi_process_base:v0.0.2
         ports:
         - containerPort: 8080
           protocol: TCP
