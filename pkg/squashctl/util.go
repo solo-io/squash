@@ -248,15 +248,14 @@ func (o *Options) createPlankPermissions() error {
 				APIGroups: []string{"squash.solo.io"},
 			},
 			{
-				// TODO remove the register permission when solo-kit is updated
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 				Resources: []string{"customresourcedefinitions"},
 				APIGroups: []string{"apiextensions.k8s.io"},
 			},
 		},
 	}
 	o.info(fmt.Sprintf("Creating cluster role %v \n", sqOpts.PlankClusterRoleName))
-	if _, err := cs.Rbac().ClusterRoles().Create(cr); err != nil {
+	if _, err := cs.RbacV1().ClusterRoles().Create(cr); err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
 		}
@@ -281,7 +280,7 @@ func (o *Options) createPlankPermissions() error {
 	}
 
 	o.info(fmt.Sprintf("Creating cluster role binding %v \n", sqOpts.PlankClusterRoleBindingName))
-	if _, err := cs.Rbac().ClusterRoleBindings().Create(crb); err != nil {
+	if _, err := cs.RbacV1().ClusterRoleBindings().Create(crb); err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
 		}

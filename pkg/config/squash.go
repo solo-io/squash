@@ -238,7 +238,7 @@ func (s *Squash) GetIntent() squashv1.Intent {
 func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	// Refactor - eventually Intent will be created during config/user entry
 	intent := s.GetIntent()
-	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
 	if err != nil {
 		return &squashv1.DebugAttachment{}, err
 	}
@@ -356,7 +356,7 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 	}
 
 	// get debugAttachment name so Plank knows where to find it
-	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -383,6 +383,9 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 			HostPID:            true,
 			RestartPolicy:      v1.RestartPolicyNever,
 			NodeName:           targetPod.Spec.NodeName,
+			ImagePullSecrets: []v1.LocalObjectReference{{
+				Name: sqOpts.SquashServiceAccountImagePullSecretName,
+			}},
 			Containers: []v1.Container{{
 				Name:      sqOpts.PlankContainerName,
 				Image:     targetImage,
@@ -406,6 +409,9 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 				}, {
 					Name:  sqOpts.PlankEnvDebugAttachmentName,
 					Value: da.Metadata.Name,
+				}, {
+					Name:  sqOpts.PlankEnvDebugSquashNamespace,
+					Value: s.SquashNamespace,
 				},
 				}},
 			},
@@ -439,7 +445,7 @@ func (s *Squash) getClientSet() (kubernetes.Interface, error) {
 // is terminated.
 func (s *Squash) DeletePlankPod() error {
 	intent := s.GetIntent()
-	daClient, err := utils.GetDebugAttachmentClient(context.Background())
+	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
 	if err != nil {
 		return err
 	}

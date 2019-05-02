@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
@@ -27,6 +29,10 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	debugNamespace := os.Getenv(sqOpts.PlankEnvDebugAttachmentNamespace)
 	daName := os.Getenv(sqOpts.PlankEnvDebugAttachmentName)
 	plankName := os.Getenv(sqOpts.KubeEnvPodName)
+	contextutils.LoggerFrom(ctx).Warnf("these are the debug values ingested by plank",
+		"debugNamespace", debugNamespace,
+		"daName", daName,
+		"plankName", plankName)
 
 	restCfg, err := gokubeutils.GetConfig("", "")
 	if err != nil {
@@ -36,7 +42,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	daClient, err := utils.GetDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
 	if err != nil {
 		return nil, err
 	}

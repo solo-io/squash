@@ -104,12 +104,13 @@ func Curl(args string) ([]byte, error) {
 	return curl.CombinedOutput()
 }
 
-func MachineDebugArgs(tc TestConditions, debugger, ns, podName, squashNamespace string) string {
-	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v --squash-namespace %v`,
+func MachineDebugArgs(tc TestConditions, debugger, ns, podName, squashNamespace, configFile string) string {
+	return fmt.Sprintf(`--debugger %v --machine --namespace %v --pod %v --container-version %v --container-repo %v --squash-namespace %v --config %v`,
 		debugger,
 		ns,
 		podName,
 		tc.PlankImageTag,
 		tc.PlankImageRepo,
-		squashNamespace)
+		squashNamespace,
+		configFile)
 }

@@ -13,7 +13,7 @@ import (
 var _ = Describe("utils", func() {
 	It("should generate debug attachment", func() {
 		ctx := context.TODO()
-		daClient, err := utils.GetDebugAttachmentClient(ctx)
+		daClient, err := utils.GetDebugAttachmentClientWithRegistration(ctx)
 		Expect(err).To(BeNil())
 
 		name := "aname2"

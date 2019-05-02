@@ -88,6 +88,7 @@ func App(version string) (*cobra.Command, error) {
 	)
 
 	app.PersistentFlags().BoolVar(&opts.Json, "json", false, "output json format")
+	app.PersistentFlags().StringVar(&opts.ConfigFilename, "config", "", "optional, path to squash config (defaults to ~/.squash/config.yaml)")
 	applySquashFlags(&opts.Squash, app.PersistentFlags())
 
 	return app, nil
@@ -122,11 +123,18 @@ func initializeOptions(o *Options) {
 
 func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
 	if o.daClient == nil {
-		daClient, err := utils.GetDebugAttachmentClient(o.ctx)
-		if err != nil {
-			return nil, err
+		var err error
+		if o.Config.secureMode {
+			o.daClient, err = utils.GetBasicDebugAttachmentClient(o.ctx)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			o.daClient, err = utils.GetDebugAttachmentClientWithRegistration(o.ctx)
+			if err != nil {
+				return nil, err
+			}
 		}
-		o.daClient = daClient
 	}
 	return o.daClient, nil
 }

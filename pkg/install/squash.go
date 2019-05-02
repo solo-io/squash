@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	SquashName    = "squash"
 	ContainerPort = 1234
 	volumeName    = "crisock"
 )
@@ -31,6 +30,9 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sqOpts.SquashServiceAccountName,
 		},
+		ImagePullSecrets: []v1.LocalObjectReference{{
+			Name: sqOpts.SquashServiceAccountImagePullSecretName,
+		}},
 	}
 
 	cr := &rbacv1.ClusterRole{
@@ -69,8 +71,7 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 				APIGroups: []string{""},
 			},
 			{
-				// TODO remove the register permission when solo-kit is updated
-				Verbs:     []string{"get", "list", "watch", "create", "update", "delete", "register"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 				Resources: []string{"customresourcedefinitions"},
 				APIGroups: []string{"apiextensions.k8s.io"},
 			},
@@ -97,29 +98,29 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 	privileged := true
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: SquashName,
+			Name: sqOpts.SquashPodName,
 			Labels: map[string]string{
-				"app": SquashName,
+				"app": sqOpts.SquashPodName,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": SquashName,
+					"app": sqOpts.SquashPodName,
 				},
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": SquashName,
+						"app": sqOpts.SquashPodName,
 					},
 				},
 				Spec: v1.PodSpec{
 					ServiceAccountName: sqOpts.SquashServiceAccountName,
 					Containers: []v1.Container{
 						{
-							Name:  SquashName,
-							Image: fmt.Sprintf("%v/%v:%v", containerRepo, SquashName, containerVersion),
+							Name:  sqOpts.SquashPodName,
+							Image: fmt.Sprintf("%v/%v:%v", containerRepo, sqOpts.SquashPodName, containerVersion),
 							VolumeMounts: []v1.VolumeMount{
 								{
 									Name:      volumeName,
@@ -156,6 +157,10 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 								{
 									Name:  "HOST_ADDR",
 									Value: "$(POD_NAME).$(POD_NAMESPACE)",
+								},
+								{
+									Name:  sqOpts.PlankEnvDebugSquashNamespace,
+									Value: namespace,
 								},
 								{
 									Name: "NODE_NAME",
@@ -254,7 +259,7 @@ func cleanupDeployment(cs *kubernetes.Clientset, namespace string) {
 		fmt.Println(err)
 	}
 
-	if err := cs.AppsV1().Deployments(namespace).Delete(SquashName, delOp); err != nil {
+	if err := cs.AppsV1().Deployments(namespace).Delete(sqOpts.SquashPodName, delOp); err != nil {
 		fmt.Println(err)
 	}
 }

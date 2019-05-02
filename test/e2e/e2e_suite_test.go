@@ -5,32 +5,36 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/solo-io/go-utils/testutils"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/solo-io/solo-kit/test/helpers"
-	"github.com/solo-io/squash/test/testutils"
+	sqtestutils "github.com/solo-io/squash/test/testutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"testing"
 )
 
 func TestE2e(t *testing.T) {
-
-	helpers.RegisterCommonFailHandlers()
-	helpers.SetupLog()
+	testutils.RegisterPreFailHandler(
+		func() {
+			testutils.PrintTrimmedStack()
+		})
+	testutils.RegisterCommonFailHandlers()
 
 	RunSpecs(t, "E2e Squash Suite")
 }
 
 const pathToBuildSpec = "../../solo-project.yaml"
 
-var testConditions = testutils.TestConditions{}
+var testConditions = sqtestutils.TestConditions{}
 
 var _ = BeforeSuite(func() {
-	err := testutils.InitializeTestConditions(&testConditions, pathToBuildSpec)
+	unregisterDebugAttachmentCRD()
+	err := sqtestutils.InitializeTestConditions(&testConditions, pathToBuildSpec)
 	Expect(err).NotTo(HaveOccurred())
-	fmt.Println(testutils.SummarizeTestConditions(testConditions))
+	fmt.Println(sqtestutils.SummarizeTestConditions(testConditions))
 
 	seed := time.Now().UnixNano()
 	fmt.Printf("rand seed: %v\n", seed)

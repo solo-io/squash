@@ -9,16 +9,25 @@ import (
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
-func GetDebugAttachmentClient(ctx context.Context) (v1.DebugAttachmentClient, error) {
+func GetDebugAttachmentClientWithRegistration(ctx context.Context) (v1.DebugAttachmentClient, error) {
+	return getDebugAttachmentClient(ctx, true)
+}
+
+func GetBasicDebugAttachmentClient(ctx context.Context) (v1.DebugAttachmentClient, error) {
+	return getDebugAttachmentClient(ctx, false)
+}
+
+func getDebugAttachmentClient(ctx context.Context, withRegistration bool) (v1.DebugAttachmentClient, error) {
 	cfg, err := kubeutils.GetConfig("", "")
 	if err != nil {
 		return nil, err
 	}
 	cache := kube.NewKubeCache(ctx)
 	rcFactory := &factory.KubeResourceClientFactory{
-		Crd:         v1.DebugAttachmentCrd,
-		Cfg:         cfg,
-		SharedCache: cache,
+		Crd:             v1.DebugAttachmentCrd,
+		Cfg:             cfg,
+		SharedCache:     cache,
+		SkipCrdCreation: !withRegistration,
 	}
 	client, err := v1.NewDebugAttachmentClient(rcFactory)
 	if err != nil {

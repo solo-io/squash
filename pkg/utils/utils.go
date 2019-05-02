@@ -10,7 +10,7 @@ import (
 
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/install"
+	sqOpts "github.com/solo-io/squash/pkg/options"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,7 +39,7 @@ func GetCmdArgsByPid(pid int) ([]string, error) {
 func ListSquashDeployments(kc *kubernetes.Clientset, nsList []string) ([]appsv1.Deployment, error) {
 	matches := []appsv1.Deployment{}
 	for _, ns := range nsList {
-		deps, err := kc.AppsV1().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", install.SquashName)})
+		deps, err := kc.AppsV1().Deployments(ns).List(v1.ListOptions{LabelSelector: fmt.Sprintf("app=%v", sqOpts.SquashPodName)})
 		if err != nil {
 			return []appsv1.Deployment{}, err
 		}

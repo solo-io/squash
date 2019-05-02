@@ -29,12 +29,15 @@ var (
 	// AvailableDebuggers = []string{"dlv", "gdb", "java", "java-port", "nodejs", "nodejs8", "python"}
 	AvailableDebuggers = []string{"dlv", "java", "java-port", "gdb"}
 
+	SquashPodName   = "squash"
 	SquashNamespace = "squash-debugger"
 
 	// squash permissions
 	SquashServiceAccountName     = "squash"
 	SquashClusterRoleName        = "squash-cr-pods"
 	SquashClusterRoleBindingName = "squash-crb-pods"
+	// optional secret for image pulls
+	SquashServiceAccountImagePullSecretName = "squash-sa-image-pull-secret"
 
 	// plank permissions
 	PlankServiceAccountName     = "squash-plank"
@@ -43,6 +46,7 @@ var (
 
 	PlankEnvDebugAttachmentNamespace = "SQUASH_DEBUG_ATTACHMENT_NAMESPACE"
 	PlankEnvDebugAttachmentName      = "SQUASH_DEBUG_ATTACHMENT_NAME"
+	PlankEnvDebugSquashNamespace     = "SQUASH_DEBUG_SQUASH_NAMESPACE"
 
 	KubeEnvPodName = "HOSTNAME"
 
