@@ -40,6 +40,7 @@ type Squash struct {
 	Container          string
 	Machine            bool
 	DebugServerAddress string
+	ProcessName        string
 
 	CRISock string
 

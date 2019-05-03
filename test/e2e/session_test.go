@@ -93,7 +93,7 @@ var _ = Describe("Single debug mode", func() {
 	It("Should create a debug session", func() {
 		goPodName, javaPodName := installSquashBuiltInDemoApps(cs, testNamespace, testPlankNamespace)
 		By("should attach a dlv debugger")
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, ""))
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, "", ""))
 		Expect(err).NotTo(HaveOccurred())
 
 		By("should have created the required permissions")
@@ -138,7 +138,7 @@ var _ = Describe("Single debug mode", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("should attach a dlv debugger")
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, configFile))
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, goPodName, testPlankNamespace, configFile, ""))
 		Expect(err).NotTo(HaveOccurred())
 		validateMachineDebugOutput(dbgStr)
 
@@ -167,11 +167,13 @@ var _ = Describe("Single debug mode", func() {
 		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
 	})
 
-	It("Should debug specific process - single-process case", func() {
-		multiProcessTest(cs, testNamespace, testPlankNamespace, true)
+	It("Should debug specific process - default, single-process case", func() {
+		multiProcessTest(cs, testNamespace, testPlankNamespace, "", true)
 	})
+
 	It("Should debug specific process - multi-process case", func() {
-		multiProcessTest(cs, testNamespace, testPlankNamespace, false)
+		processName := "sample_app"
+		multiProcessTest(cs, testNamespace, testPlankNamespace, processName, false)
 	})
 })
 

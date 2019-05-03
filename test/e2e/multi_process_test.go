@@ -13,29 +13,32 @@ import (
 // To verify that this test does what you expect on a simple container, set verifySelfMode=false
 // Suggestion: run this function twice in adjacent It() blocks, use the same args, except set verifySelfMode=true for
 // the first call, and false for the second call
-func multiProcessTest(cs *kubernetes.Clientset, appNamespace, plankNamespace string, verifySelfMode bool) {
+func multiProcessTest(cs *kubernetes.Clientset, appNamespace, plankNamespace, processMatch string, verifySelfMode bool) {
 	installFile := "../../contrib/condition/multi_process/multi.yaml"
 	labelSelector := "app=squash-demo-multiprocess"
 	if verifySelfMode {
 		installFile = "../../contrib/condition/multi_process/single.yaml"
 		labelSelector = "app=squash-demo-multiprocess-base"
 	}
-	appOut, err := gotestutils.KubectlOut("apply", "-f", installFile, "-n", appNamespace)
-	fmt.Fprintf(GinkgoWriter, appOut)
+	applyOut, err := gotestutils.KubectlOut("apply", "-f", installFile, "-n", appNamespace)
 	Expect(err).NotTo(HaveOccurred())
-	//applyManifest("../../../contrib/condition/multi_process/single.yaml", testNamespace)
+	_, err = fmt.Fprintf(GinkgoWriter, applyOut)
+	Expect(err).NotTo(HaveOccurred())
 	appName, err := waitForPodByLabel(cs, appNamespace, labelSelector)
 	Expect(err).NotTo(HaveOccurred())
 	By("should attach a dlv debugger")
 
 	By("starting debug session")
-	timeLimitSeconds := 10
+	// give it enough time to pull the image, but don't be as lenient as squashctl itself since the test environments
+	// should be able to pull all images in less than one minute
+	timeLimitSeconds := 100
 	dbgStr, err := testutils.SquashctlOutWithTimeout(testutils.MachineDebugArgs(testConditions,
 		"dlv",
 		appNamespace,
 		appName,
 		plankNamespace,
-		""), &timeLimitSeconds)
+		"",
+		processMatch), &timeLimitSeconds)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("should have created the required permissions")
