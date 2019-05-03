@@ -111,6 +111,7 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.Container, "container", "", "Container to debug")
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
 	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resources will be deployed (default: %v)", options.SquashNamespace))
+	f.StringVar(&cfg.ProcessName, "process-match", "", "optional, if passed, Squash will try to find a process in the target container that matches (regex, case-insensitive) this string. Otherwise Squash chooses the first process.")
 }
 
 func initializeOptions(o *Options) {
@@ -227,7 +228,7 @@ func (o *Options) writeDebugAttachment() error {
 		dbge.Container.Image,
 		dbge.Pod.Name,
 		so.Container,
-		"",
+		so.ProcessName,
 		so.Debugger)
 
 	return nil

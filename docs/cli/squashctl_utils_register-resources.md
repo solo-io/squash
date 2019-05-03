@@ -1,25 +1,26 @@
 ---
-title: "squashctl"
+title: "squashctl utils register-resources"
 weight: 5
 ---
-## squashctl
+## squashctl utils register-resources
 
-debug microservices with squash
+register the custom resource definitions (CRDs) needed by squash
 
 ### Synopsis
 
-Squash requires no arguments. Just run it!
-It creates a privileged debug pod, starts a debugger, and then attaches to it.
-If you are debugging in a shared cluster, consider using Squash (in cluster process).
-(squashctl squash --help for more info)
-Find more information at https://solo.io
-
+register the custom resource definitions (CRDs) needed by squash
 
 ```
-squashctl [flags]
+squashctl utils register-resources [flags]
 ```
 
 ### Options
+
+```
+  -h, --help   help for register-resources
+```
+
+### Options inherited from parent commands
 
 ```
       --config string              optional, path to squash config (defaults to ~/.squash/config.yaml)
@@ -28,7 +29,6 @@ squashctl [flags]
       --container-version string   debug container version to use (default "mkdev")
       --crisock string             The path to the CRI socket (default "/var/run/dockershim.sock")
       --debugger string            Debugger to use
-  -h, --help                       help for squashctl
       --json                       output json format
       --localport int              local port to use to connect to debugger (defaults to random free port)
       --machine                    machine mode input and output
@@ -44,8 +44,5 @@ squashctl [flags]
 
 ### SEE ALSO
 
-* [squashctl completion](../squashctl_completion)	 - generate auto completion for your shell
-* [squashctl deploy](../squashctl_deploy)	 - deploy squash or a demo microservice
-* [squashctl squash](../squashctl_squash)	 - manage the squash
 * [squashctl utils](../squashctl_utils)	 - call various squash utils
 

@@ -1466,6 +1466,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes",
+    "github.com/GoogleContainerTools/skaffold/pkg/skaffold/schema/v1alpha2",
     "github.com/davecgh/go-spew/spew",
     "github.com/derekparker/delve/service/rpc1",
     "github.com/gogo/protobuf/gogoproto",
@@ -1535,7 +1536,6 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
-    "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
