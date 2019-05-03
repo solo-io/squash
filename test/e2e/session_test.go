@@ -73,7 +73,7 @@ var _ = Describe("Single debug mode", func() {
 
 		// Run delete before testing to ensure there are no lingering artifacts
 		By("should list no resources after delete")
-		err = testutils.Squashctl("utils delete-attachments")
+		_, err = testutils.SquashctlOut("utils delete-attachments")
 		Expect(err).NotTo(HaveOccurred())
 		str, err := testutils.SquashctlOut("utils list-attachments")
 		Expect(err).NotTo(HaveOccurred())
@@ -189,7 +189,14 @@ var _ = Describe("Single debug mode", func() {
 		Expect(err).NotTo(HaveOccurred())
 		By("should attach a dlv debugger")
 
-		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, multiprocessAppName, testPlankNamespace, ""))
+		By("starting debug session")
+		timeLimitSeconds := 10
+		dbgStr, err := testutils.SquashctlOutWithTimeout(testutils.MachineDebugArgs(testConditions,
+			"dlv",
+			testNamespace,
+			multiprocessAppName,
+			testPlankNamespace,
+			""), &timeLimitSeconds)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("should have created the required permissions")

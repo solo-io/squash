@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -68,20 +69,50 @@ func Squashctl(args string) error {
 	return app.Execute()
 }
 func SquashctlOut(args string) (string, error) {
+	return SquashctlOutWithTimeout(args, nil)
+}
+func SquashctlOutWithTimeout(args string, timeout *int) (string, error) {
+	timeLimit := 600 // default to 10 minute timeout
+	if timeout != nil {
+		timeLimit = *timeout
+	}
 	stdOut := os.Stdout
 	r, w, err := os.Pipe()
 	if err != nil {
 		return "", err
 	}
 	os.Stdout = w
+	// back to normal state
+	restore := func() {
+		_ = w.Close()
+		os.Stdout = stdOut // restoring the real stdout
+	}
+	// have to do this in case it exits by timeout in order to preserve the fail handler output
+	// (another reason to use the corecli lib, it writes to buffers during tests, not stdout, so you don't need to
+	// risk losing your error messages)
+	defer restore()
 
 	app, err := squashctl.App("test")
 	if err != nil {
 		return "", err
 	}
 	app.SetArgs(strings.Split(args, " "))
-	err = app.Execute()
 
+	errC := make(chan error)
+	go func() {
+		errC <- app.Execute()
+	}()
+	t := time.NewTimer(time.Duration(timeLimit) * time.Second)
+
+	select {
+	case exErr := <-errC:
+		if exErr != nil {
+			return "", exErr
+		}
+		break
+	case <-t.C:
+		return "", fmt.Errorf("timeout during squashctl call")
+	}
 	outC := make(chan string)
 
 	// copy the output in a separate goroutine so printing can't block indefinitely
@@ -91,11 +122,9 @@ func SquashctlOut(args string) (string, error) {
 		outC <- buf.String()
 	}()
 
-	// back to normal state
-	_ = w.Close()
-	os.Stdout = stdOut // restoring the real stdout
-	out := <-outC
+	restore()
 
+	out := <-outC
 	return strings.TrimSuffix(out, "\n"), nil
 }
 
