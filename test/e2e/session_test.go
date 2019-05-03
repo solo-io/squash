@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	gotestutils "github.com/solo-io/go-utils/testutils"
+
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/schema/v1alpha2"
 
 	skube "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
@@ -75,6 +77,7 @@ var _ = Describe("Single debug mode", func() {
 		Expect(err).NotTo(HaveOccurred())
 		str, err := testutils.SquashctlOut("utils list-attachments")
 		Expect(err).NotTo(HaveOccurred())
+
 		validateUtilsListDebugAttachments(str, 0)
 		By("should deploy a demo app")
 		err = testutils.Squashctl(fmt.Sprintf("deploy demo --demo-id %v --demo-namespace1 %v --demo-namespace2 %v", "go-java",
@@ -176,6 +179,43 @@ var _ = Describe("Single debug mode", func() {
 		Expect(len(plankNsPods)).To(Equal(2))
 		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
 	})
+
+	FIt("Should debug specific process", func() {
+		appOut, err := gotestutils.KubectlOut("apply", "-f", "../../contrib/condition/multi_process/multi.yaml", "-n", testNamespace)
+		fmt.Fprintf(GinkgoWriter, appOut)
+		Expect(err).NotTo(HaveOccurred())
+		//applyManifest("../../../contrib/condition/multi_process/single.yaml", testNamespace)
+		multiprocessAppName, err := waitForPodByLabel(cs, testNamespace, "app=squash-demo-multiprocess")
+		Expect(err).NotTo(HaveOccurred())
+		By("should attach a dlv debugger")
+
+		dbgStr, err := testutils.SquashctlOut(testutils.MachineDebugArgs(testConditions, "dlv", testNamespace, multiprocessAppName, testPlankNamespace, ""))
+		Expect(err).NotTo(HaveOccurred())
+
+		By("should have created the required permissions")
+		err = ensurePlankPermissionsWereCreated(cs, testPlankNamespace)
+		Expect(err).NotTo(HaveOccurred())
+		validateMachineDebugOutput(dbgStr)
+
+		By("should speak with dlv")
+		ensureDLVServerIsLive(dbgStr)
+
+		By("should list expected resources after debug session initiated")
+		attachmentList, err := testutils.SquashctlOut("utils list-attachments")
+		Expect(err).NotTo(HaveOccurred())
+		validateUtilsListDebugAttachments(attachmentList, 1)
+
+		By("utils delete-planks should not delete non-plank pods")
+		plankNsPods := mustGetActivePlankNsPods(cs, testPlankNamespace)
+		// should be one plank and one java demo service
+		Expect(len(plankNsPods)).To(Equal(2))
+		podsMustInclude(plankNsPods, javaPodName)
+		err = testutils.Squashctl(fmt.Sprintf("utils delete-planks --squash-namespace %v", testPlankNamespace))
+		Expect(err).NotTo(HaveOccurred())
+		plankNsPods = mustGetActivePlankNsPods(cs, testPlankNamespace)
+		Expect(len(plankNsPods)).To(Equal(1))
+		Expect(plankNsPods[0].Name).To(Equal(javaPodName))
+	})
 })
 
 func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) (string, error) {
@@ -193,6 +233,26 @@ func waitForPod(cs *kubernetes.Clientset, testNamespace, deploymentName string) 
 		time.Sleep(timeStepSleepDuration)
 	}
 	return "", fmt.Errorf("Pod for deployment %v not found", deploymentName)
+}
+
+func waitForPodByLabel(cs *kubernetes.Clientset, testNamespace, labelSelector string) (string, error) {
+	// this can be slow, pulls image for the first time - should store demo images in cache if possible
+	timeLimit := 100
+	timeStepSleepDuration := time.Second
+	for i := 0; i < timeLimit; i++ {
+		pods, err := cs.CoreV1().Pods(testNamespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return "", err
+		}
+		if len(pods.Items) == 1 {
+			return pods.Items[0].Name, nil
+		}
+		if len(pods.Items) > 1 {
+			return "", fmt.Errorf("label selector %v returned %v matches (one expected)", labelSelector, len(pods.Items))
+		}
+		time.Sleep(timeStepSleepDuration)
+	}
+	return "", fmt.Errorf("Pod with label selector %v not found", labelSelector)
 }
 
 func findPod(pods *v1.PodList, deploymentName string) (string, bool) {
@@ -425,3 +485,8 @@ func dumpLogsBackground(ctx context.Context, onFailOnly bool) error {
 	}
 	return nil
 }
+
+//func applyManifest(filepath, ns string) {
+//	_, err := helmchart.RenderManifests(context.Background(), filepath, "", "", ns, "")
+//	Expect(err).NotTo(HaveOccurred())
+//}
