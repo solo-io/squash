@@ -226,7 +226,7 @@ class SquashExtension {
         let debuggerName = chosenDebugger.debugger;
         let extraArgs = config.get_conf_or("extraArgs", "");
 
-        let processName = config.get_conf_or("processMatch", "");
+        let processMatch = config.get_conf_or("processMatch", "");
 
         // now invoke squashctl
         let cmdSpec = `${squashpath} ${extraArgs} --machine`;
@@ -234,7 +234,9 @@ class SquashExtension {
         cmdSpec += ` --namespace ${selectedPod.metadata.namespace}`;
         cmdSpec += ` --container ${selectedContainer.container.name}`;
         cmdSpec += ` --debugger ${debuggerName}`;
-        cmdSpec += ` --process-match ${processName}`;
+        if (processMatch !== "") {
+            cmdSpec += ` --process-match ${processMatch}`;            
+        }
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let responseData = JSON.parse(stdout);

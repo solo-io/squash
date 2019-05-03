@@ -77,7 +77,7 @@
           "default": null,
           "description": "Path kubeconfig file to use to talk with kubernetes."
         },
-        "squash.processName": {
+        "squash.processMatch": {
           "type": "string",
           "default": null,
           "description": "optional, if passed, Squash will try to find a process in the target container that matches (regex, case-insensitive) this string. Otherwise Squash chooses the first process."
