@@ -54,8 +54,8 @@ var _ = Describe("Single debug mode", func() {
 			}
 		}()
 
-		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(1000))
-		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(1000))
+		testNamespace = fmt.Sprintf("testsquash-demos-%v", rand.Intn(100000))
+		testPlankNamespace = fmt.Sprintf("testsquash-planks-%v", rand.Intn(100000))
 		By("should create a demo namespace")
 		_, err := cs.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}})
 		Expect(err).NotTo(HaveOccurred())
