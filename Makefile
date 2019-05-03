@@ -100,6 +100,8 @@ clean:
 generatecode: must
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
+	rm docs/cli/squashctl*
+	go run cmd/generate-docs/main.go
 	gofmt -w ci cmd pkg test
 	goimports -w ci cmd pkg test
 
