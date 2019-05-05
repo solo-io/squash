@@ -3,10 +3,11 @@
 import * as kube from './kube-interfaces';
 import * as shelljs from 'shelljs';
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as download from 'download';
-import * as crypto from 'crypto';
+
+import * as config from './config';
+import * as cli from './cli';
+
+import * as vscode from 'vscode';
 
 
 /* Flow of this extension
@@ -24,14 +25,6 @@ import * as crypto from 'crypto';
 */
 
 
-import squashVersionData = require('./squash.json');
-
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-
-// this is the key in the vscode config map for which our squash configuration object is the value
-const confname = "squash";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -56,84 +49,10 @@ export function activate(context: vscode.ExtensionContext) {
 // this method is called when your extension is deactivated
 export function deactivate() { }
 
-async function getremote(extPath: string): Promise<string> {
-    let pathforbin = path.join(extPath, "binaries", getSquashInfo().version);
-    let execpath = path.join(pathforbin, "squashctl");
-    let ks = getSquashctl();
 
-    // exit this early until release is smoothed out
-    if (fs.existsSync(execpath)) {
-        let exechash = await hash(execpath);
-        // make sure its the one we expect:
-        // this can happen on version updates.
-        if (!hashesMatch(ks.checksum, exechash)) {
-            // remove the bad binary.
-            fs.unlinkSync(execpath);
-        }
-    }
 
-    if (!fs.existsSync(execpath)) {
-        let s = await vscode.window.showInformationMessage("Download Squash?", "yes", "no");
-        if (s === "yes") {
-            vscode.window.showInformationMessage("download started");
-            shelljs.mkdir('-p', pathforbin);
-            await download2file(ks.link, execpath);
-            vscode.window.showInformationMessage("download Squash complete");
-        }
-    }
-    // test after the download
-    let exechash = await hash(execpath);
-    // make sure its the one we expect:
-    if (!hashesMatch(ks.checksum, exechash)) {
-        // remove the bad binary.
-        fs.unlinkSync(execpath);
-        throw new Error("bad checksum for binary; download may be corrupted - please try again.");
-    }
-    fs.chmodSync(execpath, 0o755);
-    return execpath;
-}
 
-function hash(f: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        const input = fs.createReadStream(f);
-        const hash = crypto.createHash('sha256');
 
-        input.on('data', function (data: Buffer) {
-            hash.update(data);
-        });
-        input.on('error', reject);
-        input.on('end', () => {
-            resolve(hash.digest("hex"));
-        });
-
-    });
-}
-
-// solo is the hash that was created from the squashctl binary when the binary was compiled
-// gen is the hash that was generated locally from the squashctl file that the extension is trying to use
-function hashesMatch(solo: string, gen: string): boolean {
-    let hashParts = solo.split(" ");
-    if (hashParts.length !== 2 || gen !== hashParts[0]) {
-        return false;
-    }
-    return true;
-}
-
-function download2file(what: string, to: string): Promise<any> {
-
-    return new Promise<any>((resolve, reject) => {
-        let file = fs.createWriteStream(to);
-        let stream = download(what);
-        stream.pipe(file);
-        file.on('close', resolve);
-        file.on("finish", function () {
-            file.close();
-        });
-        stream.on('error', reject);
-        file.on('error', reject);
-
-    });
-}
 
 export class DebuggerPickItem implements vscode.QuickPickItem {
     label: string;
@@ -194,21 +113,21 @@ export class ContainerPickItem implements vscode.QuickPickItem {
 class SquashExtension {
 
     context: vscode.ExtensionContext;
-    squashInfo: SquashInfo;
+    squashInfo: cli.SquashInfo;
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        this.squashInfo = getSquashInfo();
+        this.squashInfo = cli.getSquashInfo();
     }
 
     async debug() {
-        let squashpath: string = get_conf_or("path", null);
+        let squashpath: string = config.get_conf_or("path", null);
         if (!squashpath) {
-            squashpath = await getremote(this.context.extensionPath);
+            squashpath = await cli.getremote(this.context.extensionPath);
         }
         console.log("using squashctl from:");
         console.log(squashpath);
-        if ( get_conf_or("verbose", false) ) {
+        if ( config.get_conf_or("verbose", false) ) {
             vscode.window.showInformationMessage("calling squashctl from: " + squashpath);
         }
 
@@ -304,10 +223,19 @@ class SquashExtension {
         }
         console.log("You chose debugger: " + JSON.stringify(chosenDebugger));
         let debuggerName = chosenDebugger.debugger;
-        let extraArgs = get_conf_or("extraArgs", "");
+        let extraArgs = config.get_conf_or("extraArgs", "");
+
+        let processMatch = config.get_conf_or("processMatch", "");
 
         // now invoke squashctl
-        let cmdSpec = `${squashpath} ${extraArgs} --machine --pod ${selectedPod.metadata.name} --namespace ${selectedPod.metadata.namespace} --container ${selectedContainer.container.name} --debugger ${debuggerName}`;
+        let cmdSpec = `${squashpath} ${extraArgs} --machine`;
+        cmdSpec += ` --pod ${selectedPod.metadata.name}`;
+        cmdSpec += ` --namespace ${selectedPod.metadata.namespace}`;
+        cmdSpec += ` --container ${selectedContainer.container.name}`;
+        cmdSpec += ` --debugger ${debuggerName}`;
+        if (processMatch !== "") {
+            cmdSpec += ` --process-match ${processMatch}`;            
+        }
         console.log(`executing ${cmdSpec}`);
         let stdout = await exec(cmdSpec);
         let responseData = JSON.parse(stdout);
@@ -315,7 +243,7 @@ class SquashExtension {
             throw new Error("can't parse output of squashctl: " + stdout);
         }
 
-        let remotepath = get_conf_or("remotePath", null);
+        let remotepath = config.get_conf_or("remotePath", null);
 
         // port forward
         let localport = await kubectl_portforward(responseData.PortForwardCmd);
@@ -364,7 +292,7 @@ class SquashExtension {
                     break;
                 case "python":
                     // TODO - add this to config when python enabled
-                    let ptvsdsecret = get_conf_or("pythonSecret", "");
+                    let ptvsdsecret = config.get_conf_or("pythonSecret", "");
                     debuggerconfig = {
                         type: "python",
                         request: "attach",
@@ -473,7 +401,7 @@ function kubectl(cmd: string): Promise<string> {
 
 function maybeKubeConfig(): string {
 
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
+    let maybeKubeConfig: string = config.get_conf_or("kubeConfig", null);
     if (!maybeKubeConfig) {
         maybeKubeConfig = "";
     } else {
@@ -484,7 +412,7 @@ function maybeKubeConfig(): string {
 
 function maybeKubeEnv(): string {
 
-    let maybeKubeConfig: string = get_conf_or("kubeConfig", null);
+    let maybeKubeConfig: string = config.get_conf_or("kubeConfig", null);
     if (!maybeKubeConfig) {
         maybeKubeConfig = "";
     } else {
@@ -542,58 +470,3 @@ const handleError = (err: Error) => {
     }
 };
 
-function get_conf_or(k: string, d: any): any {
-    let config = vscode.workspace.getConfiguration(confname);
-    let v = config[k];
-    if (!v) {
-        return d;
-    }
-    return v;
-}
-
-class BinariesSha {
-    linux!: string;
-    darwin!: string;
-    win32!: string;
-}
-class SquashInfo {
-    version!: string;
-    baseName!: string;
-    binaries!: BinariesSha;
-}
-
-function getSquashInfo(): SquashInfo {
-    return <SquashInfo>squashVersionData;
-}
-
-interface SquashctlBinary {
-    link: string;
-    checksum: string;
-}
-
-function createSquashctlBinary(os: string, checksum: string): SquashctlBinary {
-    let link = "https://github.com/solo-io/squash/releases/download/v" + getSquashInfo().version + "/" + getSquashInfo().baseName + "-" + os;
-    console.log("downloading from: " + link);
-    if ( get_conf_or("verbose", false) ) {
-        vscode.window.showInformationMessage("downloading from: " + link);
-    }
-    return {
-        link,
-        checksum: checksum
-    };
-}
-
-function getSquashctl(): SquashctlBinary {
-    // download the squash version for this extension
-    var osver = process.platform;
-    switch (osver) {
-        case 'linux':
-            return createSquashctlBinary("linux", getSquashInfo().binaries.linux);
-        case 'darwin':
-            return createSquashctlBinary("darwin", getSquashInfo().binaries.darwin);
-        case 'win32':
-            return createSquashctlBinary("windows.exe", getSquashInfo().binaries.win32);
-        default:
-            throw new Error(osver + " is current unsupported");
-    }
-}
