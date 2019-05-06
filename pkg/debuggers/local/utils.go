@@ -72,7 +72,7 @@ func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
 func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment, error) {
 	// TODO(mitchdraft) - pass this (and all ctx's from startup)
 	ctx := context.Background()
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, "")
 	if err != nil {
 		log.WithField("err", err).Error("getting debug attachment client")
 		return &v1.DebugAttachment{}, err

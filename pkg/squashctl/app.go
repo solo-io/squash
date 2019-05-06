@@ -112,32 +112,41 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
 	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resources will be deployed (default: %v)", options.SquashNamespace))
 	f.StringVar(&cfg.ProcessName, "process-match", "", "optional, if passed, Squash will try to find a process in the target container that matches (regex, case-insensitive) this string. Otherwise Squash chooses the first process.")
+	f.StringVar(&cfg.KubeConfig, "kubeconfig", "", "optional, if passed, Squash will use this instead of the default kubeconfig.")
 }
 
 func initializeOptions(o *Options) {
 	o.ctx = context.Background()
 
-	o.Squash = config.NewSquashConfig()
+	o.Squash = config.NewSquashConfig(nil)
 
 	o.DeployOptions = defaultDeployOptions()
 }
 
 func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
-	if o.daClient == nil {
-		var err error
+	dac, err := o.Squash.GetClient()
+
+	if config.IsNoDebugAttachmentClientError(err) {
 		if o.Config.secureMode {
-			o.daClient, err = utils.GetBasicDebugAttachmentClient(o.ctx)
+			client, err := utils.GetBasicDebugAttachmentClient(o.ctx, o.Config.kubeConfig)
 			if err != nil {
 				return nil, err
 			}
+			o.Squash.SetClient(&client)
+			return client, nil
 		} else {
-			o.daClient, err = utils.GetDebugAttachmentClientWithRegistration(o.ctx)
+			client, err := utils.GetDebugAttachmentClientWithRegistration(o.ctx, o.Config.kubeConfig)
 			if err != nil {
 				return nil, err
 			}
+			o.Squash.SetClient(&client)
+			return client, nil
 		}
+	} else if err != nil {
+		return nil, err
+	} else {
+		return *dac, nil
 	}
-	return o.daClient, nil
 }
 
 func (o *Options) getKubeClient() (*kubernetes.Clientset, error) {

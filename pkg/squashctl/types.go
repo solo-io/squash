@@ -3,7 +3,6 @@ package squashctl
 import (
 	"context"
 
-	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"k8s.io/client-go/kubernetes"
 )
@@ -17,7 +16,6 @@ type Options struct {
 	// Debug Container is a superset of DebugRequest so we can use the same struct
 	// TODO(mitchdraft) - refactor
 	DebugRequest DebugContainer
-	daClient     v1.DebugAttachmentClient
 	ctx          context.Context
 	Wait         Wait
 

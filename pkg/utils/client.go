@@ -9,16 +9,16 @@ import (
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 )
 
-func GetDebugAttachmentClientWithRegistration(ctx context.Context) (v1.DebugAttachmentClient, error) {
-	return getDebugAttachmentClient(ctx, true)
+func GetDebugAttachmentClientWithRegistration(ctx context.Context, kubeconfigPath string) (v1.DebugAttachmentClient, error) {
+	return getDebugAttachmentClient(ctx, true, kubeconfigPath)
 }
 
-func GetBasicDebugAttachmentClient(ctx context.Context) (v1.DebugAttachmentClient, error) {
-	return getDebugAttachmentClient(ctx, false)
+func GetBasicDebugAttachmentClient(ctx context.Context, kubeconfigPath string) (v1.DebugAttachmentClient, error) {
+	return getDebugAttachmentClient(ctx, false, kubeconfigPath)
 }
 
-func getDebugAttachmentClient(ctx context.Context, withRegistration bool) (v1.DebugAttachmentClient, error) {
-	cfg, err := kubeutils.GetConfig("", "")
+func getDebugAttachmentClient(ctx context.Context, withRegistration bool, kubeconfigPath string) (v1.DebugAttachmentClient, error) {
+	cfg, err := kubeutils.GetConfig("", kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

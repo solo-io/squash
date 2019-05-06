@@ -144,7 +144,7 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 }
 
 func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
-	s := config.NewSquashConfig()
+	s := config.NewSquashConfig(&d.daClient)
 	s.TimeoutSeconds = 300
 	s.Machine = true
 	s.NoClean = true
