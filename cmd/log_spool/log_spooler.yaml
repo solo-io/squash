@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: log-spooler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-spooler
+  template:
+    metadata:
+      labels:
+        app: log-spooler
+    spec:
+      containers:
+        - name: log-spooler
+          image: soloio/log_spooler:v0.0.4
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: log-spooler
+spec:
+  selector:
+    app: log-spooler
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
