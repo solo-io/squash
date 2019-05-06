@@ -19,7 +19,6 @@ import (
 	"github.com/solo-io/squash/pkg/debuggers/local"
 	sqOpts "github.com/solo-io/squash/pkg/options"
 	squashkube "github.com/solo-io/squash/pkg/platforms/kubernetes"
-	"github.com/solo-io/squash/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -41,16 +40,20 @@ type Squash struct {
 	Machine            bool
 	DebugServerAddress string
 	ProcessName        string
+	KubeConfig         string
 
 	CRISock string
 
 	clientset kubernetes.Interface
+	daClient  *squashv1.DebugAttachmentClient
 
 	SquashNamespace string
 }
 
-func NewSquashConfig() Squash {
-	return Squash{}
+func NewSquashConfig(daClient *squashv1.DebugAttachmentClient) Squash {
+	return Squash{
+		daClient: daClient,
+	}
 }
 
 type DebugTarget struct {
@@ -99,6 +102,32 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	return createdPod, nil
+}
+
+type noDebugAttachmentClient struct{}
+
+func (noDebugAttachmentClient) Error() string {
+	return "no debug attachment has been provided"
+}
+
+func IsNoDebugAttachmentClientError(err error) bool {
+	switch err.(type) {
+	case *noDebugAttachmentClient:
+		return true
+	}
+	return false
+}
+
+// need to check this in a function since this code is used by the cli and a client
+// may not have been created yet
+func (s *Squash) GetClient() (*squashv1.DebugAttachmentClient, error) {
+	if s.daClient == nil {
+		return nil, &noDebugAttachmentClient{}
+	}
+	return s.daClient, nil
+}
+func (s *Squash) SetClient(daClient *squashv1.DebugAttachmentClient) {
+	s.daClient = daClient
 }
 
 // for the debug controller, this function finds the debug target
@@ -239,11 +268,11 @@ func (s *Squash) GetIntent() squashv1.Intent {
 func (s *Squash) getDebugAttachment() (*squashv1.DebugAttachment, error) {
 	// Refactor - eventually Intent will be created during config/user entry
 	intent := s.GetIntent()
-	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
+	daClient, err := s.GetClient()
 	if err != nil {
-		return &squashv1.DebugAttachment{}, err
+		return nil, err
 	}
-	return intent.GetDebugAttachment(daClient)
+	return intent.GetDebugAttachment(*daClient)
 }
 
 func (s *Squash) deletePod(createdPod *v1.Pod) error {
@@ -357,11 +386,7 @@ func (s *Squash) debugPodFor() (*v1.Pod, error) {
 	}
 
 	// get debugAttachment name so Plank knows where to find it
-	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	da, err := it.GetDebugAttachment(daClient)
+	da, err := s.getDebugAttachment()
 	if err != nil {
 		return nil, err
 	}
@@ -445,13 +470,7 @@ func (s *Squash) getClientSet() (kubernetes.Interface, error) {
 // represented by the Squash object. This should be called when a debugging session
 // is terminated.
 func (s *Squash) DeletePlankPod() error {
-	intent := s.GetIntent()
-	daClient, err := utils.GetBasicDebugAttachmentClient(context.Background())
-	if err != nil {
-		return err
-	}
-
-	da, err := intent.GetDebugAttachment(daClient)
+	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
