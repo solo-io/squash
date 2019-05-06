@@ -81,7 +81,7 @@ func waitForDebugServerAddress(ctx context.Context, daClient v1.DebugAttachmentC
 		case err, _ := <-errc:
 			return &v1.DebugAttachment{}, err
 		case <-ctx.Done():
-			return &v1.DebugAttachment{}, fmt.Errorf("Could not find debug spec in the allotted time.")
+			return &v1.DebugAttachment{}, fmt.Errorf("could not find debug spec in the allotted time.")
 		case das, ok := <-dac:
 			if !ok {
 				return &v1.DebugAttachment{}, fmt.Errorf("could not read watch channel")

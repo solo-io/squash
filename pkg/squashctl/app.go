@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/go-utils/cliutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/actions"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/options"
@@ -225,22 +226,49 @@ func (o *Options) writeDebugAttachment() error {
 	so := o.Squash
 	dbge := o.DebugTarget
 
-	uc, err := actions.NewUserController(o.Config.kubeConfig)
+	daName := cliutils.RandKubeNameBytes(10)
+
+	namespace := so.Namespace
+	image := dbge.Container.Image
+	podName := dbge.Pod.Name
+	container := so.Container
+	processName := so.ProcessName
+	dbgger := so.Debugger
+	di := v1.Intent{
+		Debugger: dbgger,
+		Pod: &core.ResourceRef{
+			Name:      podName,
+			Namespace: namespace,
+		},
+		ContainerName: container,
+	}
+	attachLabels := di.GenerateLabels()
+	da := v1.DebugAttachment{
+		Metadata: core.Metadata{
+			Name:      daName,
+			Namespace: namespace,
+			Labels:    attachLabels,
+		},
+		Debugger:       dbgger,
+		Image:          image,
+		Pod:            podName,
+		Container:      container,
+		DebugNamespace: namespace,
+		State:          v1.DebugAttachment_RequestingAttachment,
+	}
+	if processName != "" {
+		da.ProcessName = processName
+	}
+	writeOpts := clients.WriteOpts{
+		Ctx:               o.ctx,
+		OverwriteExisting: false,
+	}
+	daClient, err := o.getDAClient()
 	if err != nil {
 		return err
 	}
-	daName := cliutils.RandKubeNameBytes(10)
-	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
-	_, err = uc.Attach(
-		daName,
-		so.Namespace,
-		dbge.Container.Image,
-		dbge.Pod.Name,
-		so.Container,
-		so.ProcessName,
-		so.Debugger)
-
-	return nil
+	_, err = daClient.Write(&da, writeOpts)
+	return err
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -261,7 +289,9 @@ func (o *Options) ensureMinimumSquashConfig() error {
 			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.DebugTarget.Pod.ObjectMeta.Name + ". continue?",
 			Default: true,
 		}
-		survey.AskOne(prompt, &confirmed, nil)
+		if err := survey.AskOne(prompt, &confirmed, nil); err != nil {
+			return err
+		}
 		if !confirmed {
 			return errors.New("user aborted")
 		}
