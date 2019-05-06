@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/go-utils/contextutils"
@@ -109,10 +110,11 @@ func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error
 }
 
 func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
+	ctx, _ := context.WithTimeout(d.ctx, 30*time.Second)
 	switch da.State {
 	case v1.DebugAttachment_RequestingAttachment:
 		log.Debugf("handling requesting attachment %v", da)
-		go d.debugController.handleAttachmentRequest(da)
+		go d.debugController.handleAttachmentRequest(ctx, da)
 		return nil
 	case v1.DebugAttachment_PendingAttachment:
 		log.Debug("handling pending attachment")

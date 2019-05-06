@@ -61,7 +61,7 @@ func (d *DebugController) removeAttachment(namespace, name string) {
 	}
 }
 
-func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
+func (d *DebugController) handleAttachmentRequest(ctx context.Context, da *v1.DebugAttachment) {
 
 	// Mark attachment as in progress
 	da.State = v1.DebugAttachment_PendingAttachment
@@ -70,7 +70,7 @@ func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
 	}
 	// TODO - put in a goroutine
-	err = d.tryToAttachPod(da)
+	err = d.tryToAttachPod(ctx, da)
 	if err != nil {
 		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace, "error": err}).Warn("Failed to attach debugger, deleting request.")
 		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
@@ -143,7 +143,7 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 	}
 }
 
-func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
+func (d *DebugController) tryToAttachPod(ctx context.Context, da *v1.DebugAttachment) error {
 	s := config.NewSquashConfig(&d.daClient)
 	s.TimeoutSeconds = 300
 	s.Machine = true
@@ -165,7 +165,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
 	// 	return err
 	// }
-	_, err := config.StartDebugContainer(s, dbt)
+	_, err := config.StartDebugContainer(ctx, s, dbt)
 	if err != nil {
 		return err
 	}

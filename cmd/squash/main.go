@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/squash/pkg/squash"
 
@@ -18,7 +20,8 @@ func main() {
 	log.Infof("squash started %v, %v", version.Version, version.TimeStamp)
 
 	mustGetContainerProcessLocator()
-	err := squash.RunSquash(remote.GetParticularDebugger)
+	ctx := context.Background()
+	err := squash.RunSquash(ctx, remote.GetParticularDebugger)
 	log.WithError(err).Fatal("Error running debug bridge")
 
 }
