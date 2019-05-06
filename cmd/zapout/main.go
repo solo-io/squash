@@ -13,7 +13,7 @@ import (
 func main() {
 	cfg := zap.NewDevelopmentEncoderConfig()
 	enc := zapcore.NewJSONEncoder(cfg)
-	writer := urlWriter{url: "http://log-spooler"}
+	writer := urlWriter{url: "http://log-spooler.default.svc.cluster.local"}
 	ws := zapcore.Lock(zapcore.AddSync(writer))
 	passAllMessages := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return true

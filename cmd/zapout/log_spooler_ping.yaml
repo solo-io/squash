@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: log-spooler-ping
-          image: soloio/log_spooler_ping:v0.0.3
+          image: soloio/log_spooler_ping:v0.0.4
           ports:
             - containerPort: 8080
               protocol: TCP
