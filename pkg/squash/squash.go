@@ -16,7 +16,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquash(debugger func(string) remote.Remote) error {
+// we want to use the default kubeconfig for squash since it runs in the cluster
+const squashKubeconfigPath = ""
+
+func RunSquash(ctx context.Context, debugger func(string) remote.Remote) error {
 	log.SetLevel(log.DebugLevel)
 
 	customFormatter := new(log.TextFormatter)
@@ -26,14 +29,13 @@ func RunSquash(debugger func(string) remote.Remote) error {
 
 	flag.Parse()
 
-	ctx := context.Background()
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, squashKubeconfigPath)
 	if err != nil {
 		log.WithField("err", err).Error("RunDebugBridge")
 		return err
 	}
 
-	restCfg, err := gokubeutils.GetConfig("", "")
+	restCfg, err := gokubeutils.GetConfig("", squashKubeconfigPath)
 	if err != nil {
 		return err
 	}

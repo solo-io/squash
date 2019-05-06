@@ -81,7 +81,7 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 	// We write the target port to a CRD to be read from squashctl
 
 	// get client
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, plankKubeconfigPath)
 	if err != nil {
 		log.WithField("err", err).Error("getting debug attachment client")
 		return err

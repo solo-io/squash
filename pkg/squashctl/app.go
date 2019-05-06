@@ -188,7 +188,7 @@ func (o *Options) runBaseCommand() error {
 			return err
 		}
 		time.Sleep(200 * time.Millisecond)
-		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
+		_, err := config.StartDebugContainer(o.ctx, o.Squash, o.DebugTarget)
 		o.cleanupPostRun()
 		return err
 	}
@@ -218,14 +218,14 @@ func (o *Options) runBaseCommandWithRbac() error {
 	// TODO(mitchdraft) - replace with watch on cmd stream
 	time.Sleep(3 * time.Second)
 
-	return o.Squash.ReportOrConnectToCreatedDebuggerPod()
+	return o.Squash.ReportOrConnectToCreatedDebuggerPod(o.ctx)
 }
 
 func (o *Options) writeDebugAttachment() error {
 	so := o.Squash
 	dbge := o.DebugTarget
 
-	uc, err := actions.NewUserController()
+	uc, err := actions.NewUserController(o.Config.kubeConfig)
 	if err != nil {
 		return err
 	}

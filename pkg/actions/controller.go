@@ -12,9 +12,9 @@ type UserController struct {
 	daClient v1.DebugAttachmentClient
 }
 
-func NewUserController() (UserController, error) {
+func NewUserController(kubeconfigPath string) (UserController, error) {
 	ctx := context.Background()
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, kubeconfigPath)
 	if err != nil {
 		return UserController{}, err
 	}

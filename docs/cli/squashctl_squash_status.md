@@ -30,6 +30,7 @@ squashctl squash status [flags]
       --crisock string             The path to the CRI socket (default "/var/run/dockershim.sock")
       --debugger string            Debugger to use
       --json                       output json format
+      --kubeconfig string          optional, if passed, Squash will use this instead of the default kubeconfig.
       --localport int              local port to use to connect to debugger (defaults to random free port)
       --machine                    machine mode input and output
       --namespace string           Namespace to debug

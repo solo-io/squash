@@ -61,7 +61,7 @@ type DebugTarget struct {
 	Container *v1.Container
 }
 
-func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
+func StartDebugContainer(ctx context.Context, s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	dbgpod, err := s.debugPodFor()
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 	}
 
 	// wait for running state
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 300*time.Second)
 	err = <-s.waitForPod(ctx, createdPod)
 	cancel()
 	if err != nil {
@@ -97,7 +97,7 @@ func StartDebugContainer(s Squash, dbt DebugTarget) (*v1.Pod, error) {
 		return nil, fmt.Errorf("Waiting for pod: %v", err)
 	}
 
-	if err := s.ReportOrConnectToCreatedDebuggerPod(); err != nil {
+	if err := s.ReportOrConnectToCreatedDebuggerPod(ctx); err != nil {
 		return nil, err
 	}
 
@@ -175,12 +175,16 @@ func (s *Squash) getDebuggerPodNamespace() string {
 	return s.Namespace
 }
 
-func (s *Squash) ReportOrConnectToCreatedDebuggerPod() error {
+func (s *Squash) ReportOrConnectToCreatedDebuggerPod(ctx context.Context) error {
 	da, err := s.getDebugAttachment()
 	if err != nil {
 		return err
 	}
-	remoteDbgPort, err := local.GetDebugPortFromCrd(da.Metadata.Name, s.Namespace)
+	daClient, err := s.GetClient()
+	if err != nil {
+		return err
+	}
+	remoteDbgPort, err := local.GetDebugPortFromCrd(ctx, *daClient, da.Metadata.Name, s.Namespace)
 	if err != nil {
 		return err
 	}
