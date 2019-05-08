@@ -1,0 +1,4 @@
+description:
+- type: FIX
+  description: Use process.env to set env var for windows compatibility.
+  issueLink: https://github.com/solo-io/squash/pull/194

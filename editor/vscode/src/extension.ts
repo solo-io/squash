@@ -374,7 +374,8 @@ function kubectl_portforward(cmd: string): Promise<number> {
                 console.log(`port forward ended unexpectly: ${code} ${stdout} ${stderr} `);
             }
         };
-        let child = shelljs.exec(maybeKubeEnv() + cmd, handler);
+        maybeSetKubeEnv()
+        let child = shelljs.exec(cmd, handler);
         let stdout = "";
         child.stdout.on('data', function (data) {
             stdout += data;
@@ -410,15 +411,12 @@ function maybeKubeConfig(): string {
     return maybeKubeConfig;
 }
 
-function maybeKubeEnv(): string {
-
+function maybeSetKubeEnv() {
     let maybeKubeConfig: string = config.get_conf_or("kubeConfig", null);
-    if (!maybeKubeConfig) {
-        maybeKubeConfig = "";
-    } else {
-        maybeKubeConfig = `KUBECONFIG="${maybeKubeConfig}" `;
+    if (maybeKubeConfig) {
+        console.log(`Using kubeconfig from ${maybeKubeConfig}`);
+        process.env.KUBECONFIG=maybeKubeConfig;
     }
-    return maybeKubeConfig;
 }
 
 // https://github.com/Microsoft/TypeScript/wiki/Breaking-Changes#extending-built-ins-like-error-array-and-map-may-no-longer-work
@@ -454,7 +452,8 @@ async function exec(cmd: string): Promise<string> {
             async: true,
             stdio: ['ignore', 'pipe', 'pipe'],
         };
-        shelljs.exec(maybeKubeEnv() + cmd, options, handler);
+        maybeSetKubeEnv()
+        shelljs.exec(cmd, options, handler);
     });
 
     return promise;
