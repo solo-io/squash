@@ -123,7 +123,7 @@ steps:
 
 # Publish everything
 - name: 'gcr.io/$PROJECT_ID/go-make'
-  args: [upload-github-release-assets', 'push-docs']
+  args: ['upload-github-release-assets', 'push-docs']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GOPATH=/workspace/gopath'
