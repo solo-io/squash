@@ -90,7 +90,7 @@ steps:
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   waitFor: ['dep']
-  id: 'build squashctl'
+  id: 'build-squashctl'
 
 # publish containers for test \ release
 
