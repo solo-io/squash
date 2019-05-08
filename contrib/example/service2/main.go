@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 type Calculator struct {
@@ -15,7 +17,7 @@ type Calculator struct {
 func main() {
 	http.HandleFunc("/calculate", calchandler)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	contextutils.LoggerFrom(context.TODO()).Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func calchandler(w http.ResponseWriter, r *http.Request) {

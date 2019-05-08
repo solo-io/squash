@@ -1,9 +1,10 @@
 package remote
 
 import (
+	"context"
 	"os/exec"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 type JavaInterface struct{}
@@ -30,10 +31,11 @@ func (d *javaDebugServer) Cmd() *exec.Cmd {
 
 func (g *JavaInterface) Attach(pid int) (DebugServer, error) {
 
-	log.WithField("pid", pid).Debug("AttachToLiveSession called")
+	logger := contextutils.LoggerFrom(context.TODO())
+	logger.Debugw("AttachToLiveSession called", "pid", pid)
 	port, err := GetPortOfJavaProcess(pid)
 	if err != nil {
-		log.WithField("err", err).Error("can't get java debug port")
+		logger.Errorw("can't get java debug port", "err", err)
 		return nil, err
 	}
 

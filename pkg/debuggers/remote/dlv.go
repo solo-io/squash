@@ -1,13 +1,15 @@
 package remote
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"time"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/derekparker/delve/service/rpc1"
-	log "github.com/sirupsen/logrus"
 )
 
 type DLV struct {
@@ -61,23 +63,24 @@ func (d *DLV) Attach(pid int) (DebugServer, error) {
 
 func (d *DLV) startDebugServer(pid int) (*exec.Cmd, int, error) {
 
-	log.WithField("pid", pid).Debug("StartDebugServer called")
+	logger := contextutils.LoggerFrom(context.TODO())
+	logger.Debugw("StartDebugServer called", "pid", pid)
 	cmd := exec.Command("dlv", "attach", fmt.Sprintf("%d", pid), "--listen=127.0.0.1:0", "--accept-multiclient=true", "--api-version=2", "--headless", "--log")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	log.WithFields(log.Fields{"cmd": cmd, "args": cmd.Args}).Debug("dlv command")
+	logger.Debug("dlv command", "cmd", cmd, "args", cmd.Args)
 
 	err := cmd.Start()
 	if err != nil {
-		log.WithField("err", err).Error("Failed to start dlv")
+		logger.Errorw("Failed to start dlv", "err", err)
 		return nil, 0, err
 	}
 
-	log.Debug("starting headless dlv for user started, trying to get port")
+	logger.Debug("starting headless dlv for user started, trying to get port")
 	time.Sleep(2 * time.Second)
 	port, err := GetPort(cmd.Process.Pid)
 	if err != nil {
-		log.WithField("err", err).Error("can't get headless dlv port")
+		logger.Errorw("can't get headless dlv port", "err", err)
 		cmd.Process.Kill()
 		cmd.Process.Release()
 		return cmd, 0, err

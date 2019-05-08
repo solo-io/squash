@@ -10,10 +10,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/solo-io/go-utils/contextutils"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/platforms"
-
-	log "github.com/sirupsen/logrus"
 
 	k8models "github.com/solo-io/squash/pkg/platforms/kubernetes/models"
 	criapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
@@ -48,7 +47,8 @@ func NewContainerProcess() (*CRIContainerProcess, error) {
 func (c *CRIContainerProcess) GetContainerInfo(maincontext context.Context, attachment *v1.DebugAttachment) (*platforms.ContainerInfo, error) {
 
 	fmt.Println("v2")
-	log.WithField("attachment", attachment).Debug("Cri GetPid called")
+	logger := contextutils.LoggerFrom(maincontext)
+	logger.Debugw("Cri GetPid called", "attachment", attachment)
 
 	ka, err := k8models.DebugAttachmentToKubeAttachment(attachment)
 
@@ -79,15 +79,16 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 		State:         &st,
 	}
 
-	log.WithField("inpod", spew.Sdump(inpod)).Debug("Cri GetPid ListPodSandbox")
+	logger := contextutils.LoggerFrom(maincontext)
+	logger.Debugw("Cri GetPid ListPodSandbox", "inpod", spew.Sdump(inpod))
 
 	resp, err := runtimeService.ListPodSandbox(inpod)
 	if err != nil {
-		log.WithField("err", err).Warn("ListPodSandbox error")
+		logger.Warnw("ListPodSandbox error", "err", err)
 		return nil, err
 	}
 	if len(resp) != 1 {
-		log.WithField("items", spew.Sdump(resp)).Warn("Invalid number of pods")
+		logger.Warnw("Invalid number of pods", "items", spew.Sdump(resp))
 		return nil, errors.New("Invalid number of pods")
 	}
 	pod := resp[0]
@@ -98,15 +99,15 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 		PodSandboxId:  pod.Id,
 		LabelSelector: labels,
 	}
-	log.WithField("incont", spew.Sdump(incont)).Debug("Cri GetPid ListContainers")
+	logger.Debugw("Cri GetPid ListContainers", "incont", spew.Sdump(incont))
 
 	respcont, err := runtimeService.ListContainers(incont)
 
 	if err != nil {
-		log.WithField("err", err).Warn("ListContainers error")
+		logger.Warnw("ListContainers error", "err", err)
 		return nil, err
 	}
-	log.WithField("respcont", spew.Sdump(respcont)).Debug("Cri GetPid ListContainers - got response")
+	logger.Debugw("Cri GetPid ListContainers - got response", "respcont", spew.Sdump(respcont))
 
 	var containers []*kubeapi.Container
 	for _, cont := range respcont {
@@ -114,10 +115,10 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 			containers = append(containers, cont)
 		}
 	}
-	log.WithField("containers", spew.Sdump(containers)).Debug("Cri GetPid ListContainers - filtered response")
+	logger.Debugw("Cri GetPid ListContainers - filtered response", "containers", spew.Sdump(containers))
 
 	if len(containers) != 1 {
-		log.WithField("containers", containers).Warn("Invalid number of containers")
+		logger.Warnw("Invalid number of containers", "containers", containers)
 		return nil, errors.New("Invalid number of containers")
 	}
 	container := containers[0]
@@ -128,17 +129,17 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	// get pids
 	nsinod, err := getNS(maincontext, runtimeService, nstocheck, containerid)
 	if err != nil {
-		log.WithField("err", err).Warn("getNS error")
+		logger.Warnw("getNS error", "err", err)
 		return nil, err
 	}
 
 	potentialpids, err := FindPidsInNS(nsinod, nstocheck)
 	if err != nil {
-		log.WithField("err", err).Warn("FindPidsInNS error")
+		logger.Warnw("FindPidsInNS error", "err", err)
 		return nil, err
 	}
 
-	log.WithField("potentialpids", potentialpids).Info("found some pids")
+	logger.Infow("found some pids", "potentialpids", potentialpids)
 	return &platforms.ContainerInfo{Pids: potentialpids, Name: fmt.Sprintf("%s.%s", ka.Pod, ka.Namespace)}, nil
 }
 
@@ -148,7 +149,7 @@ func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, contai
 
 	stdout, _, err := cli.ExecSync(containerid, cmd, time.Second)
 	if err != nil {
-		log.WithField("err", err).Warn("Error exec sync to get pid ns!")
+		contextutils.LoggerFrom(origctx).Warnw("Error exec sync to get pid ns!", "err", err)
 		return 0, err
 	}
 	/* output looks like:

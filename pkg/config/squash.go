@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	squashkubeutils "github.com/solo-io/squash/pkg/utils/kubeutils"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	squashv1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/debuggers/local"
@@ -157,9 +157,10 @@ func (s *Squash) GetDebugTargetPodFromSpec(dbt *DebugTarget) error {
 }
 
 func (s *Squash) GetDebugTargetContainerFromSpec(dbt *DebugTarget) error {
+	logger := contextutils.LoggerFrom(context.TODO())
 	for _, podContainer := range dbt.Pod.Spec.Containers {
-		log.Debug(podContainer.Image)
-		log.Info(podContainer.Image)
+		logger.Debug(podContainer.Image)
+		logger.Info(podContainer.Image)
 		if strings.HasPrefix(podContainer.Name, s.Container) {
 			dbt.Container = &podContainer
 			break

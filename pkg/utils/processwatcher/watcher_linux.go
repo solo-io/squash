@@ -1,6 +1,7 @@
 package processwatcher
 
 import (
+	"context"
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
@@ -8,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 func PathToInode(p string) (uint64, error) {
@@ -59,7 +60,7 @@ func (w *Watcher) Watch() <-chan int {
 			// notify on new pids
 			for _, pid := range pids {
 				if _, ok := w.pids[pid]; !ok {
-					log.WithFields(log.Fields{"pid": pid}).Debug("match found")
+					contextutils.LoggerFrom(context.TODO()).Debugw("match found", "pid", pid)
 					w.pids[pid] = true
 					c <- pid
 				}

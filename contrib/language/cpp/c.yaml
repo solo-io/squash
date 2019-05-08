@@ -1,0 +1,20 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: squash-demo-cpp2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: squash-demo-cpp
+  template:
+    metadata:
+      labels:
+        app: squash-demo-cpp
+    spec:
+      containers:
+      - name: squash-demo-cpp
+        image: gcr.io/solo-test-236622/plank-dlv:mki155b
+        ports:
+        - containerPort: 8080
+          protocol: TCP
