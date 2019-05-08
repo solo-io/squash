@@ -1,0 +1,4 @@
+description:
+- type: FIX
+  description: The vs-code extension now uses KUBECONFIG env var in node and not in shell, for windows support.
+  issueLink: https://github.com/solo-io/squash/issues/194
