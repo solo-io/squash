@@ -9,8 +9,7 @@ import * as crypto from 'crypto';
 
 import * as config from './config';
 
-// import squashVersionData = require('./squash.json');
-import squashVersionData from './squash.json';
+import squashVersionData = require('./squash.json');
 
 
 class BinariesSha {
