@@ -144,7 +144,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['VSCODE_TOKEN']
-  waitFor: [push-github-resources']
+  waitFor: ['push-github-resources']
   id: 'extension'
 
 secrets:
