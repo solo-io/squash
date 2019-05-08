@@ -77,7 +77,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['-']
+  waitFor: ['dep']
   id: 'extension-build'
 
 - name: 'gcr.io/$PROJECT_ID/go-make'
