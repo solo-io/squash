@@ -132,7 +132,7 @@ steps:
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['GITHUB_TOKEN']
-  waitFor: ['e2e-test', 'docker-push']
+  waitFor: ['e2e-test', 'push-docker-resources']
   id: 'push-github-resources'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
