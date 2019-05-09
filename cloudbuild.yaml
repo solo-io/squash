@@ -66,22 +66,8 @@ steps:
   waitFor: ['-']
   id: 'docker-login'
 
-# Build extension and squashctl
-
-- name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
-  entrypoint: make
-  args: ['package-extension']
-  env:
-  - 'TAGGED_VERSION=$TAG_NAME'
-  - 'BUILD_ID=$BUILD_ID'
-  - 'PROJECT_ROOT=github.com/solo-io/squash'
-  - 'GOPATH=/workspace/gopath'
-  dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['dep']
-  id: 'extension-build'
-
 - name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['squashctl']
+  args: ['docker-push', 'upload-github-release-assets', 'push-docs']
   env:
     - 'PROJECT_ROOT=github.com/solo-io/squash'
     - 'GOPATH=/workspace/gopath'
@@ -89,22 +75,9 @@ steps:
     - 'BUILD_ID=$BUILD_ID'
     - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
   dir: './gopath/src/github.com/solo-io/squash'
-  waitFor: ['dep']
-  id: 'build-squashctl'
-
-# publish containers for test \ release
-
-- name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['docker-push']
-  env:
-    - 'PROJECT_ROOT=github.com/solo-io/squash'
-    - 'GOPATH=/workspace/gopath'
-    - 'TAGGED_VERSION=$TAG_NAME'
-    - 'BUILD_ID=$BUILD_ID'
-    - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
-  dir: './gopath/src/github.com/solo-io/squash'
+  secretEnv: ['GITHUB_TOKEN']
   waitFor: ['docker-login', 'dep', 'check-code-and-docs-gen']
-  id: 'push-docker-resources'
+  id: 'push-github-resources'
 
 - name: 'gcr.io/$PROJECT_ID/e2e-ginkgo'
   env:
@@ -118,22 +91,8 @@ steps:
   - 'DOCKER_CONFIG=/workspace/.docker/'
   dir: './gopath/src/github.com/solo-io/squash'
   args: ['-r', '-failFast', '-p']
-  waitFor: ['get-creds', 'check-code-and-docs-gen', 'push-docker-resources']
+  waitFor: ['get-creds', 'check-code-and-docs-gen', 'push-github-resources']
   id: 'e2e-test'
-
-# Publish everything
-- name: 'gcr.io/$PROJECT_ID/go-make'
-  args: ['upload-github-release-assets', 'push-docs']
-  env:
-    - 'PROJECT_ROOT=github.com/solo-io/squash'
-    - 'GOPATH=/workspace/gopath'
-    - 'TAGGED_VERSION=$TAG_NAME'
-    - 'BUILD_ID=$BUILD_ID'
-    - 'GCLOUD_PROJECT_ID=$PROJECT_ID'
-  dir: './gopath/src/github.com/solo-io/squash'
-  secretEnv: ['GITHUB_TOKEN']
-  waitFor: ['e2e-test', 'push-docker-resources']
-  id: 'push-github-resources'
 
 - name: 'gcr.io/$PROJECT_ID/go-vsce:0.1.4'
   entrypoint: make
@@ -145,7 +104,7 @@ steps:
   - 'GOPATH=/workspace/gopath'
   dir: './gopath/src/github.com/solo-io/squash'
   secretEnv: ['VSCODE_TOKEN']
-  waitFor: ['push-github-resources']
+  waitFor: ['e2e-test','push-github-resources']
   id: 'extension'
 
 secrets:
