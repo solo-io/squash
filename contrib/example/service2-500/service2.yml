@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: example-service2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-service2
+  template:
+    metadata:
+      labels:
+        app: example-service2
+    spec:
+      containers:
+      - name: example-service2
+        image: soloio/example-service2ise:0.1.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: example-service2
+spec:
+  selector:
+    app: example-service2
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
