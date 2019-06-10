@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: example-service2
-        image: soloio/example-service2:v0.2.2
+        image: soloio/example-service2ise:0.1.0
         ports:
         - containerPort: 8080
           protocol: TCP
