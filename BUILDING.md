@@ -1,9 +1,10 @@
 
 **Requirements**
 
-- [Git](https://git-scm.com/)
-- [Golang](https://golang.org/)
+- [git](https://git-scm.com/)
+- [golang](https://golang.org/)
 - [dep](https://github.com/golang/dep) (dependency management tool for Go)
+- [make](https://www.gnu.org/software/make/)
 
 
 **Building**
