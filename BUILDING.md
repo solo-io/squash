@@ -1,92 +1,41 @@
-## How to Build Squash
 
-### Requirements
-* [Git](https://git-scm.com/)
-  * MAC(need [homebrew](https://docs.brew.sh/Installation))
-    ```bash
-      brew install git
-    ```
+**Requirements**
 
-  * Ubuntu
-    ```bash
-      sudo apt install git
-    ```
+- [git](https://git-scm.com/)
+- [golang](https://golang.org/)
+- [dep](https://github.com/golang/dep) (dependency management tool for Go)
+- [make](https://www.gnu.org/software/make/)
 
-* golang
-  * [Manual install](https://golang.org/dl/)
-  * MAC(need [homebrew](https://docs.brew.sh/Installation))
-    ```bash
-      brew install go
-    ```
-  * Ubuntu
-    ```bash
-      sudo apt update
-      sudo apt install golang-go
-    ```
 
-* [dep](https://github.com/golang/dep) (dependency management tool for Go)
-  * MAC(need [homebrew](https://docs.brew.sh/Installation))
-    ```bash
-      brew install dep
-      brew upgrade dep
-    ```
+**Building**
 
-  * Ubuntu
-    ```bash
-      sudo apt install go-dep
-    ```
+- *Initial setup*
+```bash
+mkdir -p $GOPATH/src/github.com/solo-io
+cd $GOPATH/src/github.com/solo-io
+git clone https://github.com/solo-io/squash.git
 
-### Setting up Go Environment
+cd $GOPATH/src/github.com/solo-io/squash
+git checkout -b master
+```
 
-* MAC
-  ```bash
-    # Set env variables and add Go to the PATH in .bashrc / .zshrc file.
-    export GOPATH=$HOME/golang
-    export GOROOT=/usr/local/opt/go/libexec
-    export PATH=$PATH:$GOPATH/bin:$GOROOT/bin
-  ```
+- *Build local resources* - sufficient if you only change `squashctl`
+  - set a `BUILD_ID`, this will be used as an image tag
+```bash
+dep ensure -v # do this whenever you add a dependency
+BUILD_ID=<build_id> make build -B
+```
 
-* Ubuntu
-  ```bash
-    # Set env variables and add Go to the PATH in .bashrc / .zshrc file.
-    export GOPATH=$HOME/golang
-    export GOROOT=/usr/lib/go
-    export PATH=$PATH:$GOPATH/bin:$GOROOT/bin
-  ```
+- *Build and push images* - neccessary if you change code that runs in the cluster (either the plank or secure-mode squash pods)
+  - update `solo_project.yaml` to reflect image repos that you have write access to
+  - set a `BUILD_ID`, this will be used as an image tag
+```bash
+BUILD_ID=<build_id> make docker-push -B
+```
 
-* make $GOPATH directory
-  ```bash
-    mkdir -p $GOPATH/src
-  ```
+- Build artifacts can be found in the `_output` directory.
 
-### Download the Squash source and install the dependencies
 
-* download the Squash source
-  ```bash
-    # Download the source by using go get
-    go get github.com/solo-io/squash
+**Note**
 
-    # or by using git clone
-    # mkdir -p $GOPATH/src/github.com/solo-io
-    # cd $GOPATH/src/github.com/solo-io
-    # git clone https://github.com/solo-io/squash.git
-
-    cd $GOPATH/src/github.com/solo-io/squash
-    git checkout -b master
-  ```
-
-* install the dependencies
-  ```bash
-    # This job may take some time.
-    dep ensure -v
-  ```
-
-### Now you can build Squash
-  ```bash
-    make build
-  ```
-
-* Build artifacts can be found in the `_output` directory.
-
-### Note
-* Our canonical build process is described by the [`cloudbuild.yaml`](https://github.com/solo-io/squash/blob/master/cloudbuild.yaml) file.
+_The release build process is defined by the [`cloudbuild.yaml`](https://github.com/solo-io/squash/blob/master/cloudbuild.yaml) file._
