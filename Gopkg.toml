@@ -49,10 +49,6 @@
   name = "github.com/onsi/gomega"
   version = "1.2.0"
 
-[[override]]
-  name = "github.com/Azure/go-autorest"
-  version = "9.10.0"
-
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
   version = "0.6.5"
@@ -73,3 +69,35 @@
   name = "github.com/lyft/protoc-gen-validate"
   version = "0.0.6"
   source = "github.com/envoyproxy/protoc-gen-validate"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.14.3"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.14.3"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.14.3"
+
+[[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.14.3"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.14.3"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  version = "1.1.6"
+
+[[override]]
+name = "github.com/Azure/go-autorest"
+version = "v12.3.0"
+
+[[override]]
+  name = "github.com/golang/protobuf"
+  version = "v1.2.0"

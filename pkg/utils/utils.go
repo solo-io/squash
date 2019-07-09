@@ -64,7 +64,7 @@ func DeleteSquashDeployments(kc *kubernetes.Clientset, deps []appsv1.Deployment)
 func DeleteSquashDeployment(kc *kubernetes.Clientset, namespace, name string) error {
 	var gracePeriod int64
 	gracePeriod = 0
-	err := kc.Apps().Deployments(namespace).Delete(name, &v1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+	err := kc.AppsV1().Deployments(namespace).Delete(name, &v1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
 	if err != nil {
 		return err
 	}

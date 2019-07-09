@@ -168,20 +168,20 @@ func (o *Options) deleteSquashPermissions() error {
 	if err := cs.CoreV1().ServiceAccounts(namespace).Delete(sqOpts.PlankServiceAccountName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
-	if err := cs.Rbac().ClusterRoles().Delete(sqOpts.PlankClusterRoleName, &metav1.DeleteOptions{}); err != nil {
+	if err := cs.RbacV1().ClusterRoles().Delete(sqOpts.PlankClusterRoleName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
-	if err := cs.Rbac().ClusterRoleBindings().Delete(sqOpts.PlankClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
+	if err := cs.RbacV1().ClusterRoleBindings().Delete(sqOpts.PlankClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
 
 	if err := cs.CoreV1().ServiceAccounts(namespace).Delete(sqOpts.SquashServiceAccountName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
-	if err := cs.Rbac().ClusterRoles().Delete(sqOpts.SquashClusterRoleName, &metav1.DeleteOptions{}); err != nil {
+	if err := cs.RbacV1().ClusterRoles().Delete(sqOpts.SquashClusterRoleName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
-	if err := cs.Rbac().ClusterRoleBindings().Delete(sqOpts.SquashClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
+	if err := cs.RbacV1().ClusterRoleBindings().Delete(sqOpts.SquashClusterRoleBindingName, &metav1.DeleteOptions{}); err != nil {
 		fmt.Println(err)
 	}
 	return nil
