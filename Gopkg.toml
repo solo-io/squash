@@ -95,8 +95,8 @@
   version = "1.1.6"
 
 [[override]]
-name = "github.com/Azure/go-autorest"
-version = "v12.3.0"
+  name = "github.com/Azure/go-autorest"
+  version = "v12.3.0"
 
 [[override]]
   name = "github.com/golang/protobuf"
