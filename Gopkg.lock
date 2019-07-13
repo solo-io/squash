@@ -33,16 +33,33 @@
   version = "v12.3.0"
 
 [[projects]]
-  digest = "1:8c79a3263de0511c6c55053443f1bf6beb0320afbd5381d72986e9daa7c80d27"
+  digest = "1:c6c89fc1bc2ab5d7096d2852764446311823ccd503b7fc6cd41e9a9e3fa83aac"
   name = "github.com/GoogleContainerTools/skaffold"
   packages = [
-    "pkg/skaffold/constants",
+    "pkg/skaffold/color",
     "pkg/skaffold/kubernetes",
+    "pkg/skaffold/schema/latest",
+    "pkg/skaffold/schema/util",
     "pkg/skaffold/schema/v1alpha2",
+    "pkg/skaffold/schema/v1alpha3",
+    "pkg/skaffold/schema/v1alpha4",
+    "pkg/skaffold/schema/v1alpha5",
+    "pkg/skaffold/schema/v1beta1",
+    "pkg/skaffold/schema/v1beta10",
+    "pkg/skaffold/schema/v1beta11",
+    "pkg/skaffold/schema/v1beta2",
+    "pkg/skaffold/schema/v1beta3",
+    "pkg/skaffold/schema/v1beta4",
+    "pkg/skaffold/schema/v1beta5",
+    "pkg/skaffold/schema/v1beta6",
+    "pkg/skaffold/schema/v1beta7",
+    "pkg/skaffold/schema/v1beta8",
+    "pkg/skaffold/schema/v1beta9",
+    "pkg/skaffold/util",
   ]
   pruneopts = ""
-  revision = "71021311d4f4db76044e5fcf8d862bd644744e79"
-  version = "v0.7.0"
+  revision = "68fe5670b38a19cc5f689040ad2088c5bdeea779"
+  version = "v0.33.0"
 
 [[projects]]
   digest = "1:22105f92bcc87302c07d8806a79c41cc29356b1e74b9a8607678fd3ba4af2bf0"
@@ -485,12 +502,28 @@
   version = "0.5"
 
 [[projects]]
+  digest = "1:0f51cee70b0d254dbc93c22666ea2abf211af81c1701a96d04e2284b408621db"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = ""
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
   digest = "1:29d28429a93b076908a36420a7ecb2bf429d24c15a4b5e2c220ea00fc84b71af"
   name = "github.com/kr/pty"
   packages = ["."]
   pruneopts = ""
   revision = "db8e3cd836b82e82e0a9c8edc6896967dd31374f"
   version = "v1.1.3"
+
+[[projects]]
+  digest = "1:10e1dfc240bcd0fce14366215fd2b070e79d9b9460b27382db4423ad74204f2b"
+  name = "github.com/krishicks/yaml-patch"
+  packages = ["."]
+  pruneopts = ""
+  revision = "83cc9ac50becbbfafb86a89167f3bc5372e8e530"
+  version = "v0.0.10"
 
 [[projects]]
   digest = "1:961dc3b1d11f969370533390fdf203813162980c858e1dabe827b60940c909a5"
@@ -688,12 +721,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:8cf46b6c18a91068d446e26b67512cf16f1540b45d90b28b9533706a127f0ca6"
+  digest = "1:1a405cddcf3368445051fb70ab465ae99da56ad7be8d8ca7fc52159d1c2d873c"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = ""
-  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
-  version = "v1.0.5"
+  revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:76cf93ed7763ebc19b27072db569934a3e016c7e1dbcdbede1d2c368822772eb"
@@ -864,11 +897,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:55110794a7ff6a8890578b5188988a6b6056db7e81a1dc2e631e2e10d9e3f4c8"
+  digest = "1:74256ac28c3b375935de0076e414bc248e6dec0bd99fd6e7301536420f1515ad"
   name = "github.com/vishvananda/netlink"
   packages = ["nl"]
   pruneopts = ""
-  revision = "1970aef3abedcf777f2677a1193b468262ff8771"
+  revision = "2e4a68ee6c165085c6d708748b78cb8ac3c15ac9"
 
 [[projects]]
   branch = "master"
@@ -1376,6 +1409,7 @@
   name = "k8s.io/client-go"
   packages = [
     "discovery",
+    "dynamic",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1beta1",
