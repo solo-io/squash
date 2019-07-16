@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -38,13 +39,14 @@ func NewKubeOperations(ctx context.Context, config *rest.Config) (*KubeOperation
 func (s *KubeOperations) Locate(context context.Context, attachment interface{}) (interface{}, *platforms.Container, error) {
 
 	kubeAttachment, err := k8models.GenericToKubeAttachment(attachment)
+	logger := contextutils.LoggerFrom(context)
 	if err != nil {
-		log.Warn("Locate - error converting attachment")
+		logger.Warn("Locate - error converting attachment")
 		return nil, nil, err
 	}
 	clientset, err := kubernetes.NewForConfig(s.config)
 	if err != nil {
-		log.Warn("Locate - can't get client cluster")
+		logger.Warn("Locate - can't get client cluster")
 		return nil, nil, err
 	}
 
@@ -54,17 +56,17 @@ func (s *KubeOperations) Locate(context context.Context, attachment interface{})
 		kubeAttachment.Namespace = "default"
 	}
 
-	log.WithField("podname", kubeAttachment.Pod).Info("Trying to locate")
+	logger.Infow("Trying to locate", "podname", kubeAttachment.Pod)
 
 	pod, err := clientset.CoreV1().Pods(kubeAttachment.Namespace).Get(kubeAttachment.Pod, options)
 	if err != nil {
-		log.Warn("Locate - can't locate pod ", kubeAttachment.Pod, err)
+		logger.Warn("Locate - can't locate pod ", kubeAttachment.Pod, err)
 		return nil, nil, err
 	}
 
 	node := pod.Spec.NodeName
 
-	log.WithFields(log.Fields{"podname": kubeAttachment.Pod, "node": node}).Info("Located node for pod")
+	logger.Infow("Located node for pod", "podname", kubeAttachment.Pod, "node", node)
 
 	newcontainer := &platforms.Container{
 		Name: kubeAttachment.Container,
@@ -98,7 +100,7 @@ func (s *KubeOperations) Locate(context context.Context, attachment interface{})
 				newcontainer.Name = c.Name
 				newcontainer.Image = c.Image
 			} else {
-				log.WithField("potentialContainers", potentialContainers).Warn("Couldn't determine which container we need to debug")
+				logger.Warnf("Couldn't determine which container we need to debug", "potentialContainers", potentialContainers)
 				return nil, nil, errors.New("cant find container to debug")
 			}
 		}

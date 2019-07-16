@@ -3,14 +3,16 @@
 package config
 
 import (
+	"context"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
 
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/kr/pty"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -34,7 +36,7 @@ func ptyWrap(c *exec.Cmd) error {
 	go func() {
 		for range ch {
 			if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
-				log.Printf("error resizing pty: %s", err)
+				contextutils.LoggerFrom(context.TODO()).Infof("error resizing pty: %s", err)
 			}
 		}
 	}()

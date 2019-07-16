@@ -1,10 +1,11 @@
 package remote
 
 import (
+	"context"
 	"os/exec"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 const (
@@ -40,10 +41,11 @@ func (d *nodejsDebugServer) Cmd() *exec.Cmd {
 
 func (g *nodejsDebugServer) Attach(pid int) (DebugServer, error) {
 
-	log.WithField("pid", pid).Debug("AttachToLiveSession called")
+	logger := contextutils.LoggerFrom(context.TODO())
+	logger.Debugw("AttachToLiveSession called", "pid", pid)
 	err := syscall.Kill(pid, syscall.SIGUSR1)
 	if err != nil {
-		log.WithField("err", err).Error("can't send SIGUSR1 to the process")
+		logger.Errorw("can't send SIGUSR1 to the process", "err", err)
 		return nil, err
 	}
 	return g, nil

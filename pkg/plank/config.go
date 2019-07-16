@@ -25,6 +25,9 @@ type Config struct {
 	ctx        context.Context
 }
 
+// we want to use the default kubeconfig for the plank pods, since they run in the cluster
+const plankKubeconfigPath = ""
+
 func GetConfig(ctx context.Context) (*Config, error) {
 	debugNamespace := os.Getenv(sqOpts.PlankEnvDebugAttachmentNamespace)
 	daName := os.Getenv(sqOpts.PlankEnvDebugAttachmentName)
@@ -42,7 +45,7 @@ func GetConfig(ctx context.Context) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, plankKubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

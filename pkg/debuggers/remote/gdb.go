@@ -1,10 +1,11 @@
 package remote
 
 import (
+	"context"
 	"os/exec"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 
 	"fmt"
 	"time"
@@ -36,14 +37,15 @@ func (g *gdbDebugServer) Cmd() *exec.Cmd {
 
 func (g *GdbInterface) Attach(pid int) (DebugServer, error) {
 
-	log.WithField("pid", pid).Debug("AttachToLiveSession called")
+	logger := contextutils.LoggerFrom(context.TODO())
+	logger.Debugw("AttachToLiveSession called", "pid", pid)
 	cmd := exec.Command("gdbserver", "--attach", ":0", fmt.Sprintf("%d", pid))
 	cmd.Start()
-	log.Debug("starting gdbserver for user started, trying to get port")
+	logger.Debug("starting gdbserver for user started, trying to get port")
 	time.Sleep(time.Second)
 	port, err := GetPort(cmd.Process.Pid)
 	if err != nil {
-		log.WithField("err", err).Error("can't get gdbserver port")
+		logger.Errorw("can't get gdbserver port", "err", err)
 		cmd.Process.Kill()
 		cmd.Process.Release()
 		return nil, err

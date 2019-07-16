@@ -4,8 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/go-utils/contextutils"
 	gokubeutils "github.com/solo-io/go-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
@@ -16,24 +16,22 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func RunSquash(debugger func(string) remote.Remote) error {
-	log.SetLevel(log.DebugLevel)
+// we want to use the default kubeconfig for squash since it runs in the cluster
+const squashKubeconfigPath = ""
 
-	customFormatter := new(log.TextFormatter)
-	log.SetFormatter(customFormatter)
-
-	log.Info("Squash Client started")
+func RunSquash(ctx context.Context, debugger func(string) remote.Remote) error {
+	logger := contextutils.LoggerFrom(ctx)
+	logger.Info("Squash Client started")
 
 	flag.Parse()
 
-	ctx := context.Background()
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, squashKubeconfigPath)
 	if err != nil {
-		log.WithField("err", err).Error("RunDebugBridge")
+		logger.Errorw("RunDebugBridge", "err", err)
 		return err
 	}
 
-	restCfg, err := gokubeutils.GetConfig("", "")
+	restCfg, err := gokubeutils.GetConfig("", squashKubeconfigPath)
 	if err != nil {
 		return err
 	}
@@ -81,20 +79,21 @@ func (d *DebugHandler) handleAttachments() error {
 	el := v1.NewApiEventLoop(emitter, syncer)
 	// run event loop
 	wOpts := clients.WatchOpts{}
-	log.WithField("list", d.watchNamespaces).Info("Watching namespaces")
+	logger := contextutils.LoggerFrom(d.ctx)
+	logger.Infow("Watching namespaces", "list", d.watchNamespaces)
 	errs, err := el.Run(d.watchNamespaces, wOpts)
 	if err != nil {
 		return err
 	}
 	for err := range errs {
-		contextutils.LoggerFrom(d.ctx).Errorf("error in setup: %v", err)
+		logger.Errorf("error in setup: %v", err)
 	}
 	return nil
 }
 
 // This implements the syncer interface
 func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
-	log.Debug("running sync")
+	contextutils.LoggerFrom(ctx).Debug("running sync")
 	daMap := snapshot.Debugattachments
 	for _, daList := range daMap {
 		for _, da := range daList {
@@ -107,27 +106,29 @@ func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error
 }
 
 func (d *DebugHandler) syncOne(da *v1.DebugAttachment) error {
+	ctx, _ := context.WithTimeout(d.ctx, 30*time.Second)
+	logger := contextutils.LoggerFrom(d.ctx)
 	switch da.State {
 	case v1.DebugAttachment_RequestingAttachment:
-		log.Debugf("handling requesting attachment %v", da)
-		go d.debugController.handleAttachmentRequest(da)
+		logger.Debugf("handling requesting attachment %v", da)
+		go d.debugController.handleAttachmentRequest(ctx, da)
 		return nil
 	case v1.DebugAttachment_PendingAttachment:
-		log.Debug("handling pending attachment")
+		logger.Debug("handling pending attachment")
 		// do nothing, will transition out of this state according to the result of the RequestingAttachment handler
 		return nil
 	case v1.DebugAttachment_Attached:
-		log.Debug("handling attached")
+		logger.Debug("handling attached")
 		// do nothing, this is "steady state"
 		return nil
 	case v1.DebugAttachment_RequestingDelete:
-		log.Debug("handling requesting delete")
+		logger.Debug("handling requesting delete")
 		// DO NOTHING - Will refactor this
 		// log.WithFields(log.Fields{"attachment.Name": da.Metadata.Name}).Debug("Removing attachment")
 		// go func() { d.debugController.removeAttachment(da.Metadata.Namespace, da.Metadata.Name) }()
 		return nil
 	case v1.DebugAttachment_PendingDelete:
-		log.Debug("handling pending delete")
+		logger.Debug("handling pending delete")
 		// DO NOTHING - Will refactor this
 		// d.debugController.deleteResource(da.Metadata.Namespace, da.Metadata.Name)
 		// do nothing, will transition out of this state according to the result of the RequestingDelete handler

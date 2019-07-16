@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: log-spooler-ping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-spooler-ping
+  template:
+    metadata:
+      labels:
+        app: log-spooler-ping
+    spec:
+      containers:
+        - name: log-spooler-ping
+          image: soloio/log_spooler_ping:v0.0.4
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: log-spooler-ping
+spec:
+  selector:
+    app: log-spooler-ping
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080

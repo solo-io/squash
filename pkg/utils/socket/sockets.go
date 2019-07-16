@@ -2,6 +2,7 @@ package socket
 
 import (
 	"bufio"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 	"strconv"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 
 	"github.com/vishvananda/netlink/nl"
 )
@@ -75,12 +76,14 @@ func parseProcNetTcp() ([]inodeAndPort, error) {
 func GetListeningPortsFor(pid int) ([]int, error) {
 	var inoddedPorts []inodeAndPort
 
+	ctx := context.TODO()
+	logger := contextutils.LoggerFrom(ctx)
 	if listeningsokcets, err := SocketListen(); err != nil {
-		log.WithFields(log.Fields{"pid": pid, "err": err}).Warn("GetListeningSocketsFor: Can't get listening sockets with netlink")
+		logger.Warnw("GetListeningSocketsFor: Can't get listening sockets with netlink", "pid", pid, "err", err)
 
 		inoddedPorts, err = parseProcNetTcp()
 		if err != nil {
-			log.WithFields(log.Fields{"pid": pid, "err": err}).Error("GetListeningSocketsFor: Can't get listening sockets")
+			logger.Errorw("GetListeningSocketsFor: Can't get listening sockets", "pid", pid, "err", err)
 			return nil, err
 		}
 	} else {
@@ -92,19 +95,19 @@ func GetListeningPortsFor(pid int) ([]int, error) {
 		}
 
 	}
-	log.WithFields(log.Fields{"pid": pid, "inoddedPorts": inoddedPorts}).Debug("GetSocketInodesFor: got listening sockets")
+	logger.Debugw("GetSocketInodesFor: got listening sockets", "pid", pid, "inoddedPorts", inoddedPorts)
 
 	sockets, err := GetSocketInodesFor(pid)
 	if err != nil {
-		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("GetSocketInodesFor: Can't can socks for pid")
+		logger.Errorw("GetSocketInodesFor: Can't can socks for pid", "pid", pid, "err", err)
 		return nil, err
 	}
-	log.WithFields(log.Fields{"pid": pid, "sockets": sockets}).Debug("GetSocketInodesFor: got sockets for pid")
+	logger.Debugw("GetSocketInodesFor: got sockets for pid", "pid", pid, "sockets", sockets)
 
 	var pidsocks []inodeAndPort
 	for _, socket := range inoddedPorts {
 		for _, pidsock := range sockets {
-			log.WithFields(log.Fields{"socket": socket, "inodesock": pidsock}).Debug("GetSocketInodesFor: testing socket match")
+			logger.Debugw("GetSocketInodesFor: testing socket match", "socket", socket, "inodesock", pidsock)
 
 			if uint64(socket.inode) == pidsock {
 				pidsocks = append(pidsocks, socket)
@@ -198,7 +201,7 @@ func (s *Socket) deserialize(b []byte) error {
 	if len(b) < sizeofSocket {
 		return fmt.Errorf("socket data short read (%d); want %d", len(b), sizeofSocket)
 	}
-	log.WithField("bytes", b).Debug("Deserializing netlink socker info")
+	contextutils.LoggerFrom(context.TODO()).Debugw("Deserializing netlink socker info", "bytes", b)
 	rb := readBuffer{Bytes: b}
 	s.Family = rb.Read()
 	s.State = rb.Read()
@@ -311,20 +314,21 @@ func SocketListen() ([]*Socket, error) {
 		return nil, errors.New("no message nor error from netlink")
 	}
 	var sockets []*Socket
+	logger := contextutils.LoggerFrom(context.TODO())
 	for _, msg := range msgs {
-		log.WithField("msg", msg).Debug("got netlink msg")
+		logger.Debugw("got netlink msg", "msg", msg)
 		if msg.Header.Type == SOCK_DIAG_BY_FAMILY {
-			log.Debug("got diag by family netlink msg")
+			logger.Debug("got diag by family netlink msg")
 
 			sock := &Socket{}
 			if err := sock.deserialize(msg.Data); err != nil {
-				log.WithField("err", err).Warn("Error parsing message")
+				logger.Warnw("Error parsing message", "err", err)
 				continue
 			}
 			sockets = append(sockets, sock)
 		} else if msg.Header.Type == syscall.NLMSG_ERROR {
 			errval := native.Uint32(msg.Data[:4])
-			log.WithField("errval", errval).Warn("Netlink error ")
+			logger.Warnw("Netlink error", "errval", errval)
 			return nil, fmt.Errorf("netlink error: %d", -errval)
 		}
 

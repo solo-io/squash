@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 const (
@@ -45,14 +46,15 @@ func (d *ptvsdDebugServer) Cmd() *exec.Cmd {
 
 func (i *PythonInterface) Attach(pid int) (DebugServer, error) {
 
-	log.WithField("pid", pid).Debug("AttachToLiveSession called")
+	logger := contextutils.LoggerFrom(context.TODO())
+	logger.Debugw("AttachToLiveSession called", "pid", pid)
 	port, err := getPtvsdPort(pid)
 	if err != nil {
-		log.WithField("err", err).Error("can't get ptvsd port")
+		logger.Errorw("can't get ptvsd port", "err", err)
 		return nil, err
 	}
 
-	log.WithFields(log.Fields{"pid": pid, "port": port}).Debug("Found python debug port")
+	logger.Debugw("Found python debug port", "pid", pid, "port", port)
 	ds := &ptvsdDebugServer{
 		port: port,
 	}
@@ -72,7 +74,7 @@ func getPtvsdPort(pid int) (int, error) {
 	}
 
 	root := filepath.Join("/proc", fmt.Sprintf("%d", pid), "cwd")
-	log.WithField("root", root).Debug("searching root")
+	contextutils.LoggerFrom(context.TODO()).Debugw("searching root", "root", root)
 	re := regexp.MustCompile(PtvsdSearchString)
 
 	werr := filepath.Walk(root+"/", func(p string, fi os.FileInfo, err error) error {

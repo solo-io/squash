@@ -5,7 +5,8 @@ import (
 	"os"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
@@ -52,38 +53,41 @@ func (d *DebugController) removeAttachment(namespace, name string) {
 	delete(d.debugattachments, name)
 	d.debugattachmentsLock.Unlock()
 
+	logger := contextutils.LoggerFrom(d.ctx)
 	if ok {
-		log.WithFields(log.Fields{"attachment.Name": name}).Debug("Detaching attachment")
+		logger.Debugw("Detaching attachment", "attachment.Name", name)
 		err := data.debugger.Detach()
 		if err != nil {
-			log.WithFields(log.Fields{"attachment.Name": name, "err": err}).Debug("Error detaching")
+			logger.Debugw("Error detaching", "attachment.Name", name, "err", err)
 		}
 	}
 }
 
-func (d *DebugController) handleAttachmentRequest(da *v1.DebugAttachment) {
+func (d *DebugController) handleAttachmentRequest(ctx context.Context, da *v1.DebugAttachment) {
 
 	// Mark attachment as in progress
 	da.State = v1.DebugAttachment_PendingAttachment
 	_, err := d.daClient.Write(da, clients.WriteOpts{OverwriteExisting: true})
+	logger := contextutils.LoggerFrom(d.ctx)
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to update attachment status.")
+		logger.Warnw("Failed to update attachment status.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 	}
 	// TODO - put in a goroutine
-	err = d.tryToAttachPod(da)
+	err = d.tryToAttachPod(ctx, da)
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace, "error": err}).Warn("Failed to attach debugger, deleting request.")
+		logger.Warnw("Failed to attach debugger, deleting request.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace, "error", err)
 		d.markForDeletion(da.Metadata.Namespace, da.Metadata.Name)
 	}
 
 }
 
 func (d *DebugController) setState(namespace, name string, state v1.DebugAttachment_State) {
-	log.WithFields(log.Fields{"namespace": namespace, "name": name, "state": state}).Debug("marking state")
+	logger := contextutils.LoggerFrom(d.ctx)
+	logger.Debugw("marking state", "namespace", namespace, "name", name, "state", state)
 	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		// should not happen, but if it does, the CRD was probably already deleted
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment.")
+		logger.Warnw("Failed to read attachment.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 	}
 
 	da.State = state
@@ -93,17 +97,18 @@ func (d *DebugController) setState(namespace, name string, state v1.DebugAttachm
 		OverwriteExisting: true,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to set attachment state.")
+		logger.Warnw("Failed to set attachment state.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 	}
 }
 func (d *DebugController) markForDeletion(namespace, name string) {
-	log.Debug("called mark for deletion from squash - skipping for now")
+	logger := contextutils.LoggerFrom(d.ctx)
+	logger.Debug("called mark for deletion from squash - skipping for now")
 	return
-	log.WithFields(log.Fields{"namespace": namespace, "name": name}).Debug("marking for deletion")
+	logger.Debugw("marking for deletion", "namespace", namespace, "name", name)
 	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
 	if err != nil {
 		// should not happen, but if it does, the CRD was probably already deleted
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to delete.")
+		logger.Debugw("Failed to read attachment prior to delete.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 	}
 
 	da.State = v1.DebugAttachment_PendingDelete
@@ -113,21 +118,22 @@ func (d *DebugController) markForDeletion(namespace, name string) {
 		OverwriteExisting: true,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to mark attachment for deletion.")
+		logger.Warnw("Failed to mark attachment for deletion.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 	}
 }
 
 func (d *DebugController) deleteResource(namespace, name string) {
 	err := d.daClient.Delete(namespace, name, clients.DeleteOpts{Ctx: d.ctx, IgnoreNotExist: true})
 	if err != nil {
-		log.WithFields(log.Fields{"name": name, "namespace": namespace, "error": err}).Warn("Failed to delete resource.")
+		contextutils.LoggerFrom(d.ctx).Warnw("Failed to delete resource.", "name", name, "namespace", namespace, "error", err)
 	}
 }
 
 func (d *DebugController) markAsAttached(namespace, name string) {
 	da, err := d.daClient.Read(namespace, name, clients.ReadOpts{Ctx: d.ctx})
+	logger := contextutils.LoggerFrom(d.ctx)
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to read attachment prior to marking as attached.")
+		logger.Warnw("Failed to read attachment prior to marking as attached.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 		d.markForDeletion(namespace, name)
 	}
 
@@ -138,13 +144,13 @@ func (d *DebugController) markAsAttached(namespace, name string) {
 		OverwriteExisting: true,
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"da.Name": da.Metadata.Name, "da.Namespace": da.Metadata.Namespace}).Warn("Failed to mark debug attachment as attached.")
+		logger.Warnw("Failed to mark debug attachment as attached.", "da.Name", da.Metadata.Name, "da.Namespace", da.Metadata.Namespace)
 		d.markForDeletion(namespace, name)
 	}
 }
 
-func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
-	s := config.NewSquashConfig()
+func (d *DebugController) tryToAttachPod(ctx context.Context, da *v1.DebugAttachment) error {
+	s := config.NewSquashConfig(&d.daClient)
 	s.TimeoutSeconds = 300
 	s.Machine = true
 	s.NoClean = true
@@ -165,7 +171,7 @@ func (d *DebugController) tryToAttachPod(da *v1.DebugAttachment) error {
 	// if err := s.ExpectToGetUniqueDebugTargetFromSpec(&dbt); err != nil {
 	// 	return err
 	// }
-	_, err := config.StartDebugContainer(s, dbt)
+	_, err := config.StartDebugContainer(ctx, s, dbt)
 	if err != nil {
 		return err
 	}

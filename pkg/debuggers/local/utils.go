@@ -8,10 +8,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
-	"github.com/solo-io/squash/pkg/utils"
 )
 
 func GetPortForwardCmd(targetName, targetNamespace string, localPort, targetRemotePort int) *exec.Cmd {
@@ -56,9 +54,9 @@ func GetParticularDebugger(dbgtype string) Local {
 	}
 }
 
-func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
+func GetDebugPortFromCrd(ctx context.Context, daClient v1.DebugAttachmentClient, daName, daNamespace string) (int, error) {
 	// TODO - all of our ports should be gotten from the crd. As is, it is possible that the random port chosen from ip_addr:0 could return 1236 - slim chance but may as well handle it
-	da, err := waitForDebugServerAddress(daName, daNamespace)
+	da, err := waitForDebugServerAddress(ctx, daClient, daName, daNamespace)
 	if err != nil {
 		return 0, fmt.Errorf("Could not read debug attachment %v in namespace %v: %v", daName, daNamespace, err)
 	}
@@ -69,14 +67,7 @@ func GetDebugPortFromCrd(daName, daNamespace string) (int, error) {
 	return port, nil
 }
 
-func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment, error) {
-	// TODO(mitchdraft) - pass this (and all ctx's from startup)
-	ctx := context.Background()
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
-	if err != nil {
-		log.WithField("err", err).Error("getting debug attachment client")
-		return &v1.DebugAttachment{}, err
-	}
+func waitForDebugServerAddress(ctx context.Context, daClient v1.DebugAttachmentClient, daName, daNamespace string) (*v1.DebugAttachment, error) {
 	dac, errc, err := daClient.Watch(daNamespace, clients.WatchOpts{Ctx: ctx})
 	if err != nil {
 		return &v1.DebugAttachment{}, err
@@ -90,7 +81,7 @@ func waitForDebugServerAddress(daName, daNamespace string) (*v1.DebugAttachment,
 		case err, _ := <-errc:
 			return &v1.DebugAttachment{}, err
 		case <-ctx.Done():
-			return &v1.DebugAttachment{}, fmt.Errorf("Could not find debug spec in the allotted time.")
+			return &v1.DebugAttachment{}, fmt.Errorf("could not find debug spec in the allotted time.")
 		case das, ok := <-dac:
 			if !ok {
 				return &v1.DebugAttachment{}, fmt.Errorf("could not read watch channel")

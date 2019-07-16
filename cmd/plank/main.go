@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/squash/pkg/version"
+
+	"github.com/solo-io/squash/pkg/urllogger"
+
 	"github.com/solo-io/go-utils/contextutils"
 	"github.com/solo-io/squash/pkg/plank"
-	"github.com/solo-io/squash/pkg/version"
 	"go.uber.org/zap"
 )
 
 func main() {
-	// TODO - switch to zap throughout
-	log.SetLevel(log.DebugLevel)
-	log.Infof("plank %v, %v", version.Version, version.TimeStamp)
-	logger, _ := zap.NewProduction()
+	//logger, _ := zap.NewProduction()
+	logger := zap.New(urllogger.GetSpoolerLoggerCoreDefault())
 	defer logger.Sync()
 	contextutils.SetFallbackLogger(logger.Sugar())
 	ctx := context.Background()
-	ctx = contextutils.WithLogger(ctx, "squash")
+	ctx = contextutils.WithLogger(ctx, "squash-plank")
+	logger.Sugar().Infof("plank %v, %v", version.Version, version.TimeStamp)
 
 	err := plank.Debug(ctx)
 	if err != nil {

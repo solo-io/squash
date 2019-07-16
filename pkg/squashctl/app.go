@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/pkg/errors"
 	"github.com/solo-io/go-utils/cliutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"github.com/solo-io/squash/pkg/actions"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/config"
 	"github.com/solo-io/squash/pkg/options"
@@ -112,32 +113,41 @@ func applySquashFlags(cfg *config.Squash, f *pflag.FlagSet) {
 	f.StringVar(&cfg.CRISock, "crisock", "/var/run/dockershim.sock", "The path to the CRI socket")
 	f.StringVar(&cfg.SquashNamespace, "squash-namespace", sqOpts.SquashNamespace, fmt.Sprintf("the namespace where squash resources will be deployed (default: %v)", options.SquashNamespace))
 	f.StringVar(&cfg.ProcessName, "process-match", "", "optional, if passed, Squash will try to find a process in the target container that matches (regex, case-insensitive) this string. Otherwise Squash chooses the first process.")
+	f.StringVar(&cfg.KubeConfig, "kubeconfig", "", "optional, if passed, Squash will use this instead of the default kubeconfig.")
 }
 
 func initializeOptions(o *Options) {
 	o.ctx = context.Background()
 
-	o.Squash = config.NewSquashConfig()
+	o.Squash = config.NewSquashConfig(nil)
 
 	o.DeployOptions = defaultDeployOptions()
 }
 
 func (o *Options) getDAClient() (v1.DebugAttachmentClient, error) {
-	if o.daClient == nil {
-		var err error
+	dac, err := o.Squash.GetClient()
+
+	if config.IsNoDebugAttachmentClientError(err) {
 		if o.Config.secureMode {
-			o.daClient, err = utils.GetBasicDebugAttachmentClient(o.ctx)
+			client, err := utils.GetBasicDebugAttachmentClient(o.ctx, o.Config.kubeConfig)
 			if err != nil {
 				return nil, err
 			}
+			o.Squash.SetClient(&client)
+			return client, nil
 		} else {
-			o.daClient, err = utils.GetDebugAttachmentClientWithRegistration(o.ctx)
+			client, err := utils.GetDebugAttachmentClientWithRegistration(o.ctx, o.Config.kubeConfig)
 			if err != nil {
 				return nil, err
 			}
+			o.Squash.SetClient(&client)
+			return client, nil
 		}
+	} else if err != nil {
+		return nil, err
+	} else {
+		return *dac, nil
 	}
-	return o.daClient, nil
 }
 
 func (o *Options) getKubeClient() (*kubernetes.Clientset, error) {
@@ -179,7 +189,7 @@ func (o *Options) runBaseCommand() error {
 			return err
 		}
 		time.Sleep(200 * time.Millisecond)
-		_, err := config.StartDebugContainer(o.Squash, o.DebugTarget)
+		_, err := config.StartDebugContainer(o.ctx, o.Squash, o.DebugTarget)
 		o.cleanupPostRun()
 		return err
 	}
@@ -209,29 +219,56 @@ func (o *Options) runBaseCommandWithRbac() error {
 	// TODO(mitchdraft) - replace with watch on cmd stream
 	time.Sleep(3 * time.Second)
 
-	return o.Squash.ReportOrConnectToCreatedDebuggerPod()
+	return o.Squash.ReportOrConnectToCreatedDebuggerPod(o.ctx)
 }
 
 func (o *Options) writeDebugAttachment() error {
 	so := o.Squash
 	dbge := o.DebugTarget
 
-	uc, err := actions.NewUserController()
+	daName := cliutils.RandKubeNameBytes(10)
+
+	namespace := so.Namespace
+	image := dbge.Container.Image
+	podName := dbge.Pod.Name
+	container := so.Container
+	processName := so.ProcessName
+	dbgger := so.Debugger
+	di := v1.Intent{
+		Debugger: dbgger,
+		Pod: &core.ResourceRef{
+			Name:      podName,
+			Namespace: namespace,
+		},
+		ContainerName: container,
+	}
+	attachLabels := di.GenerateLabels()
+	da := v1.DebugAttachment{
+		Metadata: core.Metadata{
+			Name:      daName,
+			Namespace: namespace,
+			Labels:    attachLabels,
+		},
+		Debugger:       dbgger,
+		Image:          image,
+		Pod:            podName,
+		Container:      container,
+		DebugNamespace: namespace,
+		State:          v1.DebugAttachment_RequestingAttachment,
+	}
+	if processName != "" {
+		da.ProcessName = processName
+	}
+	writeOpts := clients.WriteOpts{
+		Ctx:               o.ctx,
+		OverwriteExisting: false,
+	}
+	daClient, err := o.getDAClient()
 	if err != nil {
 		return err
 	}
-	daName := cliutils.RandKubeNameBytes(10)
-	// this works in the form: `squash  --namespace mk6 --pod example-service1-74bbc5dcd-rvrtq`
-	_, err = uc.Attach(
-		daName,
-		so.Namespace,
-		dbge.Container.Image,
-		dbge.Pod.Name,
-		so.Container,
-		so.ProcessName,
-		so.Debugger)
-
-	return nil
+	_, err = daClient.Write(&da, writeOpts)
+	return err
 }
 
 func (o *Options) ensureMinimumSquashConfig() error {
@@ -252,7 +289,9 @@ func (o *Options) ensureMinimumSquashConfig() error {
 			Message: "Going to attach " + o.Squash.Debugger + " to pod " + o.DebugTarget.Pod.ObjectMeta.Name + ". continue?",
 			Default: true,
 		}
-		survey.AskOne(prompt, &confirmed, nil)
+		if err := survey.AskOne(prompt, &confirmed, nil); err != nil {
+			return err
+		}
 		if !confirmed {
 			return errors.New("user aborted")
 		}

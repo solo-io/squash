@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
+	"go.uber.org/zap"
+
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	v1 "github.com/solo-io/squash/pkg/api/v1"
 	"github.com/solo-io/squash/pkg/debuggers/remote"
@@ -81,9 +83,9 @@ func connectLocalPrepare(ctx context.Context, dbgServer remote.DebugServer, att 
 	// We write the target port to a CRD to be read from squashctl
 
 	// get client
-	daClient, err := utils.GetBasicDebugAttachmentClient(ctx)
+	daClient, err := utils.GetBasicDebugAttachmentClient(ctx, plankKubeconfigPath)
 	if err != nil {
-		log.WithField("err", err).Error("getting debug attachment client")
+		contextutils.LoggerFrom(ctx).With(zap.Error(err)).Error("getting debug attachment client")
 		return err
 	}
 

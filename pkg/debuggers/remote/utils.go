@@ -1,12 +1,14 @@
 package remote
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/solo-io/go-utils/contextutils"
+
 	"github.com/solo-io/squash/pkg/utils"
 	"github.com/solo-io/squash/pkg/utils/socket"
 )
@@ -15,13 +17,14 @@ func GetPort(pid int) (int, error) {
 
 	ports, err := socket.GetListeningPortsFor(pid)
 
+	logger := contextutils.LoggerFrom(context.TODO())
 	if err != nil {
-		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get listening ports")
+		logger.Errorw("Can't get listening ports", "pid", pid, "err", err)
 		return 0, err
 	}
 
 	if len(ports) == 0 {
-		log.WithFields(log.Fields{"pid": pid, "err": err, "ports": ports}).Error("can't get port for pid")
+		logger.Errorw("can't get port for pid", "pid", pid, "err", err, "ports", ports)
 		return 0, errors.New("Number of ports is zero")
 	}
 
@@ -32,7 +35,7 @@ func GetPort(pid int) (int, error) {
 		}
 	}
 
-	log.WithFields(log.Fields{"pid": pid, "port": port}).Info("port found")
+	logger.Infow("port found", "pid", pid, "port", port)
 
 	return port, nil
 }
@@ -40,8 +43,9 @@ func GetPort(pid int) (int, error) {
 func GetPortOfJavaProcess(pid int) (int, error) {
 
 	args, err := utils.GetCmdArgsByPid(pid)
+	logger := contextutils.LoggerFrom(context.TODO())
 	if err != nil {
-		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get command line arguments")
+		logger.Errorw("Can't get command line arguments", "pid", pid, "err", err)
 		return 0, err
 	}
 
@@ -53,7 +57,7 @@ func GetPortOfJavaProcess(pid int) (int, error) {
 	for _, arg := range args {
 		port, err = checkAndParseArgument(arg)
 		if err != nil {
-			log.WithFields(log.Fields{"pid": pid, "err": err, "arg": arg}).Error("Can't get command line arguments")
+			logger.Errorw("Can't get command line arguments", "pid", pid, "err", err, "arg", arg)
 			break
 		}
 		if port != 0 {

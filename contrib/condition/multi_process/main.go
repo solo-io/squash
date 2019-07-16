@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
+
+	"github.com/solo-io/go-utils/contextutils"
 )
 
 var ServiceToCall = "example-service2"
@@ -20,7 +22,7 @@ func main() {
 	http.HandleFunc("/calc", handler)
 	http.HandleFunc("/", view)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	contextutils.LoggerFrom(context.TODO()).Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func view(w http.ResponseWriter, r *http.Request) {
