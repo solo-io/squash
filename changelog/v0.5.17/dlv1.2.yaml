@@ -1,0 +1,6 @@
+changelog:
+  - type: DEPENDENCY_BUMP
+    description: Update dlv to version v1.2.0.
+    dependencyOwner: go-delve
+    dependencyRepo: delve
+    dependencyTag: v1.2.0
