@@ -53,23 +53,25 @@ func main() {
 			DarwinShaRegex: `url\s*".*-darwin.*\W*sha256\s*"(.*)"`,
 			LinuxShaRegex:  `url\s*".*-linux.*\W*sha256\s*"(.*)"`,
 		},
-		{
-			Name:            "fish-food/squashctl",
-			FormulaName:     "squashctl",
-			Path:            "Food/squashctl.lua",
-			RepoOwner:       repoOwner,
-			RepoName:        "fish-food",
-			PRRepoOwner:     "fishworks",
-			PRRepoName:      "fish-food",
-			PRBranch:        "master",
-			PRDescription:   "",
-			PRCommitName:    "Solo-io Bot",
-			PRCommitEmail:   "bot@solo.io",
-			VersionRegex:    `version\s*=\s*"([0-9.]+)"`,
-			DarwinShaRegex:  `os\s*=\s*"darwin",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-			LinuxShaRegex:   `os\s*=\s*"linux",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-			WindowsShaRegex: `os\s*=\s*"windows",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-		},
+		/*
+		           {
+		   			Name:            "fish-food/squashctl",
+		   			FormulaName:     "squashctl",
+		   			Path:            "Food/squashctl.lua",
+		   			RepoOwner:       repoOwner,
+		   			RepoName:        "fish-food",
+		   			PRRepoOwner:     "fishworks",
+		   			PRRepoName:      "fish-food",
+		   			PRBranch:        "master",
+		   			PRDescription:   "",
+		   			PRCommitName:    "Solo-io Bot",
+		   			PRCommitEmail:   "bot@solo.io",
+		   			VersionRegex:    `version\s*=\s*"([0-9.]+)"`,
+		   			DarwinShaRegex:  `os\s*=\s*"darwin",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+		   			LinuxShaRegex:   `os\s*=\s*"linux",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+		   			WindowsShaRegex: `os\s*=\s*"windows",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+		   		},
+		*/
 	}
 
 	// Update package manager install formulas
