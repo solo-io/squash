@@ -14,7 +14,7 @@ import (
 func main() {
 	// TODO - switch to zap throughout
 	log.SetLevel(log.DebugLevel)
-	log.Infof("plank %v, %v", version.Version, version.TimeStamp)
+	log.Infof("plank %v", version.Version)
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 	contextutils.SetFallbackLogger(logger.Sugar())

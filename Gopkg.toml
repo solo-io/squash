@@ -26,16 +26,12 @@
   name = "github.com/spf13/cobra"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/vishvananda/netlink"
+  revision = "1970aef3abedcf777f2677a1193b468262ff8771"
 
 [[constraint]]
-  name = "github.com/derekparker/delve"
-  version = "1.0.0"
-
-[[override]]
-  name = "golang.org/x/arch"
-  revision = "58ea1a195b1a354bcd572b7ef6bbbd264dc63732"
+  name = "github.com/go-delve/delve"
+  version = "1.2.0"
 
 [[constraint]]
   name = "github.com/davecgh/go-spew"
@@ -50,20 +46,32 @@
   version = "1.2.0"
 
 [[override]]
+  name = "github.com/russross/blackfriday"
+  version = "1.5.2"
+
+[[override]]
   name = "github.com/Azure/go-autorest"
-  version = "9.10.0"
+  version = "10.14.0"
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "0.6.5"
+  version = "0.10.0"
 
 [[constraint]]
   name = "github.com/solo-io/go-utils"
-  version = "0.7.17"
+  version = "0.9.10"
 
 [[constraint]]
   name = "github.com/solo-io/build"
   revision = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/solo-io/go-checkpoint"
+  version = "0.0.4"
+
+[[constraint]]
+  name = "github.com/GoogleContainerTools/skaffold"
+  version = "0.33.0"
 
 [[override]]
   name = "gopkg.in/fsnotify.v1"
@@ -73,3 +81,30 @@
   name = "github.com/lyft/protoc-gen-validate"
   version = "0.0.6"
   source = "github.com/envoyproxy/protoc-gen-validate"
+
+# make sure all kubernetes code is the same version.
+# when updating, update all in the same time.
+
+[[constraint]]
+  name = "k8s.io/kubernetes"
+  version = "1.12.9"
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.12.9"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.12.9"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.12.9"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.12.9"
+
+[[override]]
+  name = "k8s.io/apiserver"
+  version = "kubernetes-1.12.9"

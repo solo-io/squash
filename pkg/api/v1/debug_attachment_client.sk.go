@@ -9,6 +9,11 @@ import (
 	"github.com/solo-io/solo-kit/pkg/errors"
 )
 
+type DebugAttachmentWatcher interface {
+	// watch namespace-scoped Debugattachments
+	Watch(namespace string, opts clients.WatchOpts) (<-chan DebugAttachmentList, <-chan error, error)
+}
+
 type DebugAttachmentClient interface {
 	BaseClient() clients.ResourceClient
 	Register() error
@@ -16,7 +21,7 @@ type DebugAttachmentClient interface {
 	Write(resource *DebugAttachment, opts clients.WriteOpts) (*DebugAttachment, error)
 	Delete(namespace, name string, opts clients.DeleteOpts) error
 	List(namespace string, opts clients.ListOpts) (DebugAttachmentList, error)
-	Watch(namespace string, opts clients.WatchOpts) (<-chan DebugAttachmentList, <-chan error, error)
+	DebugAttachmentWatcher
 }
 
 type debugAttachmentClient struct {

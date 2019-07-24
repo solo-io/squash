@@ -55,7 +55,7 @@ An annotated version of this demo can be found [here](https://youtu.be/5aNPfwVvL
 Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 
 ## Supported debuggers:
- - [dlv](https://github.com/derekparker/delve)
+ - [dlv](https://github.com/go-delve/delve)
  - [Java](http://docs.oracle.com/javase/7/docs/technotes/guides/jpda/jdwp-spec.html)
  - [gdb](https://www.gnu.org/software/gdb/) (2019)
  - [Nodejs](https://nodejs.org/api/debugger.html) (2019)
@@ -89,4 +89,4 @@ Squash is under active development. APIs and compatibility are subject to change
 
 ## Thanks
 
-**Squash** would not be possible without the valuable open-source work of projects in the community. We would like to extend a special thank-you to [Kubernetes](https://kubernetes.io), [gdb](https://www.gnu.org/software/gdb/) and [dlv](https://github.com/derekparker/delve).
+**Squash** would not be possible without the valuable open-source work of projects in the community. We would like to extend a special thank-you to [Kubernetes](https://kubernetes.io), [gdb](https://www.gnu.org/software/gdb/) and [dlv](https://github.com/go-delve/delve).

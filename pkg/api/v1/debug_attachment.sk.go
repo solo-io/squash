@@ -3,13 +3,14 @@
 package v1
 
 import (
+	"log"
 	"sort"
 
+	"github.com/solo-io/go-utils/hashutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube/crd"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"github.com/solo-io/solo-kit/pkg/errors"
-	"github.com/solo-io/solo-kit/pkg/utils/hashutils"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -50,8 +51,11 @@ func (r *DebugAttachment) Hash() uint64 {
 	)
 }
 
+func (r *DebugAttachment) GroupVersionKind() schema.GroupVersionKind {
+	return DebugAttachmentGVK
+}
+
 type DebugAttachmentList []*DebugAttachment
-type DebugattachmentsByNamespace map[string]DebugAttachmentList
 
 // namespace is optional, if left empty, names can collide if the list contains more than one with the same name
 func (list DebugAttachmentList) Find(namespace, name string) (*DebugAttachment, error) {
@@ -118,6 +122,12 @@ func (list DebugAttachmentList) Each(f func(element *DebugAttachment)) {
 	}
 }
 
+func (list DebugAttachmentList) EachResource(f func(element resources.Resource)) {
+	for _, debugAttachment := range list {
+		f(debugAttachment)
+	}
+}
+
 func (list DebugAttachmentList) AsInterfaces() []interface{} {
 	var asInterfaces []interface{}
 	list.Each(func(element *DebugAttachment) {
@@ -125,34 +135,6 @@ func (list DebugAttachmentList) AsInterfaces() []interface{} {
 	})
 	return asInterfaces
 }
-
-func (byNamespace DebugattachmentsByNamespace) Add(debugAttachment ...*DebugAttachment) {
-	for _, item := range debugAttachment {
-		byNamespace[item.GetMetadata().Namespace] = append(byNamespace[item.GetMetadata().Namespace], item)
-	}
-}
-
-func (byNamespace DebugattachmentsByNamespace) Clear(namespace string) {
-	delete(byNamespace, namespace)
-}
-
-func (byNamespace DebugattachmentsByNamespace) List() DebugAttachmentList {
-	var list DebugAttachmentList
-	for _, debugAttachmentList := range byNamespace {
-		list = append(list, debugAttachmentList...)
-	}
-	return list.Sort()
-}
-
-func (byNamespace DebugattachmentsByNamespace) Clone() DebugattachmentsByNamespace {
-	cloned := make(DebugattachmentsByNamespace)
-	for ns, list := range byNamespace {
-		cloned[ns] = list.Clone()
-	}
-	return cloned
-}
-
-var _ resources.Resource = &DebugAttachment{}
 
 // Kubernetes Adapter for DebugAttachment
 
@@ -165,11 +147,27 @@ func (o *DebugAttachment) DeepCopyObject() runtime.Object {
 	return resources.Clone(o).(*DebugAttachment)
 }
 
-var DebugAttachmentCrd = crd.NewCrd("squash.solo.io",
-	"debugattachments",
-	"squash.solo.io",
-	"v1",
-	"DebugAttachment",
-	"debatt",
-	false,
-	&DebugAttachment{})
+var (
+	DebugAttachmentCrd = crd.NewCrd(
+		"debugattachments",
+		DebugAttachmentGVK.Group,
+		DebugAttachmentGVK.Version,
+		DebugAttachmentGVK.Kind,
+		"debatt",
+		false,
+		&DebugAttachment{})
+)
+
+func init() {
+	if err := crd.AddCrd(DebugAttachmentCrd); err != nil {
+		log.Fatalf("could not add crd to global registry")
+	}
+}
+
+var (
+	DebugAttachmentGVK = schema.GroupVersionKind{
+		Version: "v1",
+		Group:   "squash.solo.io",
+		Kind:    "DebugAttachment",
+	}
+)

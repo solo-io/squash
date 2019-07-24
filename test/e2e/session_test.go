@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/schema/v1alpha2"
-
 	skube "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes"
 	"github.com/solo-io/go-utils/kubeutils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -429,16 +427,11 @@ func (pf podFilter) Pick(pod *v1.Pod) color {
 func dumpLogsBackground(ctx context.Context, onFailOnly bool) error {
 	// these are mostly placeholders
 	ps := &podFilter{name: "tmp"}
-	arts := []*v1alpha2.Artifact{{
-		ImageName: "",
-		Workspace: "",
-	}}
-	cp := skube.NewColorPicker(arts)
 	la := &skube.LogAggregator{}
 	if onFailOnly {
-		la = skube.NewLogAggregator(GinkgoWriter, ps, cp)
+		la = skube.NewLogAggregator(GinkgoWriter, []string{""}, ps, []string{""})
 	} else {
-		la = skube.NewLogAggregator(os.Stdout, ps, cp)
+		la = skube.NewLogAggregator(os.Stdout, []string{""}, ps, []string{""})
 	}
 	if err := la.Start(ctx); err != nil {
 		return err

@@ -1,5 +1,13 @@
 {
   "name": "squash.solo.io",
   "version": "v1",
-  "docs_dir": "docs/v1"
+  "docs_dir": "docs/v1",
+  "resource_groups": {
+    "api.squash.solo.io": [
+      {
+        "name": "DebugAttachment",
+        "package": "squash.solo.io"
+      }
+    ]
+  }
 }

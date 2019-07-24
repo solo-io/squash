@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/derekparker/delve/service/rpc1"
+	"github.com/go-delve/delve/service/rpc1"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -95,12 +95,10 @@ func (d *DebugHandler) handleAttachments() error {
 // This implements the syncer interface
 func (d *DebugHandler) Sync(ctx context.Context, snapshot *v1.ApiSnapshot) error {
 	log.Debug("running sync")
-	daMap := snapshot.Debugattachments
-	for _, daList := range daMap {
-		for _, da := range daList {
-			if err := d.syncOne(da); err != nil {
-				return err
-			}
+	daList := snapshot.Debugattachments
+	for _, da := range daList {
+		if err := d.syncOne(da); err != nil {
+			return err
 		}
 	}
 	return nil

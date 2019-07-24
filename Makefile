@@ -39,22 +39,19 @@ preview-computed-values: must
 
 ROOTDIR := $(shell pwd)
 OUTPUT_DIR := $(ROOTDIR)/_output
-DATE = $(shell date '+%Y-%m-%d.%H:%M:%S')
 SRCS=$(shell find ./pkg -name "*.go") $(shell find ./cmd -name "*.go")
 
 # Pass in build-time variables
 LDFLAGS := "-X github.com/solo-io/squash/pkg/version.Version=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.TimeStamp=$(DATE) \
--X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.SquashImageTag=$(VERSION) \
--X github.com/solo-io/squash/pkg/version.ImageRepo=$(CONTAINER_REPO_ORG)"
+	-X github.com/solo-io/squash/pkg/version.ImageVersion=$(VERSION) \
+	-X github.com/solo-io/squash/pkg/version.ImageRepo=$(CONTAINER_REPO_ORG)"
 
 .PHONY: all
 all: must release-binaries containers ## (default) Builds binaries and containers
 
 .PHONY: help
 help:
-	 @echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
+	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sort | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s :)"
 
 #----------------------------------------------------------------------------------
 # Repo setup
@@ -100,7 +97,7 @@ clean:
 generatecode: must
 	mkdir -p $(OUTPUT_DIR)
 	go run cmd/generate-code/main.go
-	rm docs/cli/squashctl*
+	rm -f docs/cli/squashctl*
 	go run cmd/generate-docs/main.go
 	gofmt -w ci cmd pkg test
 	goimports -w ci cmd pkg test
