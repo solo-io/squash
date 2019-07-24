@@ -15,12 +15,11 @@ func main() {
 	customFormatter := new(log.TextFormatter)
 	log.SetFormatter(customFormatter)
 
-	log.Infof("squash started %v, %v", version.Version, version.TimeStamp)
+	log.Infof("squash started %v", version.Version)
 
 	mustGetContainerProcessLocator()
 	err := squash.RunSquash(remote.GetParticularDebugger)
 	log.WithError(err).Fatal("Error running debug bridge")
-
 }
 
 // The debugging pod needs to be able to get a container process

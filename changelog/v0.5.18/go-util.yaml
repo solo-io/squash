@@ -1,3 +1,7 @@
 changelog:
   - type: NON_USER_FACING
     description: Updated go-util for more robust package management
+  - type: FIX
+    description: Updated so builds are stable (sha) and unique for each commit
+    issueLink: https://github.com/solo-io/squash/issues/220
+
