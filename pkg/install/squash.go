@@ -215,13 +215,13 @@ func InstallSquash(cs *kubernetes.Clientset, namespace, containerRepo, container
 	}
 
 	fmt.Printf("Creating clusterRole %v\n", sqOpts.SquashClusterRoleName)
-	_, err = cs.Rbac().ClusterRoles().Create(cr)
+	_, err = cs.RbacV1().ClusterRoles().Create(cr)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	fmt.Printf("Creating clusterRoleBinding %v\n", sqOpts.SquashClusterRoleBindingName)
-	_, err = cs.Rbac().ClusterRoleBindings().Create(crb)
+	_, err = cs.RbacV1().ClusterRoleBindings().Create(crb)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -251,11 +251,11 @@ func cleanupDeployment(cs *kubernetes.Clientset, namespace string) {
 		fmt.Println(err)
 	}
 
-	if err := cs.Rbac().ClusterRoles().Delete(sqOpts.SquashClusterRoleName, delOp); err != nil {
+	if err := cs.RbacV1().ClusterRoles().Delete(sqOpts.SquashClusterRoleName, delOp); err != nil {
 		fmt.Println(err)
 	}
 
-	if err := cs.Rbac().ClusterRoleBindings().Delete(sqOpts.SquashClusterRoleBindingName, delOp); err != nil {
+	if err := cs.RbacV1().ClusterRoleBindings().Delete(sqOpts.SquashClusterRoleBindingName, delOp); err != nil {
 		fmt.Println(err)
 	}
 
