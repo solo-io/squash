@@ -12,9 +12,9 @@ ENV GOPATH /gopath
 ENV GOBIN /gopath/bin
 ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
 
-RUN mkdir -p $GOPATH/src/github.com/derekparker/ && cd  $GOPATH/src/github.com/derekparker/ && git clone https://github.com/derekparker/delve/
-RUN cd $GOPATH/src/github.com/derekparker/delve/ && git checkout v1.1.0
-RUN cd $GOPATH/src/github.com/derekparker/delve/cmd/dlv && go install
+RUN mkdir -p $GOPATH/src/github.com/go-delve/ && cd  $GOPATH/src/github.com/go-delve/ && git clone https://github.com/go-delve/delve/
+RUN cd $GOPATH/src/github.com/go-delve/delve/ && git checkout v1.2.0
+RUN cd $GOPATH/src/github.com/go-delve/delve/cmd/dlv && go install
 
 FROM base
 

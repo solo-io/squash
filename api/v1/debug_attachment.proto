@@ -8,16 +8,16 @@ option (gogoproto.equal_all) = true;
 import "github.com/solo-io/solo-kit/api/v1/metadata.proto";
 import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/solo-kit/api/v1/ref.proto";
+import "github.com/solo-io/solo-kit/api/v1/solo-kit.proto";
 
 /*
-@solo-kit:resource.short_name=debatt
-@solo-kit:resource.plural_name=debugattachments
-@solo-kit:resource.resource_groups=api.squash.solo.io
-
 Attachments store the information needed for squash to coordinate a debugging session
  */
 message DebugAttachment {
   // From solo-kit common
+
+  option (core.solo.io.resource).short_name = "debatt";
+  option (core.solo.io.resource).plural_name = "debugattachments";
 
   core.solo.io.Metadata metadata = 1 [(gogoproto.nullable) = false];
 

@@ -1,0 +1,3 @@
+changelog:
+  - type: NON_USER_FACING
+    description: Updated go-util for more robust package management

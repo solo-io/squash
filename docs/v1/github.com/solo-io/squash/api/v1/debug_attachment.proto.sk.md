@@ -30,7 +30,6 @@ weight: 5
 ### DebugAttachment
 
  
-
 Attachments store the information needed for squash to coordinate a debugging session
 
 ```yaml

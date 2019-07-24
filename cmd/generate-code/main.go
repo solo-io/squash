@@ -1,17 +1,22 @@
 package main
 
 import (
+	"github.com/solo-io/go-utils/log"
 	"github.com/solo-io/solo-kit/pkg/code-generator/cmd"
 	"github.com/solo-io/solo-kit/pkg/code-generator/docgen/options"
-	"github.com/solo-io/solo-kit/pkg/utils/log"
 )
 
 func main() {
 	log.Printf("Starting generate...")
-	docsOpts := cmd.DocsOptions{
-		Output: options.Hugo,
+	opts := cmd.GenerateOptions{
+		CompileProtos: true,
+		RelativeRoot:  ".",
+		GenDocs: &cmd.DocsOptions{
+			Output: options.Hugo,
+		},
+		SkipGenMocks: true,
 	}
-	if err := cmd.Run(".", true, &docsOpts, nil, []string{}); err != nil {
+	if err := cmd.Generate(opts); err != nil {
 		log.Fatalf("generate failed!: %v", err)
 	}
 }

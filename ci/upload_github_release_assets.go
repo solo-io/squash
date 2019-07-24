@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/solo-io/go-utils/githubutils"
-	"github.com/solo-io/go-utils/logger"
+	"github.com/solo-io/go-utils/log"
 	"github.com/solo-io/go-utils/pkgmgmtutils"
 )
 
@@ -53,44 +53,44 @@ func main() {
 			DarwinShaRegex: `url\s*".*-darwin.*\W*sha256\s*"(.*)"`,
 			LinuxShaRegex:  `url\s*".*-linux.*\W*sha256\s*"(.*)"`,
 		},
-		// {
-		// 	Name:            "fish-food/squashctl",
-		// 	FormulaName:     "squashctl",
-		// 	Path:            "Food/squashctl.lua",
-		// 	RepoOwner:       repoOwner,
-		// 	RepoName:        "fish-food",
-		// 	PRRepoOwner:     "fishworks",
-		// 	PRRepoName:      "fish-food",
-		// 	PRBranch:        "master",
-		// 	PRDescription:   "",
-		// 	PRCommitName:    "Solo-io Bot",
-		// 	PRCommitEmail:   "bot@solo.io",
-		// 	VersionRegex:    `version\s*=\s*"([0-9.]+)"`,
-		// 	DarwinShaRegex:  `os\s*=\s*"darwin",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-		// 	LinuxShaRegex:   `os\s*=\s*"linux",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-		// 	WindowsShaRegex: `os\s*=\s*"windows",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
-		// },
+		{
+			Name:            "fish-food/squashctl",
+			FormulaName:     "squashctl",
+			Path:            "Food/squashctl.lua",
+			RepoOwner:       repoOwner,
+			RepoName:        "fish-food",
+			PRRepoOwner:     "fishworks",
+			PRRepoName:      "fish-food",
+			PRBranch:        "master",
+			PRDescription:   "",
+			PRCommitName:    "Solo-io Bot",
+			PRCommitEmail:   "bot@solo.io",
+			VersionRegex:    `version\s*=\s*"([0-9.]+)"`,
+			DarwinShaRegex:  `os\s*=\s*"darwin",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+			LinuxShaRegex:   `os\s*=\s*"linux",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+			WindowsShaRegex: `os\s*=\s*"windows",\W*.*\W*.*\W*.*\W*sha256\s*=\s*"(.*)",`,
+		},
 	}
 
 	// Update package manager install formulas
 	status, err := pkgmgmtutils.UpdateFormulas(repoOwner, repoName, buildDir,
 		`squashctl-(darwin|linux|windows).*\.sha256`, fOpts)
 	if err != nil {
-		logger.Fatalf("Error trying to update package manager formulas. Error was: %s", err.Error())
+		log.Fatalf("Error trying to update package manager formulas. Error was: %s", err.Error())
 	}
 	for _, s := range status {
 		if !s.Updated {
 			if s.Err != nil {
-				logger.Fatalf("Error while trying to update formula %s. Error was: %s", s.Name, s.Err.Error())
+				log.Fatalf("Error while trying to update formula %s. Error was: %s", s.Name, s.Err.Error())
 			} else {
-				logger.Fatalf("Error while trying to update formula %s. Error was nil", s.Name) // Shouldn't happen; really bad if it does
+				log.Fatalf("Error while trying to update formula %s. Error was nil", s.Name) // Shouldn't happen; really bad if it does
 			}
 		}
 		if s.Err != nil {
 			if s.Err == pkgmgmtutils.ErrAlreadyUpdated {
-				logger.Warnf("Formula %s was updated externally, so no updates applied during this release", s.Name)
+				log.Warnf("Formula %s was updated externally, so no updates applied during this release", s.Name)
 			} else {
-				logger.Fatalf("Error updating Formula %s. Error was: %s", s.Name, s.Err.Error())
+				log.Fatalf("Error updating Formula %s. Error was: %s", s.Name, s.Err.Error())
 			}
 		}
 	}

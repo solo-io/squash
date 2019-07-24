@@ -10,9 +10,9 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 
+	"github.com/solo-io/go-utils/errutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/errors"
-	"github.com/solo-io/solo-kit/pkg/utils/errutils"
 )
 
 var (
@@ -140,6 +140,7 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			sentSnapshot := currentSnapshot.Clone()
 			snapshots <- &sentSnapshot
 		}
+		debugattachmentsByNamespace := make(map[string]DebugAttachmentList)
 
 		for {
 			record := func() { stats.Record(ctx, mApiSnapshotIn.M(1)) }
@@ -159,9 +160,14 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 				record()
 
 				namespace := debugAttachmentNamespacedList.namespace
-				debugAttachmentList := debugAttachmentNamespacedList.list
 
-				currentSnapshot.Debugattachments[namespace] = debugAttachmentList
+				// merge lists by namespace
+				debugattachmentsByNamespace[namespace] = debugAttachmentNamespacedList.list
+				var debugAttachmentList DebugAttachmentList
+				for _, debugattachments := range debugattachmentsByNamespace {
+					debugAttachmentList = append(debugAttachmentList, debugattachments...)
+				}
+				currentSnapshot.Debugattachments = debugAttachmentList.Sort()
 			}
 		}
 	}()
