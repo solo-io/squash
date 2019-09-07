@@ -9,5 +9,6 @@ changelog:
     dependencyTag: v0.10.10
     description: Update solo-kit to version v0.10.10.
     type: DEPENDENCY_BUMP
-
-
+  - type: FIX
+    description: Fix timing issue to allow local dlv to connect to server.
+    issueLink: https://github:com/solo-io/squash/issues/237
