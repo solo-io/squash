@@ -196,7 +196,7 @@ func (s *Squash) connectUser(da *squashv1.DebugAttachment, remoteDbgPort int) er
 	}
 
 	dbgCmd := debugger.GetDebugCmd(s.LocalPort)
-	return s.callLocalDebuggerCommand(dbgCmd)
+	return dbgCmd.Run()
 }
 
 func (s *Squash) printEditorExtensionData(remoteDbgPort int) error {
