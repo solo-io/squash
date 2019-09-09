@@ -43,7 +43,7 @@ steps:
   waitFor: ['dep']
 
 - name: gcr.io/cloud-builders/gcloud
-  args: ['container', 'clusters', 'get-credentials', 'test-cluster']
+  args: ['container', 'clusters', 'get-credentials', 'squash-test']
   id: 'get-creds'
   waitFor: ['set-zone']
 
@@ -84,7 +84,7 @@ steps:
   - 'PROJECT_ROOT=github.com/solo-io/squash'
   - 'GOPATH=/workspace/gopath'
   - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
-  - 'CLOUDSDK_CONTAINER_CLUSTER=test-cluster'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=squash-test'
   - 'RUN_KUBE_TESTS=1'
   - 'TAGGED_VERSION=$TAG_NAME'
   - 'BUILD_ID=$BUILD_ID'

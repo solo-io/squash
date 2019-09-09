@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	mApiSnapshotIn  = stats.Int64("api.squash.solo.io/snap_emitter/snap_in", "The number of snapshots in", "1")
-	mApiSnapshotOut = stats.Int64("api.squash.solo.io/snap_emitter/snap_out", "The number of snapshots out", "1")
+	mApiSnapshotIn     = stats.Int64("api.squash.solo.io/snap_emitter/snap_in", "The number of snapshots in", "1")
+	mApiSnapshotOut    = stats.Int64("api.squash.solo.io/snap_emitter/snap_out", "The number of snapshots out", "1")
+	mApiSnapshotMissed = stats.Int64("api.squash.solo.io/snap_emitter/snap_missed", "The number of snapshots missed", "1")
 
 	apisnapshotInView = &view.View{
 		Name:        "api.squash.solo.io_snap_emitter/snap_in",
@@ -33,10 +34,17 @@ var (
 		Aggregation: view.Count(),
 		TagKeys:     []tag.Key{},
 	}
+	apisnapshotMissedView = &view.View{
+		Name:        "api.squash.solo.io/snap_emitter/snap_missed",
+		Measure:     mApiSnapshotMissed,
+		Description: "The number of snapshots updates going missed. this can happen in heavy load. missed snapshot will be re-tried after a second.",
+		Aggregation: view.Count(),
+		TagKeys:     []tag.Key{},
+	}
 )
 
 func init() {
-	view.Register(apisnapshotInView, apisnapshotOutView)
+	view.Register(apisnapshotInView, apisnapshotOutView, apisnapshotMissedView)
 }
 
 type ApiEmitter interface {
@@ -95,8 +103,19 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 	}
 	debugAttachmentChan := make(chan debugAttachmentListWithNamespace)
 
+	var initialDebugAttachmentList DebugAttachmentList
+
+	currentSnapshot := ApiSnapshot{}
+
 	for _, namespace := range watchNamespaces {
 		/* Setup namespaced watch for DebugAttachment */
+		{
+			debugattachments, err := c.debugAttachment.List(namespace, clients.ListOpts{Ctx: opts.Ctx, Selector: opts.Selector})
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "initial DebugAttachment list")
+			}
+			initialDebugAttachmentList = append(initialDebugAttachmentList, debugattachments...)
+		}
 		debugAttachmentNamespacesChan, debugAttachmentErrs, err := c.debugAttachment.Watch(namespace, opts)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "starting DebugAttachment watch")
@@ -124,21 +143,31 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			}
 		}(namespace)
 	}
+	/* Initialize snapshot for Debugattachments */
+	currentSnapshot.Debugattachments = initialDebugAttachmentList.Sort()
 
 	snapshots := make(chan *ApiSnapshot)
 	go func() {
-		originalSnapshot := ApiSnapshot{}
-		currentSnapshot := originalSnapshot.Clone()
+		// sent initial snapshot to kick off the watch
+		initialSnapshot := currentSnapshot.Clone()
+		snapshots <- &initialSnapshot
+
 		timer := time.NewTicker(time.Second * 1)
+		var previousHash uint64
 		sync := func() {
-			if originalSnapshot.Hash() == currentSnapshot.Hash() {
+			currentHash := currentSnapshot.Hash()
+			if previousHash == currentHash {
 				return
 			}
 
-			stats.Record(ctx, mApiSnapshotOut.M(1))
-			originalSnapshot = currentSnapshot.Clone()
 			sentSnapshot := currentSnapshot.Clone()
-			snapshots <- &sentSnapshot
+			select {
+			case snapshots <- &sentSnapshot:
+				stats.Record(ctx, mApiSnapshotOut.M(1))
+				previousHash = currentHash
+			default:
+				stats.Record(ctx, mApiSnapshotMissed.M(1))
+			}
 		}
 		debugattachmentsByNamespace := make(map[string]DebugAttachmentList)
 

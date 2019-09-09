@@ -22,6 +22,14 @@
 
 
 [[constraint]]
+  version = "1.3.0"
+  name = "github.com/gogo/protobuf"
+
+[[override]]
+  version = "1.3.1"
+  name = "github.com/golang/protobuf"
+
+[[constraint]]
   branch = "master"
   name = "github.com/spf13/cobra"
 
@@ -31,7 +39,7 @@
 
 [[constraint]]
   name = "github.com/go-delve/delve"
-  version = "1.2.0"
+  version = "1.3.0"
 
 [[constraint]]
   name = "github.com/davecgh/go-spew"
@@ -55,11 +63,11 @@
 
 [[constraint]]
   name = "github.com/solo-io/solo-kit"
-  version = "0.10.0"
+  version = "0.10.10"
 
 [[constraint]]
   name = "github.com/solo-io/go-utils"
-  version = "0.9.10"
+  version = "0.9.17"
 
 [[constraint]]
   name = "github.com/solo-io/build"
@@ -76,11 +84,6 @@
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
-
-[[override]]
-  name = "github.com/lyft/protoc-gen-validate"
-  version = "0.0.6"
-  source = "github.com/envoyproxy/protoc-gen-validate"
 
 # make sure all kubernetes code is the same version.
 # when updating, update all in the same time.
