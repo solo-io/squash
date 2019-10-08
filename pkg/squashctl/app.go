@@ -193,10 +193,6 @@ func (o *Options) runBaseCommandWithRbac() error {
 		return err
 	}
 
-	if err := o.createPlankPermissions(); err != nil {
-		return err
-	}
-
 	if err := o.writeDebugAttachment(); err != nil {
 		return err
 	}
