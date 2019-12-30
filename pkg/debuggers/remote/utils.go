@@ -44,6 +44,10 @@ func GetPortOfJavaProcess(pid int) (int, error) {
 		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get command line arguments")
 		return 0, err
 	}
+	ss := strings.Split(strings.Replace(os.Getenv("JAVA_TOOL_OPTIONS"), "\x00", " ", -1), " ")
+	for i := range ss {
+		args = append(args,ss[i])
+	}
 
 	// Examples:
 	// java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=4000,suspend=n HelloWorld
