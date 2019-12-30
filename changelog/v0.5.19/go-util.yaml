@@ -12,6 +12,3 @@ changelog:
   - type: FIX
     description: Fix timing issue to allow local dlv to connect to server.
     issueLink: https://github:com/solo-io/squash/issues/237
-  - type: FIX
-    description: Support for environment variables for java and go
-    issueLink: https://github:com/solo-io/squash/issues/245

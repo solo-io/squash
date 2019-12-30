@@ -44,10 +44,10 @@ func GetPortOfJavaProcess(pid int, env map[string]string) (int, error) {
 		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get command line arguments")
 		return 0, err
 	}
-	s, ok := env["JAVA_TOOL_OPTIONS"]
+	envArgs, ok := env["JAVA_TOOL_OPTIONS"]
 	if ok {
-		s = strings.Replace(s, "\x00", " ", -1)
-		ss := strings.Split(s, " ")
+		envArgs = strings.Replace(envArgs, "\x00", " ", -1)
+		ss := strings.Split(envArgs, " ")
 		for i := range ss {
 			args = append(args, ss[i])
 		}
@@ -69,7 +69,7 @@ func GetPortOfJavaProcess(pid int, env map[string]string) (int, error) {
 		}
 	}
 	if port == 0 {
-		err = fmt.Errorf("can't find port in java command line arguments for PID: %d, args : %v or env : %v", pid, args, s)
+		err = fmt.Errorf("can't find port in java command line arguments for PID: %d, args : %v or env : %v", pid, args, envArgs)
 	}
 
 	return port, err

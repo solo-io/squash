@@ -1,0 +1,4 @@
+changelog:
+  - type: FIX
+    description: Support for environment variables for java and go
+    issueLink: https://github:com/solo-io/squash/issues/245
