@@ -3,6 +3,7 @@ package remote
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -40,6 +41,13 @@ func GetPort(pid int) (int, error) {
 func GetPortOfJavaProcess(pid int) (int, error) {
 
 	args, err := utils.GetCmdArgsByPid(pid)
+	s := os.Getenv("JAVA_TOOL_OPTIONS")
+	s = strings.Replace(s, "\x00", " ", -1)
+	ss := strings.Split(s, " ")
+	for i := range ss {
+		args = append(args,ss[i])
+	}
+
 	if err != nil {
 		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get command line arguments")
 		return 0, err
@@ -53,7 +61,7 @@ func GetPortOfJavaProcess(pid int) (int, error) {
 	for _, arg := range args {
 		port, err = checkAndParseArgument(arg)
 		if err != nil {
-			log.WithFields(log.Fields{"pid": pid, "err": err, "arg": arg}).Error("Can't get command line arguments")
+			log.WithFields(log.Fields{"pid": pid, "err": err, "i": arg}).Error("Can't get command line arguments")
 			break
 		}
 		if port != 0 {
@@ -61,7 +69,7 @@ func GetPortOfJavaProcess(pid int) (int, error) {
 		}
 	}
 	if port == 0 {
-		err = fmt.Errorf("Can't find port in java command line arguments for PID: %d, args: %v", pid, args)
+		err = fmt.Errorf("Can't find port in java command line arguments for PID: %d, args : %v or env : %v", pid, args, s)
 	}
 
 	return port, err
