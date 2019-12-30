@@ -1,8 +1,6 @@
 package kubernetes
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -184,18 +182,16 @@ func getEnv(cli criapi.RuntimeService, containerid string) (map[string]string, e
 		log.WithField("err", err).Warn("Error exec sync to get environment variables!")
 		return envVariables, err
 	}
-	scanner := bufio.NewScanner(bytes.NewReader(stdout))
-	for scanner.Scan() {
-		line := scanner.Text()
-		ix := strings.IndexByte(line, '=')
-		if ix != -1 {
-			envVariables[line[:ix-1]] = line[ix+1:]
+	vars := strings.Split(string(stdout), "\n")
+	for _, line := range vars {
+		if strings.HasPrefix(line, "JAVA_") || strings.HasPrefix(line, "GO_") {
+			ix := strings.IndexByte(line, '=')
+			if ix != -1 {
+				envVariables[line[:ix]] = line[ix+1:]
+			}
 		}
 	}
-
-	if scanner.Err() != nil {
-		log.WithField("err", scanner.Err()).Warn("Error in reading printenv!")
-	}
+	log.WithField("inpod", spew.Sdump(envVariables)).Debug("Loaded environment variables")
 
 	return envVariables, err
 }

@@ -69,7 +69,7 @@ func GetPortOfJavaProcess(pid int, env map[string]string) (int, error) {
 		}
 	}
 	if port == 0 {
-		err = fmt.Errorf("Can't find port in java command line arguments for PID: %d, args : %v or env : %v", pid, args, s)
+		err = fmt.Errorf("can't find port in java command line arguments for PID: %d, args : %v or env : %v", pid, args, s)
 	}
 
 	return port, err
