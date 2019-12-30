@@ -1,11 +1,14 @@
 package kubernetes
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -139,7 +142,14 @@ func (c *CRIContainerProcess) GetContainerInfoKube(maincontext context.Context, 
 	}
 
 	log.WithField("potentialpids", potentialpids).Info("found some pids")
-	return &platforms.ContainerInfo{Pids: potentialpids, Name: fmt.Sprintf("%s.%s", ka.Pod, ka.Namespace)}, nil
+
+	envVariables, err := getEnv(runtimeService, containerid)
+	if err != nil {
+		log.WithField("err", err).Warn("FindEnv error")
+		return nil, err
+	}
+
+	return &platforms.ContainerInfo{Pids: potentialpids, Name: fmt.Sprintf("%s.%s", ka.Pod, ka.Namespace), Env: envVariables}, nil
 }
 
 func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, containerid string) (uint64, error) {
@@ -164,4 +174,28 @@ func getNS(origctx context.Context, cli criapi.RuntimeService, ns string, contai
 
 	inod, err := strconv.ParseInt(matches[1], 10, 0)
 	return uint64(inod), err
+}
+
+func getEnv(cli criapi.RuntimeService, containerid string) (map[string]string, error) {
+	cmd := []string{"printenv"}
+	envVariables := make(map[string]string)
+	stdout, _, err := cli.ExecSync(containerid, cmd, time.Second)
+	if err != nil {
+		log.WithField("err", err).Warn("Error exec sync to get environment variables!")
+		return envVariables, err
+	}
+	scanner := bufio.NewScanner(bytes.NewReader(stdout))
+	for scanner.Scan() {
+		line := scanner.Text()
+		ix := strings.IndexByte(line, '=')
+		if ix != -1 {
+			envVariables[line[:ix-1]] = line[ix+1:]
+		}
+	}
+
+	if scanner.Err() != nil {
+		log.WithField("err", scanner.Err()).Warn("Error in reading printenv!")
+	}
+
+	return envVariables, err
 }

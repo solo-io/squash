@@ -43,7 +43,7 @@ func Debug(ctx context.Context) error {
 	}
 	fmt.Println("about to serve")
 
-	return startDebugging(cfg, pid)
+	return startDebugging(cfg, pid, info.Env)
 }
 
 func getPid(da *v1.DebugAttachment, info *platforms.ContainerInfo) (int, error) {

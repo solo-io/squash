@@ -15,10 +15,10 @@ import (
 	"github.com/solo-io/squash/pkg/utils"
 )
 
-func startDebugging(cfg *Config, pid int) error {
+func startDebugging(cfg *Config, pid int, env map[string]string) error {
 
 	particularDebugger := remote.GetParticularDebugger(cfg.Attachment.Debugger)
-	dbgServer, err := particularDebugger.Attach(pid)
+	dbgServer, err := particularDebugger.Attach(pid, env)
 	if err != nil {
 		return err
 	}

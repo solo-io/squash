@@ -3,7 +3,6 @@ package remote
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -38,19 +37,20 @@ func GetPort(pid int) (int, error) {
 	return port, nil
 }
 
-func GetPortOfJavaProcess(pid int) (int, error) {
+func GetPortOfJavaProcess(pid int, env map[string]string) (int, error) {
 
 	args, err := utils.GetCmdArgsByPid(pid)
-	s := os.Getenv("JAVA_TOOL_OPTIONS")
-	s = strings.Replace(s, "\x00", " ", -1)
-	ss := strings.Split(s, " ")
-	for i := range ss {
-		args = append(args,ss[i])
-	}
-
 	if err != nil {
 		log.WithFields(log.Fields{"pid": pid, "err": err}).Error("Can't get command line arguments")
 		return 0, err
+	}
+	s, ok := env["JAVA_TOOL_OPTIONS"]
+	if ok {
+		s = strings.Replace(s, "\x00", " ", -1)
+		ss := strings.Split(s, " ")
+		for i := range ss {
+			args = append(args, ss[i])
+		}
 	}
 
 	// Examples:

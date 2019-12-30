@@ -10,6 +10,7 @@ type JavaInterface struct{}
 
 type javaDebugServer struct {
 	port int
+	env  map[string]string
 }
 
 func (g *javaDebugServer) Detach() error {
@@ -28,17 +29,17 @@ func (d *javaDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (g *JavaInterface) Attach(pid int) (DebugServer, error) {
+func (g *JavaInterface) Attach(pid int, env map[string]string) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
-	port, err := GetPortOfJavaProcess(pid)
+	port, err := GetPortOfJavaProcess(pid, env)
 	if err != nil {
 		log.WithField("err", err).Error("can't get java debug port")
 		return nil, err
 	}
 
 	gds := &javaDebugServer{
-		port: port,
+		port: port, env: env,
 	}
 	return gds, nil
 }

@@ -26,6 +26,7 @@ type ContainerLocator interface {
 type ContainerInfo struct {
 	Pids []int
 	Name string
+	Env  map[string]string
 }
 
 /// Get the information of a process that runs in the container. the pid should be in our pid namespace,

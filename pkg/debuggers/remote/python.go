@@ -43,7 +43,7 @@ func (d *ptvsdDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (i *PythonInterface) Attach(pid int) (DebugServer, error) {
+func (i *PythonInterface) Attach(pid int, env map[string]string) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	port, err := getPtvsdPort(pid)

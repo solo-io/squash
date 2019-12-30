@@ -29,5 +29,5 @@ type DebugServer interface {
 type Remote interface {
 
 	/// Attach a debugger to pid and return the a debug server object
-	Attach(pid int) (DebugServer, error)
+	Attach(pid int, env map[string]string) (DebugServer, error)
 }

@@ -72,14 +72,6 @@
   version = "v1.0.10"
 
 [[projects]]
-  digest = "1:385dff5bf83bf1c9d40ef2b0f2e697f0d1973fc9e24ae9401cf41698612bbebc"
-  name = "github.com/creack/pty"
-  packages = ["."]
-  pruneopts = ""
-  revision = "2769f65a3a94eb8f876f44a0459d24ae7ad2e488"
-  version = "v1.1.7"
-
-[[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -1654,7 +1646,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/GoogleContainerTools/skaffold/pkg/skaffold/kubernetes",
-    "github.com/creack/pty",
     "github.com/davecgh/go-spew/spew",
     "github.com/go-delve/delve/service/rpc1",
     "github.com/gogo/protobuf/gogoproto",
@@ -1708,7 +1699,6 @@
     "go.opencensus.io/tag",
     "go.opencensus.io/trace",
     "go.uber.org/zap",
-    "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
     "google.golang.org/grpc",
     "gopkg.in/AlecAivazis/survey.v1",

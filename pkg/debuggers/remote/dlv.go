@@ -55,7 +55,7 @@ func (d *DLV) attachTo(pid int) (*DLVLiveDebugSession, error) {
 	return dls, nil
 }
 
-func (d *DLV) Attach(pid int) (DebugServer, error) {
+func (d *DLV) Attach(pid int, env map[string]string) (DebugServer, error) {
 	return d.attachTo(pid)
 }
 

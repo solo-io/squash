@@ -38,7 +38,7 @@ func (d *nodejsDebugServer) Cmd() *exec.Cmd {
 	return nil
 }
 
-func (g *nodejsDebugServer) Attach(pid int) (DebugServer, error) {
+func (g *nodejsDebugServer) Attach(pid int, env map[string]string) (DebugServer, error) {
 
 	log.WithField("pid", pid).Debug("AttachToLiveSession called")
 	err := syscall.Kill(pid, syscall.SIGUSR1)
