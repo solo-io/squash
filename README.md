@@ -10,7 +10,7 @@
 
 [**Installation**](https://squash.solo.io/overview/) &nbsp; |
 &nbsp; [**Documentation**](https://squash.solo.io) &nbsp; |
-&nbsp; [**Blog**](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) &nbsp; |
+&nbsp; [**Blog**](https://www.solo.io/blog/squash-microservices-debugger/) &nbsp; |
 &nbsp; [**Slack**](https://slack.solo.io) &nbsp; |
 &nbsp; [**Twitter**](https://twitter.com/soloio_inc)
 
@@ -24,7 +24,7 @@ Squash brings the power of modern debuggers to developers of microservice apps. 
 Squash is built to be easily extensible. It is easy to add support for more languages, debuggers and IDEs.
 
 
-To learn more about the motivation behind project squash, read our blog [post](https://medium.com/solo-io/squash-microservices-debugger-5023e27533de) or [watch](https://www.infoq.com/presentations/squash-microservices-container) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://medium.com/solo-io/technical-introduction-to-squash-399e0c0c54b).
+To learn more about the motivation behind project squash, read our blog [post](https://www.solo.io/blog/squash-microservices-debugger/) or [watch](https://youtu.be/jkcFFr8lLTA) session ([slides](https://www.slideshare.net/IditLevine/debugging-microservices-qcon-2017)). We also encourage you to read squash technical overview [blog](https://www.solo.io/blog/technical-introduction-to-squash/).
 
 To stay up-to-date with Squash, follow us [@soloio_inc](https://twitter.com/soloio_inc) and join us on our [slack channel](http://slack.solo.io).
 
