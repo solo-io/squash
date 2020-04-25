@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM alpine:3.11.6
 
 COPY service2ise /service2ise
 
