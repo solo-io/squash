@@ -360,10 +360,10 @@ type isPortSpec_PortLocation interface {
 }
 
 type PortSpec_Plank struct {
-	Plank string `protobuf:"bytes,1,opt,name=plank,proto3,oneof"`
+	Plank string `protobuf:"bytes,1,opt,name=plank,proto3,oneof" json:"plank,omitempty"`
 }
 type PortSpec_Target struct {
-	Target string `protobuf:"bytes,2,opt,name=target,proto3,oneof"`
+	Target string `protobuf:"bytes,2,opt,name=target,proto3,oneof" json:"target,omitempty"`
 }
 
 func (*PortSpec_Plank) isPortSpec_PortLocation()  {}
