@@ -27,7 +27,7 @@ def label = UUID.randomUUID().toString()
       // TODO: add the go dep's cache as a persistent volume to save time.
       stage('Vendor dependencies') {
         container('go') {
-          sh 'cd /go/src/github.com/solo-io/squash/;dep ensure'          
+          sh 'cd /go/src/github.com/solo-io/squash/;GO111MODULE=on go mod download'
         }
       }
       stage('Build squash binaries') {

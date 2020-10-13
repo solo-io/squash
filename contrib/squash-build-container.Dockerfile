@@ -1,7 +1,6 @@
-FROM golang:1.9.2-stretch
+FROM golang:1.14.9-stretch
 
-# get dep vendoring tool
-RUN go get -u github.com/golang/dep/cmd/dep
+ENV GO111MODULE on
 
 # Generate dep's cache. this is mainly to save time. so doesn't have to use
 # any specific version..
@@ -9,5 +8,5 @@ RUN mkdir -p $GOPATH/src/github.com/solo-io && \
     cd $GOPATH/src/github.com/solo-io && \
     git clone https://github.com/solo-io/squash && \
     cd $GOPATH/src/github.com/solo-io/squash && \
-    dep ensure && \
+    go mod download && \
     rm -rf $GOPATH/src/github.com/solo-io

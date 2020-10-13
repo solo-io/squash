@@ -1,11 +1,11 @@
-FROM golang:1.12.6-stretch as builder
+FROM golang:1.14.9-stretch  as builder
 
-RUN mkdir -p /tmp/go && cd /tmp/go && git clone https://github.com/go-delve/delve/
-RUN cd /tmp/go/delve/ && git checkout v1.2.0
-RUN cd /tmp/go/delve/cmd/dlv && go install
+ENV GO111MODULE on
+
+RUN go get github.com/go-delve/delve/cmd/dlv@v1.5.0
 
 
-FROM golang:1.12.6-stretch
+FROM golang:1.14.9-stretch  
 
 COPY --from=builder $GOPATH/bin/dlv $GOPATH/bin/
 
