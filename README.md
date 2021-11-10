@@ -73,7 +73,7 @@ Please visit [squash.solo.io](https://squash.solo.io) for documentation.
 
 ## Roadmap:
 **Service Mesh**
-  - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
+  - Squash integrates with [Envoy](https://www.envoyproxy.io). Read about the Squash HTTP filter, now part of Envoy [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/squash_filter.html). This allows Squash to open debug sessions as a request flows through a microservice. Support for Istio will be added in 2019.
 
 **Debuggers**
  - We will be adding support to several additional debuggers in early 2019, including gdb, nodejs, and python.
