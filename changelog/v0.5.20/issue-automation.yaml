@@ -1,0 +1,5 @@
+changelog:
+  - type: NON_USER_FACING
+    description: Add issue template (so all issues get labels) and automation to add issues to team boards.
+    issueLink: https://github.com/solo-io/gloo/issues/6305
+    resolvesIssue: false
